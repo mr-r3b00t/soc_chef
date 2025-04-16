@@ -35,11 +35,25 @@
     <title>DIAMOND Model Cyber Threat Intelligence</title>
     <!-- Favicon to suppress favicon.ico error -->
     <link rel="icon" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAACYSURBVDhPtY7BDYAwDAM7BPa97yHUC6hmoIzgYvT7J1BRUM7wO3wBB2ABW4Al7ABh6gVUgDXsAF3qBVSANewAXeoFVIA17ABd6gVUgDXsAF3qBVSANewAXeoFVIA17ABd6gVUgDXsAF3qBVSANewAXeoFVIA17ABd6gVUgDXsAF3qBVSANewAXeoFVIA17ABd6gVUgDXsAF3qBVSANewA3eoFVP6mO94AAAAASUVORK5CYII=">
-    <!-- Tailwind CSS CDN (Note: For production, install Tailwind as a PostCSS plugin or use Tailwind CLI: https://tailwindcss.com/docs/installation) -->
+    <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- html2canvas for JPG export -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <!-- SheetJS for Excel export -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <style>
         body { margin: 0; overflow: hidden; background: #111827; }
-        #canvas-container { position: absolute; top: 0; left: 0; width: calc(100% - 400px); height: 100%; display: flex; justify-content: center; align-items: center; }
+        #canvas-container {
+            position: relative;
+            top: 0;
+            left: 0;
+            width: calc(100% - 400px);
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background-color: #111827;
+        }
         #sidebar {
             position: absolute;
             top: 0;
@@ -76,11 +90,46 @@
         }
         .sidebar-hidden { right: -400px !important; }
         .button-hidden { right: 0 !important; }
-        .diamond-label { fill: white; font-size: 16px; font-weight: bold; text-shadow: 0 0 5px rgba(0, 255, 255, 0.5); }
-        .diamond-sub-label { fill: white; font-size: 14px; }
+        .diamond-label {
+            fill: white;
+            font-size: 16px;
+            font-weight: bold;
+            filter: drop-shadow(0 0 2px rgba(0, 255, 255, 0.5));
+            font-family: sans-serif;
+        }
+        .diamond-sub-label {
+            fill: white;
+            font-size: 14px;
+            font-family: sans-serif;
+        }
     </style>
 </head>
 <body>
+    <script type="text/javascript">
+        var gk_isXlsx = false;
+        var gk_xlsxFileLookup = {};
+        var gk_fileData = {};
+        function loadFileData(filename) {
+            if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
+                try {
+                    var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
+                    var firstSheetName = workbook.SheetNames[0];
+                    var worksheet = workbook.Sheets[firstSheetName];
+                    var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
+                    var filteredData = jsonData.filter(row =>
+                        row.some(cell => cell !== '' && cell !== null && cell !== undefined)
+                    );
+                    var csv = XLSX.utils.aoa_to_sheet(filteredData);
+                    csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
+                    return csv;
+                } catch (e) {
+                    console.error(e);
+                    return "";
+                }
+            }
+            return gk_fileData[filename] || "";
+        }
+    </script>
     <div id="canvas-container">
         <svg id="diamond-svg" width="600" height="600" viewBox="0 0 600 600">
             <!-- Diamond shape -->
@@ -100,37 +149,35 @@
             <div class="mb-6">
                 <h2 class="text-lg font-semibold mb-2 text-white">Adversary</h2>
                 <input id="adversary-name" type="text" placeholder="Name" class="w-full p-2 mb-2 bg-gray-700 rounded text-white" maxlength="50">
-                <textarea id="adversary-desc" placeholder="Description" class="w-full p-2 bg-gray-700 rounded text-white" maxlength="200"></textarea>
                 <button onclick="addAdversary()" class="mt-2 w-full bg-cyan-500 hover:bg-cyan-600 text-white p-2 rounded">Add Adversary</button>
             </div>
             <div class="mb-6">
                 <h2 class="text-lg font-semibold mb-2 text-white">Infrastructure</h2>
                 <input id="infra-name" type="text" placeholder="Name" class="w-full p-2 mb-2 bg-gray-700 rounded text-white" maxlength="50">
-                <textarea id="infra-desc" placeholder="Description" class="w-full p-2 bg-gray-700 rounded text-white" maxlength="200"></textarea>
                 <button onclick="addInfrastructure()" class="mt-2 w-full bg-cyan-500 hover:bg-cyan-600 text-white p-2 rounded">Add Infrastructure</button>
             </div>
             <div class="mb-6">
                 <h2 class="text-lg font-semibold mb-2 text-white">Capability</h2>
                 <input id="capability-name" type="text" placeholder="Name" class="w-full p-2 mb-2 bg-gray-700 rounded text-white" maxlength="50">
-                <textarea id="capability-desc" placeholder="Description" class="w-full p-2 bg-gray-700 rounded text-white" maxlength="200"></textarea>
                 <button onclick="addCapability()" class="mt-2 w-full bg-cyan-500 hover:bg-cyan-600 text-white p-2 rounded">Add Capability</button>
             </div>
             <div class="mb-6">
                 <h2 class="text-lg font-semibold mb-2 text-white">Victim</h2>
                 <input id="victim-name" type="text" placeholder="Name" class="w-full p-2 mb-2 bg-gray-700 rounded text-white" maxlength="50">
-                <textarea id="victim-desc" placeholder="Description" class="w-full p-2 bg-gray-700 rounded text-white" maxlength="200"></textarea>
                 <button onclick="addVictim()" class="mt-2 w-full bg-cyan-500 hover:bg-cyan-600 text-white p-2 rounded">Add Victim</button>
             </div>
         </div>
         <div id="model-data" class="mt-6">
             <h2 class="text-lg font-semibold mb-2 text-white">Current Model</h2>
+            <button onclick="exportToJPG()" class="mb-2 w-full bg-cyan-500 hover:bg-cyan-600 text-white p-2 rounded">Export to JPG</button>
+            <button onclick="exportToExcel()" class="mb-2 w-full bg-cyan-500 hover:bg-cyan-600 text-white p-2 rounded">Export to Excel</button>
             <button onclick="clearModel()" class="mb-4 w-full bg-red-500 hover:bg-red-600 text-white p-2 rounded">Clear Model</button>
             <ul id="model-list" class="space-y-2"></ul>
         </div>
     </div>
 
     <script>
-        const modelData = { adversary: [], infrastructures: [], capabilities: [], victims: [] };
+        const modelData = { adversarys: [], infrastructures: [], capabilities: [], victims: [] };
         let sidebarVisible = false;
 
         function wrapText(text, maxWidth, fontSize) {
@@ -141,7 +188,7 @@
             const canvas = document.createElement('canvas');
             const ctx = canvas.getContext('2d');
             if (!ctx) return [text];
-            ctx.font = `${fontSize}px Arial`;
+            ctx.font = `${fontSize}px sans-serif`;
             words.forEach(word => {
                 const testLine = currentLine ? `${currentLine} ${word}` : word;
                 const width = ctx.measureText(testLine).width;
@@ -156,8 +203,16 @@
             return lines.length > 0 ? lines : [''];
         }
 
-        function validateInput(name, desc) {
-            return name.trim().length > 0 && name.length <= 50 && desc.length <= 200;
+        function validateInput(name) {
+            if (name.trim().length === 0) {
+                alert('Name cannot be empty.');
+                return false;
+            }
+            if (name.length > 50) {
+                alert('Name cannot exceed 50 characters.');
+                return false;
+            }
+            return true;
         }
 
         function updateModelList() {
@@ -171,9 +226,7 @@
                     const title = document.createElement('strong');
                     title.textContent = `${type.charAt(0).toUpperCase() + type.slice(1, -1)}: `;
                     const name = document.createTextNode(item.name);
-                    const br = document.createElement('br');
-                    const desc = document.createTextNode(item.desc);
-                    content.append(title, name, br, desc);
+                    content.append(title, name);
                     const removeButton = document.createElement('button');
                     removeButton.textContent = 'Remove';
                     removeButton.className = 'bg-red-500 hover:bg-red-600 text-white text-sm px-2 py-1 rounded';
@@ -185,10 +238,10 @@
         }
 
         function addAdversary() {
-            const name = document.getElementById('adversary-name').value.trim() || `Adversary-${modelData.adversary.length + 1}`;
-            const desc = document.getElementById('adversary-desc').value.trim();
-            if (!validateInput(name, desc) || modelData.adversary.length >= 5) return;
-            modelData.adversary.push({ name, desc });
+            const name = document.getElementById('adversary-name').value.trim() || `Adversary-${modelData.adversarys.length + 1}`;
+            if (!validateInput(name) || modelData.adversarys.length >= 5) return;
+            if (!modelData.adversarys) modelData.adversarys = [];
+            modelData.adversarys.push({ name });
             updateDiagram();
             updateModelList();
             clearInputs('adversary');
@@ -196,9 +249,9 @@
 
         function addInfrastructure() {
             const name = document.getElementById('infra-name').value.trim() || `Infrastructure-${modelData.infrastructures.length + 1}`;
-            const desc = document.getElementById('infra-desc').value.trim();
-            if (!validateInput(name, desc) || modelData.infrastructures.length >= 5) return;
-            modelData.infrastructures.push({ name, desc });
+            if (!validateInput(name) || modelData.infrastructures.length >= 5) return;
+            if (!modelData.infrastructures) modelData.infrastructures = [];
+            modelData.infrastructures.push({ name });
             updateDiagram();
             updateModelList();
             clearInputs('infra');
@@ -206,9 +259,9 @@
 
         function addCapability() {
             const name = document.getElementById('capability-name').value.trim() || `Capability-${modelData.capabilities.length + 1}`;
-            const desc = document.getElementById('capability-desc').value.trim();
-            if (!validateInput(name, desc) || modelData.capabilities.length >= 5) return;
-            modelData.capabilities.push({ name, desc });
+            if (!validateInput(name) || modelData.capabilities.length >= 5) return;
+            if (!modelData.capabilities) modelData.capabilities = [];
+            modelData.capabilities.push({ name });
             updateDiagram();
             updateModelList();
             clearInputs('capability');
@@ -216,27 +269,28 @@
 
         function addVictim() {
             const name = document.getElementById('victim-name').value.trim() || `Victim-${modelData.victims.length + 1}`;
-            const desc = document.getElementById('victim-desc').value.trim();
-            if (!validateInput(name, desc) || modelData.victims.length >= 5) return;
-            modelData.victims.push({ name, desc });
+            if (!validateInput(name) || modelData.victims.length >= 5) return;
+            if (!modelData.victims) modelData.victims = [];
+            modelData.victims.push({ name });
             updateDiagram();
             updateModelList();
             clearInputs('victim');
         }
 
         function removeEntry(type, index) {
-            modelData[type].splice(index, 1);
-            updateDiagram();
-            updateModelList();
+            if (modelData[type]) {
+                modelData[type].splice(index, 1);
+                updateDiagram();
+                updateModelList();
+            }
         }
 
         function clearInputs(prefix) {
             document.getElementById(`${prefix}-name`).value = '';
-            document.getElementById(`${prefix}-desc`).value = '';
         }
 
         function clearModel() {
-            modelData.adversary = [];
+            modelData.adversarys = [];
             modelData.infrastructures = [];
             modelData.capabilities = [];
             modelData.victims = [];
@@ -244,96 +298,143 @@
             updateModelList();
         }
 
+        function exportToJPG() {
+            const container = document.getElementById('canvas-container');
+            html2canvas(container, { width: 600, height: 600 }).then(canvas => {
+                const imgData = canvas.toDataURL('image/jpeg', 0.9);
+                const link = document.createElement('a');
+                link.href = imgData;
+                link.download = 'diamond_model.jpg';
+                link.click();
+            }).catch(e => console.error('Error exporting JPG:', e));
+        }
+
+        function exportToExcel() {
+            try {
+                const data = {
+                    adversarys: modelData.adversarys.map(item => item.name),
+                    Infrastructures: modelData.infrastructures.map(item => item.name),
+                    Capabilities: modelData.capabilities.map(item => item.name),
+                    Victims: modelData.victims.map(item => item.name)
+                };
+                const maxLength = Math.max(
+                    data.adversarys.length,
+                    data.Infrastructures.length,
+                    data.Capabilities.length,
+                    data.Victims.length
+                );
+                const worksheetData = [];
+                worksheetData.push(['adversarys', 'Infrastructures', 'Capabilities', 'Victims']);
+                for (let i = 0; i < maxLength; i++) {
+                    worksheetData.push([
+                        data.adversarys[i] || '',
+                        data.Infrastructures[i] || '',
+                        data.Capabilities[i] || '',
+                        data.Victims[i] || ''
+                    ]);
+                }
+                const worksheet = XLSX.utils.aoa_to_sheet(worksheetData);
+                const workbook = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(workbook, worksheet, 'DIAMOND_Model');
+                XLSX.writeFile(workbook, 'diamond_model.xlsx');
+            } catch (e) {
+                console.error('Error exporting Excel:', e);
+            }
+        }
+
         function updateDiagram() {
             const svg = document.getElementById('diamond-svg');
-            // Remove existing sub-labels
             const subLabels = svg.querySelectorAll('.diamond-sub-label');
             subLabels.forEach(label => label.remove());
 
-            // Add adversary sub-labels (above, centered)
             try {
-                modelData.adversary.forEach((item, i) => {
-                    const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-                    text.setAttribute('x', '300');
-                    text.setAttribute('y', 60 - 20 * i);
-                    text.setAttribute('text-anchor', 'middle');
-                    text.setAttribute('class', 'diamond-sub-label');
-                    const lines = wrapText(item.name, 100, 14) || [''];
-                    lines.forEach((line, j) => {
-                        const tspan = document.createElementNS('http://www.w3.org/2000/svg', 'tspan');
-                        tspan.setAttribute('x', '300');
-                        tspan.setAttribute('dy', j === 0 ? '0' : '14');
-                        tspan.textContent = line || '';
-                        text.appendChild(tspan);
+                if (modelData.adversarys) {
+                    modelData.adversarys.forEach((item, i) => {
+                        const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                        text.setAttribute('x', '300');
+                        text.setAttribute('y', 20 + 30 * i);
+                        text.setAttribute('text-anchor', 'middle');
+                        text.setAttribute('class', 'diamond-sub-label');
+                        const lines = wrapText(item.name, 100, 14) || [''];
+                        lines.forEach((line, j) => {
+                            const tspan = document.createElementNS('http://www.w3.org/2000/svg', 'tspan');
+                            tspan.setAttribute('x', '300');
+                            tspan.setAttribute('dy', j === 0 ? '0' : '14');
+                            tspan.textContent = line || '';
+                            text.appendChild(tspan);
+                        });
+                        svg.appendChild(text);
                     });
-                    svg.appendChild(text);
-                });
+                }
             } catch (e) {
-                console.error('Error in updateDiagram (adversary):', e);
+                console.error('Error in updateDiagram (adversarys):', e);
             }
 
-            // Add infrastructure sub-labels (left, right-aligned)
             try {
-                modelData.infrastructures.forEach((item, i) => {
-                    const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-                    text.setAttribute('x', '110');
-                    text.setAttribute('y', 330 + 20 * i);
-                    text.setAttribute('text-anchor', 'end');
-                    text.setAttribute('class', 'diamond-sub-label');
-                    const lines = wrapText(item.name, 100, 14) || [''];
-                    lines.forEach((line, j) => {
-                        const tspan = document.createElementNS('http://www.w3.org/2000/svg', 'tspan');
-                        tspan.setAttribute('x', '110');
-                        tspan.setAttribute('dy', j === 0 ? '0' : '14');
-                        tspan.textContent = line || '';
-                        text.appendChild(tspan);
+                if (modelData.infrastructures) {
+                    modelData.infrastructures.forEach((item, i) => {
+                        const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                        text.setAttribute('x', '110');
+                        text.setAttribute('y', 330 + 20 * i);
+                        text.setAttribute('text-anchor', 'end');
+                        text.setAttribute('class', 'diamond-sub-label');
+                        const lines = wrapText(item.name, 100, 14) || [''];
+                        lines.forEach((line, j) => {
+                            const tspan = document.createElementNS('http://www.w3.org/2000/svg', 'tspan');
+                            tspan.setAttribute('x', '110');
+                            tspan.setAttribute('dy', j === 0 ? '0' : '14');
+                            tspan.textContent = line || '';
+                            text.appendChild(tspan);
+                        });
+                        svg.appendChild(text);
                     });
-                    svg.appendChild(text);
-                });
+                }
             } catch (e) {
                 console.error('Error in updateDiagram (infrastructures):', e);
             }
 
-            // Add capability sub-labels (right, left-aligned)
             try {
-                modelData.capabilities.forEach((item, i) => {
-                    const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-                    text.setAttribute('x', '490');
-                    text.setAttribute('y', 330 + 20 * i);
-                    text.setAttribute('text-anchor', 'start');
-                    text.setAttribute('class', 'diamond-sub-label');
-                    const lines = wrapText(item.name, 100, 14) || [''];
-                    lines.forEach((line, j) => {
-                        const tspan = document.createElementNS('http://www.w3.org/2000/svg', 'tspan');
-                        tspan.setAttribute('x', '490');
-                        tspan.setAttribute('dy', j === 0 ? '0' : '14');
-                        tspan.textContent = line || '';
-                        text.appendChild(tspan);
+                if (modelData.capabilities) {
+                    modelData.capabilities.forEach((item, i) => {
+                        const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                        text.setAttribute('x', '490');
+                        text.setAttribute('y', 330 + 20 * i);
+                        text.setAttribute('text-anchor', 'start');
+                        text.setAttribute('class', 'diamond-sub-label');
+                        const lines = wrapText(item.name, 100, 14) || [''];
+                        lines.forEach((line, j) => {
+                            const tspan = document.createElementNS('http://www.w3.org/2000/svg', 'tspan');
+                            tspan.setAttribute('x', '490');
+                            tspan.setAttribute('dy', j === 0 ? '0' : '14');
+                            tspan.textContent = line || '';
+                            text.appendChild(tspan);
+                        });
+                        svg.appendChild(text);
                     });
-                    svg.appendChild(text);
-                });
+                }
             } catch (e) {
                 console.error('Error in updateDiagram (capabilities):', e);
             }
 
-            // Add victim sub-labels (below, centered)
             try {
-                modelData.victims.forEach((item, i) => {
-                    const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-                    text.setAttribute('x', '300');
-                    text.setAttribute('y', 560 + 20 * i);
-                    text.setAttribute('text-anchor', 'middle');
-                    text.setAttribute('class', 'diamond-sub-label');
-                    const lines = wrapText(item.name, 100, 14) || [''];
-                    lines.forEach((line, j) => {
-                        const tspan = document.createElementNS('http://www.w3.org/2000/svg', 'tspan');
-                        tspan.setAttribute('x', '300');
-                        tspan.setAttribute('dy', j === 0 ? '0' : '14');
-                        tspan.textContent = line || '';
-                        text.appendChild(tspan);
+                if (modelData.victims) {
+                    modelData.victims.forEach((item, i) => {
+                        const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                        text.setAttribute('x', '300');
+                        text.setAttribute('y', 560 + 20 * i);
+                        text.setAttribute('text-anchor', 'middle');
+                        text.setAttribute('class', 'diamond-sub-label');
+                        const lines = wrapText(item.name, 100, 14) || [''];
+                        lines.forEach((line, j) => {
+                            const tspan = document.createElementNS('http://www.w3.org/2000/svg', 'tspan');
+                            tspan.setAttribute('x', '300');
+                            tspan.setAttribute('dy', j === 0 ? '0' : '14');
+                            tspan.textContent = line || '';
+                            text.appendChild(tspan);
+                        });
+                        svg.appendChild(text);
                     });
-                    svg.appendChild(text);
-                });
+                }
             } catch (e) {
                 console.error('Error in updateDiagram (victims):', e);
             }
@@ -348,7 +449,6 @@
             toggleButton.innerHTML = sidebarVisible ? '>' : '<';
         }
 
-        // Slide in sidebar and button on load
         window.addEventListener('load', () => {
             const sidebar = document.getElementById('sidebar');
             const toggleButton = document.getElementById('toggle-sidebar');
@@ -362,5 +462,6 @@
 
         document.getElementById('toggle-sidebar').addEventListener('click', toggleSidebar);
     </script>
+    <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9315c0f6b9991379',t:'MTc0NDgyODIyNS4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script>
 </body>
 </html>
