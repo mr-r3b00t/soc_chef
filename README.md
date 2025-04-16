@@ -17,6 +17,7 @@ Reactive Orgs that either do not have Policies, Processes and Procedures or ones
 
 🔐 [Risk Assessment - v1](https://mr-r3b00t.github.io/soc_chef/processes/risk/risk_assessment_v1.html)
 
+🔐 [Threat Model - STRIDE](https://mr-r3b00t.github.io/soc_chef/processes/threat/stride_v1.html)
 
 
 Copyright (c) Xservus Limited
