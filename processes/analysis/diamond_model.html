@@ -133,8 +133,55 @@
         const modelData = { adversaries: [], infrastructures: [], capabilities: [], victims: [] };
         let sidebarVisible = false;
 
+        function wrapText(text, maxWidth, fontSize) {
+            if (!text || typeof text !== 'string') return [''];
+            const words = text.split(' ');
+            const lines = [];
+            let currentLine = '';
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            if (!ctx) return [text];
+            ctx.font = `${fontSize}px Arial`;
+            words.forEach(word => {
+                const testLine = currentLine ? `${currentLine} ${word}` : word;
+                const width = ctx.measureText(testLine).width;
+                if (width <= maxWidth) {
+                    currentLine = testLine;
+                } else {
+                    if (currentLine) lines.push(currentLine);
+                    currentLine = word;
+                }
+            });
+            if (currentLine) lines.push(currentLine);
+            return lines.length > 0 ? lines : [''];
+        }
+
         function validateInput(name, desc) {
             return name.trim().length > 0 && name.length <= 50 && desc.length <= 200;
+        }
+
+        function updateModelList() {
+            const list = document.getElementById('model-list');
+            list.innerHTML = '';
+            Object.keys(modelData).forEach(type => {
+                modelData[type].forEach((item, index) => {
+                    const li = document.createElement('li');
+                    li.className = 'p-2 bg-gray-800 rounded flex justify-between items-center';
+                    const content = document.createElement('div');
+                    const title = document.createElement('strong');
+                    title.textContent = `${type.charAt(0).toUpperCase() + type.slice(1, -1)}: `;
+                    const name = document.createTextNode(item.name);
+                    const br = document.createElement('br');
+                    const desc = document.createTextNode(item.desc);
+                    content.append(title, name, br, desc);
+                    const removeButton = document.createElement('button');
+                    removeButton.textContent = 'Remove';
+                    removeButton.className = 'bg-red-500 hover:bg-red-600 text-white text-sm px-2 py-1 rounded';
+                    removeButton.onclick = () => removeEntry(type, index);
+                    li.append(content, removeButton);
+                    list.appendChild(li);
+                });
+            });
         }
 
         function addAdversary() {
@@ -203,73 +250,93 @@
             const subLabels = svg.querySelectorAll('.diamond-sub-label');
             subLabels.forEach(label => label.remove());
 
-            // Add adversary sub-labels (above)
-            modelData.adversaries.forEach((item, i) => {
-                const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-                text.setAttribute('x', '300');
-                text.setAttribute('y', 60 - 20 * i);
-                text.setAttribute('text-anchor', 'middle');
-                text.setAttribute('class', 'diamond-sub-label');
-                text.textContent = item.name;
-                svg.appendChild(text);
-            });
-
-            // Add infrastructure sub-labels (left)
-            modelData.infrastructures.forEach((item, i) => {
-                const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-                text.setAttribute('x', '110');
-                text.setAttribute('y', 330 + 20 * i);
-                text.setAttribute('text-anchor', 'end');
-                text.setAttribute('class', 'diamond-sub-label');
-                text.textContent = item.name;
-                svg.appendChild(text);
-            });
-
-            // Add capability sub-labels (right)
-            modelData.capabilities.forEach((item, i) => {
-                const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-                text.setAttribute('x', '490');
-                text.setAttribute('y', 330 + 20 * i);
-                text.setAttribute('text-anchor', 'start');
-                text.setAttribute('class', 'diamond-sub-label');
-                text.textContent = item.name;
-                svg.appendChild(text);
-            });
-
-            // Add victim sub-labels (below)
-            modelData.victims.forEach((item, i) => {
-                const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-                text.setAttribute('x', '300');
-                text.setAttribute('y', 560 + 20 * i);
-                text.setAttribute('text-anchor', 'middle');
-                text.setAttribute('class', 'diamond-sub-label');
-                text.textContent = item.name;
-                svg.appendChild(text);
-            });
-        }
-
-        function updateModelList() {
-            const list = document.getElementById('model-list');
-            list.innerHTML = '';
-            Object.keys(modelData).forEach(type => {
-                modelData[type].forEach((item, index) => {
-                    const li = document.createElement('li');
-                    li.className = 'p-2 bg-gray-800 rounded flex justify-between items-center';
-                    const content = document.createElement('div');
-                    const title = document.createElement('strong');
-                    title.textContent = `${type.charAt(0).toUpperCase() + type.slice(1, -1)}: `;
-                    const name = document.createTextNode(item.name);
-                    const br = document.createElement('br');
-                    const desc = document.createTextNode(item.desc);
-                    content.append(title, name, br, desc);
-                    const removeButton = document.createElement('button');
-                    removeButton.textContent = 'Remove';
-                    removeButton.className = 'bg-red-500 hover:bg-red-600 text-white text-sm px-2 py-1 rounded';
-                    removeButton.onclick = () => removeEntry(type, index);
-                    li.append(content, removeButton);
-                    list.appendChild(li);
+            // Add adversary sub-labels (above, centered)
+            try {
+                modelData.adversaries.forEach((item, i) => {
+                    const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                    text.setAttribute('x', '300');
+                    text.setAttribute('y', 60 - 20 * i);
+                    text.setAttribute('text-anchor', 'middle');
+                    text.setAttribute('class', 'diamond-sub-label');
+                    const lines = wrapText(item.name, 100, 14) || [''];
+                    lines.forEach((line, j) => {
+                        const tspan = document.createElementNS('http://www.w3.org/2000/svg', 'tspan');
+                        tspan.setAttribute('x', '300');
+                        tspan.setAttribute('dy', j === 0 ? '0' : '14');
+                        tspan.textContent = line || '';
+                        text.appendChild(tspan);
+                    });
+                    svg.appendChild(text);
                 });
-            });
+            } catch (e) {
+                console.error('Error in updateDiagram (adversaries):', e);
+            }
+
+            // Add infrastructure sub-labels (left, right-aligned)
+            try {
+                modelData.infrastructures.forEach((item, i) => {
+                    const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                    text.setAttribute('x', '110');
+                    text.setAttribute('y', 330 + 20 * i);
+                    text.setAttribute('text-anchor', 'end');
+                    text.setAttribute('class', 'diamond-sub-label');
+                    const lines = wrapText(item.name, 100, 14) || [''];
+                    lines.forEach((line, j) => {
+                        const tspan = document.createElementNS('http://www.w3.org/2000/svg', 'tspan');
+                        tspan.setAttribute('x', '110');
+                        tspan.setAttribute('dy', j === 0 ? '0' : '14');
+                        tspan.textContent = line || '';
+                        text.appendChild(tspan);
+                    });
+                    svg.appendChild(text);
+                });
+            } catch (e) {
+                console.error('Error in updateDiagram (infrastructures):', e);
+            }
+
+            // Add capability sub-labels (right, left-aligned)
+            try {
+                modelData.capabilities.forEach((item, i) => {
+                    const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                    text.setAttribute('x', '490');
+                    text.setAttribute('y', 330 + 20 * i);
+                    text.setAttribute('text-anchor', 'start');
+                    text.setAttribute('class', 'diamond-sub-label');
+                    const lines = wrapText(item.name, 100, 14) || [''];
+                    lines.forEach((line, j) => {
+                        const tspan = document.createElementNS('http://www.w3.org/2000/svg', 'tspan');
+                        tspan.setAttribute('x', '490');
+                        tspan.setAttribute('dy', j === 0 ? '0' : '14');
+                        tspan.textContent = line || '';
+                        text.appendChild(tspan);
+                    });
+                    svg.appendChild(text);
+                });
+            } catch (e) {
+                console.error('Error in updateDiagram (capabilities):', e);
+            }
+
+            // Add victim sub-labels (below, centered)
+            try {
+                modelData.victims.forEach((item, i) => {
+                    const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                    text.setAttribute('x', '300');
+                    text.setAttribute('y', 560 + 20 * i);
+                    text.setAttribute('text-anchor', 'middle');
+                    text.setAttribute('class', 'diamond-sub-label');
+                    const lines = wrapText(item.name, 100, 14) || [''];
+                    lines.forEach((line, j) => {
+                        const tspan = document.createElementNS('http://www.w3.org/2000/svg', 'tspan');
+                        tspan.setAttribute('x', '300');
+                        tspan.setAttribute('dy', j === 0 ? '0' : '14');
+                        tspan.textContent = line || '';
+                        text.appendChild(tspan);
+                    });
+                    svg.appendChild(text);
+                });
+            } catch (e) {
+                console.error('Error in updateDiagram (victims):', e);
+            }
         }
 
         function toggleSidebar() {
