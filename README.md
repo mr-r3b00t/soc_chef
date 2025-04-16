@@ -7,6 +7,9 @@ Security Operations Chef
 
 🔐 [Penetration Test Scoping](https://mr-r3b00t.github.io/soc_chef/processes/assuance/pentest_scoping.html)
 
+🔐 [Joiners, Movers, Leavers (JML)](https://mr-r3b00t.github.io/soc_chef/processes/identitymanagement/joinersmoversleavers.html)
+
+
 Copyright (c) Xservus Limited
 Created by mRr3b00t
 
