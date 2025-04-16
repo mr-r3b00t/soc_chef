@@ -1,0 +1,880 @@
+<script type="text/javascript">
+        var gk_isXlsx = false;
+        var gk_xlsxFileLookup = {};
+        var gk_fileData = {};
+        function loadFileData(filename) {
+        if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
+            try {
+                var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
+                var firstSheetName = workbook.SheetNames[0];
+                var worksheet = workbook.Sheets[firstSheetName];
+
+                // Convert sheet to JSON to filter blank rows
+                var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
+                // Filter out blank rows (rows where all cells are empty, null, or undefined)
+                var filteredData = jsonData.filter(row =>
+                    row.some(cell => cell !== '' && cell !== null && cell !== undefined)
+                );
+
+                // Convert filtered JSON back to CSV
+                var csv = XLSX.utils.aoa_to_sheet(filteredData); // Create a new sheet from filtered array of arrays
+                csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
+                return csv;
+            } catch (e) {
+                console.error(e);
+                return "";
+            }
+        }
+        return gk_fileData[filename] || "";
+        }
+        </script><!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CAF Objectives, Subsections, and IGPs</title>
+    <style>
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+            font-family: Arial, sans-serif;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+        tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+        tr:hover {
+            background-color: #f5f5f5;
+        }
+        ul {
+            margin: 0;
+            padding-left: 20px;
+        }
+    </style>
+</head>
+<body>
+    <table>
+        <thead>
+            <tr>
+                <th>Objective</th>
+                <th>Subsection</th>
+                <th>Indicators of Good Practice (IGPs)</th>
+            </tr>
+        </thead>
+        <tbody>
+            <!-- Objective A: Managing security risk -->
+            <tr>
+                <td>CAF - Objective A - Managing security risk</td>
+                <td>-</td>
+                <td>-</td>
+            </tr>
+            <tr>
+                <td></td>
+                <td>Principle A1 Governance</td>
+                <td>-</td>
+            </tr>
+            <tr>
+                <td></td>
+                <td>A1.a Board Direction</td>
+                <td>
+                    <ul>
+                        <li><strong>Not Achieved:</strong> The security of network and information systems related to the operation of essential function(s) is not discussed or reported on regularly at board-level.</li>
+                        <li><strong>Not Achieved:</strong> Board-level discussions on the security of network and information systems are based on partial or out-of-date information, without the benefit of expert guidance.</li>
+                        <li><strong>Not Achieved:</strong> The security of network and information systems supporting your essential function(s) are not driven effectively by the direction set at board-level.</li>
+                        <li><strong>Not Achieved:</strong> Senior management or other pockets of the organisation consider themselves exempt from some policies or expect special accommodations to be made.</li>
+                        <li><strong>Achieved:</strong> Your organisation’s approach and policy relating to the security of network and information systems supporting the operation of your essential function(s) are owned and managed at board-level. These are communicated, in a meaningful way, to risk management decision-makers across the organisation.</li>
+                        <li><strong>Achieved:</strong> Regular board-level discussions on the security of network and information systems supporting the operation of your essential function(s) take place, based on timely and accurate information and informed by expert guidance.</li>
+                        <li><strong>Achieved:</strong> There is a board-level individual who has overall accountability for the security of network and information systems and drives regular discussion at board-level.</li>
+                        <li><strong>Achieved:</strong> Direction set at board-level is translated into effective organisational practices that direct and control the security of the network and information systems supporting your essential function(s).</li>
+                    </ul>
+                </td>
+            </tr>
+            <tr>
+                <td></td>
+                <td>A1.b Roles and Responsibilities</td>
+                <td>
+                    <ul>
+                        <li><strong>Not Achieved:</strong> Key roles are missing, left vacant, or fulfilled on an ad-hoc or informal basis.</li>
+                        <li><strong>Not Achieved:</strong> Staff are assigned security responsibilities but without adequate authority or resources to fulfil them.</li>
+                        <li><strong>Not Achieved:</strong> Staff are unsure what their responsibilities are for the security of the essential function(s).</li>
+                        <li><strong>Achieved:</strong> Key roles and responsibilities for the security of network and information systems supporting your essential function(s) have been identified. These are reviewed regularly to ensure they remain fit for purpose.</li>
+                        <li><strong>Achieved:</strong> Appropriately capable and knowledgeable staff fill those roles and are given the time, authority, and resources to carry out their duties.</li>
+                        <li><strong>Achieved:</strong> There is clarity on who in your organisation has overall accountability for the security of the network and information systems supporting your essential function(s).</li>
+                    </ul>
+                </td>
+            </tr>
+            <tr>
+                <td></td>
+                <td>A1.c Decision-making</td>
+                <td>
+                    <ul>
+                        <li><strong>Not Achieved:</strong> What should be relatively straightforward risk decisions are constantly referred up the chain, or not made.</li>
+                        <li><strong>Not Achieved:</strong> Risks are resolved informally (or ignored) at a local level when the use of a more formal risk reporting mechanism would be more appropriate.</li>
+                        <li><strong>Not Achieved:</strong> Decision-makers are unsure of what senior management’s risk appetite is, or only understand it in vague terms such as “averse” or “cautious”.</li>
+                        <li><strong>Not Achieved:</strong> Organisational structure causes risk decisions to be made in isolation. (e.g. engineering and IT don’t talk to each other about risk).</li>
+                        <li><strong>Not Achieved:</strong> Risk priorities are too vague to make meaningful distinctions between them. (e.g. almost all risks are rated ‘medium’ or ‘amber’).</li>
+                        <li><strong>Achieved:</strong> Senior management have visibility of key risk decisions made throughout the organisation.</li>
+                        <li><strong>Achieved:</strong> Risk management decision-makers understand their responsibilities for making effective and timely decisions in the context of the risk appetite regarding the essential function(s), as set by senior management.</li>
+                        <li><strong>Achieved:</strong> Risk management decision-making is delegated and escalated where necessary, across the organisation, to people who have the skills, knowledge, tools and authority they need.</li>
+                        <li><strong>Achieved:</strong> Risk management decisions are regularly reviewed to ensure their continued relevance and validity.</li>
+                    </ul>
+                </td>
+            </tr>
+            <tr>
+                <td></td>
+                <td>Principle A2 Risk Management</td>
+                <td>-</td>
+            </tr>
+            <tr>
+                <td></td>
+                <td>A2.a Risk Management Process</td>
+                <td>
+                    <ul>
+                        <li><strong>Not Achieved:</strong> Risk assessments are not based on a clearly defined set of threat assumptions.</li>
+                        <li><strong>Not Achieved:</strong> Risk assessment outputs are too complex or unwieldy to be consumed by decision-makers and are not effectively communicated in a clear and timely manner.</li>
+                        <li><strong>Not Achieved:</strong> Risk assessments for network and information systems supporting your essential function(s) are a “one-off” activity or not done at all.</li>
+                        <li><strong>Not Achieved:</strong> The security elements of projects or programmes are solely dependent on the completion of a risk management assessment without any regard to the outcomes.</li>
+                        <li><strong>Not Achieved:</strong> There is no systematic process in place to ensure that identified security risks are managed effectively.</li>
+                        <li><strong>Not Achieved:</strong> Systems are assessed in isolation, without consideration of dependencies and interactions with other systems. (e.g. interactions between IT and OT environments).</li>
+                        <li><strong>Not Achieved:</strong> Security requirements and mitigations are arbitrary or are applied from a control catalogue without consideration of how they contribute to the security of the essential function(s).</li>
+                        <li><strong>Not Achieved:</strong> Risks remain unresolved on a register for prolonged periods of time awaiting senior decision-making or resource allocation to resolve.</li>
+                        <li><strong>Partially Achieved:</strong> Your organisational process ensures that security risks to network and information systems relevant to essential function(s) are identified, analysed, prioritised, and managed.</li>
+                        <li><strong>Partially Achieved:</strong> Your risk assessments are informed by an understanding of the vulnerabilities in the network and information systems supporting your essential function(s).</li>
+                        <li><strong>Partially Achieved:</strong> The output from your risk management process is a clear set of security requirements that will address the risks in line with your organisational approach to security.</li>
+                        <li><strong>Partially Achieved:</strong> Significant conclusions reached in the course of your risk management process are communicated to key security decision-makers and accountable individuals.</li>
+                        <li><strong>Partially Achieved:</strong> You conduct risk assessments when significant events potentially affect the essential function(s), such as replacing a system or a change in the cyber security threat.</li>
+                        <li><strong>Partially Achieved:</strong> You perform threat analysis and understand how generic threats apply to your organisation.</li>
+                        <li><strong>Achieved:</strong> Your organisational process ensures that security risks to network and information systems relevant to essential function(s) are identified, analysed, prioritised, and managed.</li>
+                        <li><strong>Achieved:</strong> Your approach to risk is focused on the possibility of adverse impact to your essential function(s), leading to a detailed understanding of how such impact might arise as a consequence of possible attacker actions and the security properties of your network and information systems.</li>
+                        <li><strong>Achieved:</strong> Your risk assessments are based on a clearly understood set of threat assumptions, informed by an up-to-date understanding of security threats to your essential function(s) and your sector.</li>
+                        <li><strong>Achieved:</strong> Your risk assessments are informed by an understanding of the vulnerabilities in the network and information systems supporting your essential function(s).</li>
+                        <li><strong>Achieved:</strong> The output from your risk management process is a clear set of security requirements that will address the risks in line with your organisational approach to security.</li>
+                        <li><strong>Achieved:</strong> Significant conclusions reached in the course of your risk management process are communicated to key security decision-makers and accountable individuals.</li>
+                        <li><strong>Achieved:</strong> Your risk assessments are dynamic and updated in the light of relevant changes which may include technical changes to network and information systems, change of use and new threat information.</li>
+                        <li><strong>Achieved:</strong> The effectiveness of your risk management process is reviewed regularly, and improvements made as required.</li>
+                        <li><strong>Achieved:</strong> You perform detailed threat analysis and understand how this applies to your organisation in the context of the threat to your sector and the wider CNI.</li>
+                    </ul>
+                </td>
+            </tr>
+            <tr>
+                <td></td>
+                <td>A2.b Assurance</td>
+                <td>
+                    <ul>
+                        <li><strong>Not Achieved:</strong> A particular product or service is seen as a “silver bullet” and vendor claims are taken at face value.</li>
+                        <li><strong>Not Achieved:</strong> Assurance methods are applied without appreciation of their strengths and limitations, such as the risks of penetration testing in operational environments.</li>
+                        <li><strong>Not Achieved:</strong> Assurance is assumed because there have been no known problems to date.</li>
+                        <li><strong>Achieved:</strong> You validate that the security measures in place to protect the network and information systems are effective and remain effective for the lifetime over which they are needed.</li>
+                        <li><strong>Achieved:</strong> You understand the assurance methods available to you and choose appropriate methods to gain confidence in the security of essential function(s).</li>
+                        <li><strong>Achieved:</strong> Your confidence in the security as it relates to your technology, people, and processes can be justified to, and verified by, a third party.</li>
+                        <li><strong>Achieved:</strong> Security deficiencies uncovered by assurance activities are assessed, prioritised and remedied when necessary in a timely and effective way.</li>
+                        <li><strong>Achieved:</strong> The methods used for assurance are reviewed to ensure they are working as intended and remain the most appropriate method to use.</li>
+                    </ul>
+                </td>
+            </tr>
+            <tr>
+                <td></td>
+                <td>Principle A3 Asset Management</td>
+                <td>-</td>
+            </tr>
+            <tr>
+                <td></td>
+                <td>A3.a Asset Management</td>
+                <td>
+                    <ul>
+                        <li><strong>Not Achieved:</strong> Inventories of assets relevant to the essential function(s) are incomplete, non-existent, or inadequately detailed.</li>
+                        <li><strong>Not Achieved:</strong> Only certain domains or types of asset are documented and understood. Dependencies between assets are not understood (such as the dependencies between IT and OT).</li>
+                        <li><strong>Not Achieved:</strong> Information assets, which could include personally identifiable information and/or important/critical data, are stored for long periods of time with no clear business need or retention policy.</li>
+                        <li><strong>Not Achieved:</strong> Knowledge critical to the management, operation, or recovery of the essential function(s) is held by one or two key individuals with no succession plan.</li>
+                        <li><strong>Not Achieved:</strong> Asset inventories are neglected and out of date.</li>
+                        <li><strong>Achieved:</strong> All assets relevant to the secure operation of essential function(s) are identified and inventoried (at a suitable level of detail). The inventory is kept up-to-date.</li>
+                        <li><strong>Achieved:</strong> Dependencies on supporting infrastructure (e.g. power, cooling etc) are recognised and recorded.</li>
+                        <li><strong>Achieved:</strong> You have prioritised your assets according to their importance to the operation of the essential function(s).</li>
+                        <li><strong>Achieved:</strong> You have assigned responsibility for managing all assets, including physical assets, relevant to the operation of the essential function(s).</li>
+                        <li><strong>Achieved:</strong> Assets relevant to the essential function(s) are managed with cyber security in mind throughout their lifecycle, from creation through to eventual decommissioning or disposal.</li>
+                    </ul>
+                </td>
+            </tr>
+            <tr>
+                <td></td>
+                <td>Principle A4 Supply Chain</td>
+                <td>-</td>
+            </tr>
+            <tr>
+                <td></td>
+                <td>A4.a Supply Chain</td>
+                <td>
+                    <ul>
+                        <li><strong>Not Achieved:</strong> You do not know what data belonging to you is held by suppliers, or how it is managed.</li>
+                        <li><strong>Not Achieved:</strong> Elements of the supply chain for essential function(s) are subcontracted and you have little or no visibility of the sub-contractors.</li>
+                        <li><strong>Not Achieved:</strong> You have no understanding of which contracts are relevant and/or relevant contracts do not specify appropriate security obligations.</li>
+                        <li><strong>Not Achieved:</strong> Suppliers have access to systems that provide your essential function(s) that is unrestricted, not monitored or bypasses your own security controls.</li>
+                        <li><strong>Partially Achieved:</strong> You understand the general risks suppliers may pose to your essential function(s).</li>
+                        <li><strong>Partially Achieved:</strong> You know the extent of your supply chain that supports your essential function(s), including sub-contractors.</li>
+                        <li><strong>Partially Achieved:</strong> You understand which contracts are relevant and you include appropriate security obligations in relevant contracts.</li>
+                        <li><strong>Partially Achieved:</strong> You are aware of all third-party connections and have assurance that they meet your organisation’s security requirements.</li>
+                        <li><strong>Partially Achieved:</strong> Your approach to security incident management considers incidents that might arise in your supply chain.</li>
+                        <li><strong>Partially Achieved:</strong> You have confidence that information shared with suppliers that is necessary for the operation of your essential function(s) is appropriately protected from well-known attacks and known vulnerabilities.</li>
+                        <li><strong>Achieved:</strong> You have a deep understanding of your supply chain, including sub-contractors and the wider risks it faces. You consider factors such as supplier’s partnerships, competitors, nationality and other organisations with which they sub-contract. This informs your risk assessment and procurement processes.</li>
+                        <li><strong>Achieved:</strong> Your approach to supply chain risk management considers the risks to your essential function(s) arising from supply chain subversion by capable and well-resourced attackers.</li>
+                        <li><strong>Achieved:</strong> You have confidence that information shared with suppliers that is essential to the operation of your function(s) is appropriately protected from sophisticated attacks.</li>
+                        <li><strong>Achieved:</strong> You understand which contracts are relevant and you include appropriate security obligations in relevant contracts. You have a proactive approach to contract management which may include a contract management plan for relevant contracts.</li>
+                        <li><strong>Achieved:</strong> Customer/supplier ownership of responsibilities is laid out in contracts.</li>
+                        <li><strong>Achieved:</strong> All network connections and data sharing with third parties are managed effectively and proportionately.</li>
+                        <li><strong>Achieved:</strong> When appropriate, your incident management process and that of your suppliers provide mutual support in the resolution of incidents.</li>
+                    </ul>
+                </td>
+            </tr>
+
+            <!-- Objective B: Protecting against cyber attack -->
+            <tr>
+                <td>CAF - Objective B - Protecting against cyber attack</td>
+                <td>-</td>
+                <td>-</td>
+            </tr>
+            <tr>
+                <td></td>
+                <td>Principle B1 Service Protection Policies, Processes and Procedures</td>
+                <td>-</td>
+            </tr>
+            <tr>
+                <td></td>
+                <td>B1.a Policy, Process and Procedure Development</td>
+                <td>
+                    <ul>
+                        <li><strong>Not Achieved:</strong> Your policies, processes and procedures are absent or incomplete.</li>
+                        <li><strong>Not Achieved:</strong> Policies, processes and procedures are not applied universally or consistently.</li>
+                        <li><strong>Not Achieved:</strong> People often or routinely circumvent policies, processes and procedures to achieve business objectives.</li>
+                        <li><strong>Not Achieved:</strong> Your organisation’s security governance and risk management approach has no bearing on your policies, processes and procedures.</li>
+                        <li><strong>Not Achieved:</strong> System security is totally reliant on users’ careful and consistent application of manual security processes.</li>
+                        <li><strong>Not Achieved:</strong> Policies, processes and procedures have not been reviewed in response to major changes (e.g. technology or regulatory framework), or within a suitable period.</li>
+                        <li><strong>Not Achieved:</strong> Policies, processes and procedures are not readily available to staff, too detailed to remember, or too hard to understand.</li>
+                        <li><strong>Partially Achieved:</strong> Your policies, processes and procedures document your overarching security governance and risk management approach, technical security practice and specific regulatory compliance.</li>
+                        <li><strong>Partially Achieved:</strong> You review and update policies, processes and procedures in response to major cyber security incidents.</li>
+                        <li><strong>Achieved:</strong> You fully document your overarching security governance and risk management approach, technical security practice and specific regulatory compliance.</li>
+                        <li><strong>Achieved:</strong> Cyber security is integrated and embedded throughout policies, processes and procedures and key performance indicators are reported to your executive management.</li>
+                        <li><strong>Achieved:</strong> Your organisation’s policies, processes and procedures are developed to be practical, usable and appropriate for your essential function(s) and your technologies.</li>
+                        <li><strong>Achieved:</strong> Policies, processes and procedures that rely on user behaviour are practical, appropriate and achievable.</li>
+                        <li><strong>Achieved:</strong> You review and update policies, processes and procedures at suitably regular intervals to ensure they remain relevant. This is in addition to reviews following a major cyber security incident.</li>
+                        <li><strong>Achieved:</strong> Any changes to the essential function(s) or the threat it faces triggers a review of policies, processes and procedures.</li>
+                        <li><strong>Achieved:</strong> Your systems are designed so that they remain secure even when user security policies, processes and procedures are not always followed.</li>
+                    </ul>
+                </td>
+            </tr>
+            <tr>
+                <td></td>
+                <td>B1.b Policy, Process and Procedure Implementation</td>
+                <td>
+                    <ul>
+                        <li><strong>Not Achieved:</strong> Policies, processes and procedures are ignored or only partially followed.</li>
+                        <li><strong>Not Achieved:</strong> How your policies, processes and procedures support the resilience of your essential function(s) is not well understood.</li>
+                        <li><strong>Not Achieved:</strong> Staff are unaware of their responsibilities under your policies, processes and procedures.</li>
+                        <li><strong>Not Achieved:</strong> You do not attempt to detect breaches of policies, processes and procedures.</li>
+                        <li><strong>Not Achieved:</strong> Policies, processes and procedures lack integration with other organisational policies, processes and procedures.</li>
+                        <li><strong>Not Achieved:</strong> Your policies, processes and procedures are not well communicated across your organisation.</li>
+                        <li><strong>Partially Achieved:</strong> Most of your policies, processes and procedures are followed and their application is monitored.</li>
+                        <li><strong>Partially Achieved:</strong> Your policies, processes and procedures are integrated with other organisational policies, processes and procedures, including HR assessments of individuals’ trustworthiness.</li>
+                        <li><strong>Partially Achieved:</strong> All staff are aware of their responsibilities under your policies, processes and procedures.</li>
+                        <li><strong>Achieved:</strong> All your policies, processes and procedures are followed, their correct application and security effectiveness is evaluated.</li>
+                        <li><strong>Achieved:</strong> Your policies, processes and procedures are effectively and appropriately communicated across all levels of the organisation resulting in good staff awareness of their responsibilities.</li>
+                    </ul>
+                </td>
+            </tr>
+            <tr>
+                <td></td>
+                <td>Principle B2 Identity and Access Control</td>
+                <td>-</td>
+            </tr>
+            <tr>
+                <td></td>
+                <td>B2.a Identity Verification, Authentication and Authorisation</td>
+                <td>
+                    <ul>
+                        <li><strong>Not Achieved:</strong> Initial identity verification is not robust enough to provide an acceptable level of confidence of a user’s identity profile.</li>
+                        <li><strong>Not Achieved:</strong> Authorised users and systems with access to networks or information systems on which your essential function(s) depends cannot be individually identified.</li>
+                        <li><strong>Not Achieved:</strong> Unauthorised individuals or devices can access your network or information systems on which your essential function(s) depends.</li>
+                        <li><strong>Not Achieved:</strong> The number of authorised users and systems that have access to your network and information systems are not limited to the minimum necessary.</li>
+                        <li><strong>Not Achieved:</strong> Your approach to authenticating users, devices and systems does not follow up to date best practice.</li>
+                        <li><strong>Partially Achieved:</strong> Your process of initial identity verification is robust enough to provide a reasonable level of confidence of a user’s identity profile before allowing an authorised user access to network and information systems that support your essential function(s).</li>
+                        <li><strong>Partially Achieved:</strong> All authorised users and systems with access to network or information systems on which your essential function(s) depends are individually identified and authenticated.</li>
+                        <li><strong>Partially Achieved:</strong> The number of authorised users and systems that have access to essential function(s) network and information systems is limited to the minimum necessary.</li>
+                        <li><strong>Partially Achieved:</strong> You use additional authentication mechanisms, such as multi-factor (MFA), for privileged access to all network and information systems that operate or support your essential function(s).</li>
+                        <li><strong>Partially Achieved:</strong> You individually authenticate and authorise all remote access to all your network and information systems that support your essential function(s).</li>
+                        <li><strong>Achieved:</strong> Your process of initial identity verification is robust enough to provide a high level of confidence of a user’s identity profile before allowing an authorised user access to network and information systems that support your essential function(s).</li>
+                        <li><strong>Achieved:</strong> Only authorised and individually authenticated users can physically access and logically connect to your network or information systems on which your essential function(s) depends.</li>
+                        <li><strong>Achieved:</strong> The number of authorised users and systems that have access to all your network and information systems supporting the essential function(s) is limited to the minimum necessary.</li>
+                        <li><strong>Achieved:</strong> You use additional authentication mechanisms, such as multi-factor (MFA), for all user access, including remote access, to all network and information systems that operate or support your essential function(s).</li>
+                        <li><strong>Achieved:</strong> The list of users and systems with access to network and information systems supporting and delivering the essential function(s) is reviewed on a regular basis, at least every six months.</li>
+                        <li><strong>Achieved:</strong> Your approach to authenticating users, devices and systems follows up to date best practice.</li>
+                    </ul>
+                </td>
+            </tr>
+            <tr>
+                <td></td>
+                <td>B2.b Device Management</td>
+                <td>
+                    <ul>
+                        <li><strong>Not Achieved:</strong> Users can connect to your network and information systems supporting your essential function(s) using devices that are not corporately owned and managed.</li>
+                        <li><strong>Not Achieved:</strong> Privileged users can perform privileged operations from devices that are not corporately owned and managed.</li>
+                        <li><strong>Not Achieved:</strong> You have not gained assurance in the security of any third-party devices or networks connected to your systems.</li>
+                        <li><strong>Not Achieved:</strong> Physically connecting a device to your network and information systems gives that device access without device or user authentication.</li>
+                        <li><strong>Partially Achieved:</strong> Only corporately owned and managed devices can access your essential function(s) network and information systems.</li>
+                        <li><strong>Partially Achieved:</strong> All privileged operations are performed from corporately owned and managed devices. These devices provide sufficient separation, using a risk-based approach, from the activities of standard users.</li>
+                        <li><strong>Partially Achieved:</strong> You have sought to understand the security properties of third-party devices and networks before they can be connected to your systems. You have taken appropriate steps to mitigate any risks identified.</li>
+                        <li><strong>Partially Achieved:</strong> The act of connecting to a network port or cable does not grant access to any systems.</li>
+                        <li><strong>Partially Achieved:</strong> You are able to detect unknown devices being connected to your network and information systems and investigate such incidents.</li>
+                        <li><strong>Achieved:</strong> All privileged operations performed on your network and information systems supporting your essential function(s) are conducted from highly trusted devices, such as Privileged Access Workstations, dedicated solely to those operations.</li>
+                        <li><strong>Achieved:</strong> You either obtain independent and professional assurance of the security of third-party devices or networks before they connect to your network and information systems, or you only allow third-party devices or networks that are dedicated to supporting your network and information systems to connect.</li>
+                        <li><strong>Achieved:</strong> You perform certificate-based device identity management and only allow known devices to access systems necessary for the operation of your essential function(s).</li>
+                        <li><strong>Achieved:</strong> You perform regular scans to detect unknown devices and investigate any findings.</li>
+                    </ul>
+                </td>
+            </tr>
+            <tr>
+                <td></td>
+                <td>B2.c Privileged User Management</td>
+                <td>
+                    <ul>
+                        <li><strong>Not Achieved:</strong> The identities of the individuals with privileged access to network and information systems (infrastructure, platforms, software, configuration etc) supporting your essential function(s) are not known or not managed.</li>
+                        <li><strong>Not Achieved:</strong> Privileged user access to network and information systems supporting your essential function(s) is via weak authentication mechanisms (e.g. only simple passwords).</li>
+                        <li><strong>Not Achieved:</strong> The list of privileged users has not been reviewed recently (e.g. within the last 12 months).</li>
+                        <li><strong>Not Achieved:</strong> Privileged user access is granted on a system-wide basis rather than by role or function(s).</li>
+                        <li><strong>Not Achieved:</strong> Privileged user access to your essential function(s) is via generic, shared or default name accounts.</li>
+                        <li><strong>Not Achieved:</strong> Where there are “always on” terminals which can perform privileged actions (such as in a control room), there are no additional controls (e.g. physical controls) to ensure access is appropriately restricted.</li>
+                        <li><strong>Not Achieved:</strong> There is no logical separation between roles that an individual may have and hence the actions they perform (e.g. access to corporate email and privilege user actions).</li>
+                        <li><strong>Partially Achieved:</strong> All privileged user access to network and information systems supporting your essential function(s) requires strong authentication, such as multi-factor (MFA).</li>
+                        <li><strong>Partially Achieved:</strong> The identities of the individuals with privileged access to network and information systems (infrastructure, platforms, software, configuration etc) supporting your essential function(s) are known and managed. This includes third parties.</li>
+                        <li><strong>Partially Achieved:</strong> Activity by privileged users is routinely reviewed and validated (e.g. at least annually).</li>
+                        <li><strong>Partially Achieved:</strong> Privileged users are only granted specific privileged user access rights which are essential to their business role or function.</li>
+                        <li><strong>Achieved:</strong> Privileged user access to network and information systems supporting your essential function(s) is carried out from dedicated separate accounts that are closely monitored and managed.</li>
+                        <li><strong>Achieved:</strong> The issuing of temporary, time-bound rights for privileged user access and/or external third-party support access is in place.</li>
+                        <li><strong>Achieved:</strong> Privileged user access rights are regularly reviewed and always updated as part of your joiners, movers and leavers process.</li>
+                        <li><strong>Achieved:</strong> All privileged user activity is routinely reviewed, validated and recorded for offline analysis and investigation.</li>
+                    </ul>
+                </td>
+            </tr>
+            <tr>
+                <td></td>
+                <td>B2.d Identity and Access Management (IdAM)</td>
+                <td>
+                    <ul>
+                        <li><strong>Not Achieved:</strong> Greater access rights are granted than necessary.</li>
+                        <li><strong>Not Achieved:</strong> Identity validation and requirement for access of a user, device or systems is not carried out.</li>
+                        <li><strong>Not Achieved:</strong> User access rights are not reviewed when users change roles.</li>
+                        <li><strong>Not Achieved:</strong> User access rights remain active when users leave your organisation.</li>
+                        <li><strong>Not Achieved:</strong> Access rights granted to devices or systems to access other devices and systems are not reviewed on a regular basis (at least annually).</li>
+                        <li><strong>Partially Achieved:</strong> You follow a robust procedure to verify each user and issue the minimum required access rights.</li>
+                        <li><strong>Partially Achieved:</strong> You regularly review access rights and those no longer needed are revoked.</li>
+                        <li><strong>Partially Achieved:</strong> User access rights are reviewed when users change roles via your joiners, leavers and movers process.</li>
+                        <li><strong>Partially Achieved:</strong> All user, device and system access to the systems supporting the essential function(s) is logged and monitored, but it is not compared to other log data or access records.</li>
+                        <li><strong>Achieved:</strong> You follow a robust procedure to verify each user and issue the minimum required access rights, and the application of the procedure is regularly audited.</li>
+                        <li><strong>Achieved:</strong> User access rights are reviewed both when people change roles via your joiners, leavers and movers process and at regular intervals - at least annually.</li>
+                        <li><strong>Achieved:</strong> All user, device and systems access to the systems supporting the essential function(s) is logged and monitored.</li>
+                        <li><strong>Achieved:</strong> You regularly review access logs and correlate this data with other access records and expected activity.</li>
+                        <li><strong>Achieved:</strong> Attempts by unauthorised users, devices or systems to connect to the systems supporting the essential function(s) are alerted, promptly assessed and investigated.</li>
+                    </ul>
+                </td>
+            </tr>
+            <tr>
+                <td></td>
+                <td>Principle B3 Data Security</td>
+                <td>-</td>
+            </tr>
+            <tr>
+                <td></td>
+                <td>B3.a Understanding Data</td>
+                <td>
+                    <ul>
+                        <li><strong>Not Achieved:</strong> You have incomplete knowledge of what data is used by and produced in the operation of the essential function(s).</li>
+                        <li><strong>Not Achieved:</strong> You have not identified the important data on which your essential function(s) relies.</li>
+                        <li><strong>Not Achieved:</strong> You have not identified who has access to data important to the operation of the essential function(s).</li>
+                        <li><strong>Not Achieved:</strong> You have not clearly articulated the impact of data compromise or lack of availability.</li>
+                        <li><strong>Partially Achieved:</strong> You have identified and catalogued all the data important to the operation of the essential function(s), or that would assist an attacker.</li>
+                        <li><strong>Partially Achieved:</strong> You have identified and catalogued who has access to the data important to the operation of the essential function(s).</li>
+                        <li><strong>Partially Achieved:</strong> You regularly review location, transmission, quantity and quality of data important to the operation of the essential function(s).</li>
+                        <li><strong>Partially Achieved:</strong> You have identified all mobile devices and media that hold data important to the operation of the essential function(s).</li>
+                        <li><strong>Partially Achieved:</strong> You understand and document the impact on your essential function(s) of all relevant scenarios, including unauthorised data access, modification or deletion, or when authorised users are unable to appropriately access this data.</li>
+                        <li><strong>Partially Achieved:</strong> You occasionally validate these documented impact statements.</li>
+                        <li><strong>Achieved:</strong> You have identified and catalogued all the data important to the operation of the essential function(s), or that would assist an attacker.</li>
+                        <li><strong>Achieved:</strong> You have identified and catalogued who has access to the data important to the operation of the essential function(s).</li>
+                        <li><strong>Achieved:</strong> You maintain a current understanding of the location, quantity and quality of data important to the operation of the essential function(s).</li>
+                        <li><strong>Achieved:</strong> You take steps to remove or minimise unnecessary copies or unneeded historic data.</li>
+                        <li><strong>Achieved:</strong> You have identified all mobile devices and media that may hold data important to the operation of the essential function(s).</li>
+                        <li><strong>Achieved:</strong> You maintain a current understanding of the data links used to transmit data that is important to your essential function(s).</li>
+                        <li><strong>Achieved:</strong> You understand the context, limitations and dependencies of your important data.</li>
+                        <li><strong>Achieved:</strong> You understand and document the impact on your essential function(s) of all relevant scenarios, including unauthorised data access, modification or deletion, or when authorised users are unable to appropriately access this data.</li>
+                        <li><strong>Achieved:</strong> You validate these documented impact statements regularly, at least annually.</li>
+                    </ul>
+                </td>
+            </tr>
+            <tr>
+                <td></td>
+                <td>B3.b Data in Transit</td>
+                <td>
+                    <ul>
+                        <li><strong>Not Achieved:</strong> You do not know what all your data links are, or which carry data important to the operation of the essential function(s).</li>
+                        <li><strong>Not Achieved:</strong> Data important to the operation of the essential function(s) travels without technical protection over non-trusted or openly accessible carriers.</li>
+                        <li><strong>Not Achieved:</strong> Critical data paths that could fail, be jammed, be overloaded, etc. have no alternative path.</li>
+                        <li><strong>Partially Achieved:</strong> You have identified and protected (effectively and proportionately) all the data links that carry data important to the operation of your essential function(s).</li>
+                        <li><strong>Partially Achieved:</strong> You apply appropriate technical means (e.g. cryptography) to protect data that travels over non-trusted or openly accessible carriers.</li>
+                        <li><strong>Partially Achieved:</strong> Critical data paths have alternative paths that can be used if necessary.</li>
+                        <li><strong>Achieved:</strong> You have identified and protected (effectively and proportionately) all the data links that carry data important to the operation of your essential function(s).</li>
+                        <li><strong>Achieved:</strong> You apply appropriate technical means (e.g. cryptography) to protect data that travels over non-trusted or openly accessible carriers.</li>
+                        <li><strong>Achieved:</strong> Critical data paths have alternative paths that can be used if necessary, and these alternatives are regularly tested.</li>
+                    </ul>
+                </td>
+            </tr>
+            <tr>
+                <td></td>
+                <td>Principle B4 System Security</td>
+                <td>-</td>
+            </tr>
+            <tr>
+                <td></td>
+                <td>B4.a Protecting Systems</td>
+                <td>
+                    <ul>
+                        <li><strong>Not Achieved:</strong> Network and information systems supporting your essential function(s) are not appropriately segregated.</li>
+                        <li><strong>Not Achieved:</strong> Internet services, such as browsing and email, are accessible from network and information systems supporting the essential function(s).</li>
+                        <li><strong>Not Achieved:</strong> You do not understand or lack plans to mitigate all resource limitations that could adversely affect your essential function(s).</li>
+                        <li><strong>Partially Achieved:</strong> Network and information systems supporting your essential function(s) are logically separated from your business systems (e.g. they reside on the same network as the rest of the organisation but within a DMZ).</li>
+                        <li><strong>Partially Achieved:</strong> Internet services are not accessible from network and information systems supporting the essential function(s).</li>
+                        <li><strong>Partially Achieved:</strong> Resource limitations (e.g. network bandwidth, single network paths) have been identified but not fully mitigated.</li>
+                        <li><strong>Achieved:</strong> Network and information systems supporting your essential function(s) are segregated from other business and external systems by appropriate technical and physical means (e.g. separate network and system infrastructure with independent user administration). Internet services are not accessible from network and information systems supporting the essential function(s).</li>
+                        <li><strong>Achieved:</strong> You have identified and mitigated all resource limitations (e.g. bandwidth limitations and single network paths).</li>
+                        <li><strong>Achieved:</strong> You have identified and mitigated any geographical constraints or weaknesses. (e.g. systems that your essential function(s) depends upon are replicated in another location, important network connectivity has alternative physical paths and service providers).</li>
+                        <li><strong>Achieved:</strong> You review and update assessments of dependencies, resource and geographical limitations and mitigations when necessary.</li>
+                    </ul>
+                </td>
+            </tr>
+            <tr>
+                <td></td>
+                <td>B4.b Secure Configuration</td>
+                <td>
+                    <ul>
+                        <li><strong>Not Achieved:</strong> You haven’t identified the assets that need to be carefully configured to maintain the security of the essential function(s).</li>
+                        <li><strong>Not Achieved:</strong> Policies relating to the security of operating system builds or configuration are not applied consistently across your network and information systems relating to your essential function(s).</li>
+                        <li><strong>Not Achieved:</strong> Configuration details are not recorded or lack enough information to be able to rebuild the system or device.</li>
+                        <li><strong>Not Achieved:</strong> The recording of security changes or adjustments that affect your essential function(s) is lacking or inconsistent.</li>
+                        <li><strong>Not Achieved:</strong> Generic, shared, default name and built-in accounts have not been removed or disabled.</li>
+                        <li><strong>Partially Achieved:</strong> You have identified and documented the assets that need to be carefully configured to maintain the security of the essential function(s).</li>
+                        <li><strong>Partially Achieved:</strong> Secure platform and device builds are used across the estate.</li>
+                        <li><strong>Partially Achieved:</strong> Consistent, secure and minimal system and device configurations are applied across the same types of environment.</li>
+                        <li><strong>Partially Achieved:</strong> Changes and adjustments to security configuration at security boundaries with the network and information systems supporting your essential function(s) are approved and documented.</li>
+                        <li><strong>Partially Achieved:</strong> You verify software before installation is permitted.</li>
+                        <li><strong>Partially Achieved:</strong> Generic, shared, default name and built-in accounts have been removed or disabled. Where this is not possible, credentials to these accounts have been changed.</li>
+                        <li><strong>Achieved:</strong> You have identified, documented and actively manage (e.g. maintain security configurations, patching, updating according to good practice) the assets that need to be carefully configured to maintain the security of the essential function(s).</li>
+                        <li><strong>Achieved:</strong> All platforms conform to your secure, defined baseline build, or the latest known good configuration version for that environment.</li>
+                        <li><strong>Achieved:</strong> You closely and effectively manage changes in your environment, ensuring that network and system configuration is secure.</li>
+                        <li><strong>Achieved:</strong> You regularly review and validate that your network and information systems have the expected, secure settings and configuration.</li>
+                        <li><strong>Achieved:</strong> Only permitted software can be installed.</li>
+                        <li><strong>Achieved:</strong> Standard users are not able to change settings that would impact security or the business operation.</li>
+                        <li><strong>Achieved:</strong> If automated decision-making technologies are in use, their operation is well understood, and decisions can be replicated.</li>
+                        <li><strong>Achieved:</strong> Generic, shared, default name and built-in accounts have been removed or disabled. Where this is not possible, credentials to these accounts have been changed.</li>
+                    </ul>
+                </td>
+            </tr>
+            <tr>
+                <td></td>
+                <td>B4.c Secure Management</td>
+                <td>
+                    <ul>
+                        <li><strong>Not Achieved:</strong> Your systems and devices supporting the operation of the essential function(s) are administered or maintained from devices that are not corporately owned and managed.</li>
+                        <li><strong>Not Achieved:</strong> You do not have good or current technical documentation of your network and information systems.</li>
+                        <li><strong>Partially Achieved:</strong> Your systems and devices supporting the operation of the essential function(s) are only administered or maintained by authorised privileged users from devices sufficiently separated, using a risk-based approach, from the activities of standard users.</li>
+                        <li><strong>Partially Achieved:</strong> Technical knowledge about network and information systems, such as documentation and network diagrams, is regularly reviewed and updated.</li>
+                        <li><strong>Partially Achieved:</strong> You prevent, detect and remove malware, and unauthorised software. You use technical, procedural and physical measures as necessary.</li>
+                        <li><strong>Achieved:</strong> Your systems and devices supporting the operation of the essential function(s) are only administered or maintained by authorised privileged users from highly trusted devices, such as Privileged Access Workstations, dedicated solely to those operations.</li>
+                        <li><strong>Achieved:</strong> You regularly review and update technical knowledge about network and information systems, such as documentation and network diagrams, and ensure they are securely stored.</li>
+                        <li><strong>Achieved:</strong> You prevent, detect and remove malware, and unauthorised software. You use technical, procedural and physical measures as necessary.</li>
+                    </ul>
+                </td>
+            </tr>
+            <tr>
+                <td></td>
+                <td>B4.d Vulnerability Management</td>
+                <td>
+                    <ul>
+                        <li><strong>Not Achieved:</strong> You do not understand the exposure of your essential function(s) to publicly-known vulnerabilities.</li>
+                        <li><strong>Not Achieved:</strong> You do not mitigate externally exposed vulnerabilities promptly.</li>
+                        <li><strong>Not Achieved:</strong> You have not recently tested to verify your understanding of the vulnerabilities of the network and information systems that support your essential function(s).</li>
+                        <li><strong>Not Achieved:</strong> You have not suitably mitigated systems or software that is no longer supported.</li>
+                        <li><strong>Not Achieved:</strong> You are not pursuing replacement for unsupported systems or software.</li>
+                        <li><strong>Partially Achieved:</strong> You maintain a current understanding of the exposure of your essential function(s) to publicly-known vulnerabilities.</li>
+                        <li><strong>Partially Achieved:</strong> Announced vulnerabilities for all software packages, network and information systems used to support your essential function(s) are tracked, prioritised and externally exposed vulnerabilities are mitigated (e.g. by patching) promptly.</li>
+                        <li><strong>Partially Achieved:</strong> Some vulnerabilities that are not externally exposed have temporary mitigations for an extended period.</li>
+                        <li><strong>Partially Achieved:</strong> You have temporary mitigations for unsupported systems and software while pursuing migration to supported technology.</li>
+                        <li><strong>Partially Achieved:</strong> You regularly test to fully understand the vulnerabilities of the network and information systems that support the operation of your essential function(s).</li>
+                        <li><strong>Achieved:</strong> You maintain a current understanding of the exposure of your essential function(s) to publicly-known vulnerabilities.</li>
+                        <li><strong>Achieved:</strong> Announced vulnerabilities for all software packages, network and information systems used to support your essential function(s) are tracked, prioritised and mitigated (e.g. by patching) promptly.</li>
+                        <li><strong>Achieved:</strong> You maximise the use of supported software, firmware and hardware in your network and information systems supporting your essential function(s).</li>
+                        <li><strong>Achieved:</strong> You regularly test to fully understand the vulnerabilities of the network and information systems that support the operation of your essential function(s) and verify this understanding with third-party testing.</li>
+                    </ul>
+                </td>
+            </tr>
+            <tr>
+                <td></td>
+                <td>Principle B5 Resilient Networks and Systems</td>
+                <td>-</td>
+            </tr>
+            <tr>
+                <td></td>
+                <td>B5.a Resilience Preparation</td>
+                <td>
+                    <ul>
+                        <li><strong>Not Achieved:</strong> You have limited understanding of all the elements that are required to restore operation of the essential function(s).</li>
+                        <li><strong>Not Achieved:</strong> You have not completed business continuity and disaster recovery plans for network and information systems, including their dependencies, supporting the operation of the essential function(s).</li>
+                        <li><strong>Not Achieved:</strong> You have not fully assessed the practical implementation of your business continuity and disaster recovery plans.</li>
+                        <li><strong>Partially Achieved:</strong> You know all network and information systems, and underlying technologies, that are necessary to restore the operation of the essential function(s) and understand their interdependence.</li>
+                        <li><strong>Partially Achieved:</strong> You know the order in which systems need to be recovered to efficiently and effectively restore the operation of the essential function(s).</li>
+                        <li><strong>Achieved:</strong> You have business continuity and disaster recovery plans that have been tested for practicality, effectiveness and completeness. Appropriate use is made of different test methods (e.g. manual fail-over, table-top exercises, or red-teaming).</li>
+                        <li><strong>Achieved:</strong> You use your security awareness and threat intelligence sources to identify new or heightened levels of risk, which result in immediate and potentially temporary security measures to enhance the security of your network and information systems (e.g. in response to a widespread outbreak of very damaging malware).</li>
+                    </ul>
+                </td>
+            </tr>
+            <tr>
+                <td></td>
+                <td>B5.b Design for Resilience</td>
+                <td>
+                    <ul>
+                        <li><strong>Not Achieved:</strong> Network and information systems supporting the operation of your essential function(s) are not appropriately segregated.</li>
+                        <li><strong>Not Achieved:</strong> Internet services, such as browsing and email, are accessible from network and information systems supporting the essential function(s).</li>
+                        <li><strong>Not Achieved:</strong> You do not understand or lack plans to mitigate all resource limitations that could adversely affect your essential function(s).</li>
+                        <li><strong>Partially Achieved:</strong> Network and information systems supporting the operation of your essential function(s) are logically separated from your business systems (e.g. they reside on the same network as the rest of the organisation but within a DMZ).</li>
+                        <li><strong>Partially Achieved:</strong> Internet services are not accessible from network and information systems supporting the essential function(s).</li>
+                        <li><strong>Partially Achieved:</strong> Resource limitations (e.g. network bandwidth, single network paths) have been identified but not fully mitigated.</li>
+                        <li><strong>Achieved:</strong> Network and information systems supporting the operation of your essential function(s) are segregated from other business and external systems by appropriate technical and physical means (e.g. separate network and system infrastructure with independent user administration). Internet services are not accessible from network and information systems supporting the essential function(s).</li>
+                        <li><strong>Achieved:</strong> You have identified and mitigated all resource limitations (e.g. bandwidth limitations and single network paths).</li>
+                        <li><strong>Achieved:</strong> You have identified and mitigated any geographical constraints or weaknesses. (e.g. systems that your essential function(s) depends upon are replicated in another location, important network connectivity has alternative physical paths and service providers).</li>
+                        <li><strong>Achieved:</strong> You review and update assessments of dependencies, resource and geographical limitations and mitigations when necessary.</li>
+                    </ul>
+                </td>
+            </tr>
+            <tr>
+                <td></td>
+                <td>B5.c Backups</td>
+                <td>
+                    <ul>
+                        <li><strong>Not Achieved:</strong> Backup coverage is incomplete and does not include all relevant data and information needed to restore the operation of your essential function(s).</li>
+                        <li><strong>Not Achieved:</strong> Backups are not frequent enough for the operation of your essential function(s) to be restored effectively.</li>
+                        <li><strong>Not Achieved:</strong> Your restoration process does not restore your essential function(s) in a suitable time frame.</li>
+                        <li><strong>Partially Achieved:</strong> You have appropriately secured backups (including data, configuration information, software, equipment, processes and knowledge). These backups will be accessible to recover from an extreme event.</li>
+                        <li><strong>Partially Achieved:</strong> You routinely test backups to ensure that the backup process function(s) correctly and the backups are usable.</li>
+                        <li><strong>Achieved:</strong> Your comprehensive, automatic and tested technical and procedural backups are secured at centrally accessible or secondary sites to recover from an extreme event.</li>
+                        <li><strong>Achieved:</strong> Backups of all important data and information needed to recover the essential function(s) are made, tested, documented and routinely reviewed.</li>
+                    </ul>
+                </td>
+            </tr>
+            <tr>
+                <td></td>
+                <td>Principle B6 Staff Awareness and Training</td>
+                <td>-</td>
+            </tr>
+            <tr>
+                <td></td>
+                <td>B6.a Cyber Security Culture</td>
+                <td>
+                    <ul>
+                        <li><strong>Not Achieved:</strong> People in your organisation don’t understand what they contribute to the cyber security of the essential function(s).</li>
+                        <li><strong>Not Achieved:</strong> People in your organisation don’t know how to raise a concern about cyber security.</li>
+                        <li><strong>Not Achieved:</strong> People believe that reporting issues may get them into trouble.</li>
+                        <li><strong>Not Achieved:</strong> Your organisation’s approach to cyber security is perceived by staff as hindering the business of the organisation.</li>
+                        <li><strong>Partially Achieved:</strong> Your executive management understand and widely communicate the importance of a positive cyber security culture.</li>
+                        <li><strong>Partially Achieved:</strong> Positive attitudes, behaviours and expectations are described for your organisation.</li>
+                        <li><strong>Partially Achieved:</strong> All people in your organisation understand the contribution they make to the essential function(s) cyber security.</li>
+                        <li><strong>Partially Achieved:</strong> All individuals in your organisation know who to contact and where to access more information about cyber security. They know how to raise a cyber security issue.</li>
+                        <li><strong>Achieved:</strong> Your executive management clearly and effectively communicates the organisation’s cyber security priorities and objectives to all staff. Your organisation displays positive cyber security attitudes, behaviours and expectations.</li>
+                        <li><strong>Achieved:</strong> People in your organisation raising potential cyber security incidents and issues are treated positively.</li>
+                        <li><strong>Achieved:</strong> Individuals at all levels in your organisation routinely report concerns or issues about cyber security and are recognised for their contribution to keeping the organisation secure.</li>
+                        <li><strong>Achieved:</strong> Your management is seen to be committed to and actively involved in cyber security.</li>
+                        <li><strong>Achieved:</strong> Your organisation communicates openly about cyber security, with any concern being taken seriously.</li>
+                        <li><strong>Achieved:</strong> People across your organisation participate in cyber security activities and improvements, building joint ownership and bringing knowledge of their area of expertise.</li>
+                    </ul>
+                </td>
+            </tr>
+            <tr>
+                <td></td>
+                <td>B6.b Cyber Security Training</td>
+                <td>
+                    <ul>
+                        <li><strong>Not Achieved:</strong> There are teams who operate and support your essential function(s) that lack any cyber security training.</li>
+                        <li><strong>Not Achieved:</strong> Cyber security training is restricted to specific roles in your organisation.</li>
+                        <li><strong>Not Achieved:</strong> Cyber security training records for your organisation are lacking or incomplete.</li>
+                        <li><strong>Partially Achieved:</strong> You have defined appropriate cyber security training and awareness activities for all roles in your organisation, from executives to the most junior roles.</li>
+                        <li><strong>Partially Achieved:</strong> You use a range of teaching and communication techniques for cyber security training and awareness to reach the widest audience effectively.</li>
+                        <li><strong>Partially Achieved:</strong> Cyber security information is easily available.</li>
+                        <li><strong>Achieved:</strong> All people in your organisation, from the most senior to the most junior, follow appropriate cyber security training paths.</li>
+                        <li><strong>Achieved:</strong> Each individual’s cyber security training is tracked and refreshed at suitable intervals.</li>
+                        <li><strong>Achieved:</strong> You routinely evaluate your cyber security training and awareness activities to ensure they reach the widest audience and are effective.</li>
+                        <li><strong>Achieved:</strong> You make cyber security information and good practice guidance easily accessible, widely available and you know it is referenced and used within your organisation.</li>
+                    </ul>
+                </td>
+            </tr>
+
+            <!-- Objective C: Detecting cyber security events -->
+            <tr>
+                <td>CAF - Objective C - Detecting cyber security events</td>
+                <td>-</td>
+                <td>-</td>
+            </tr>
+            <tr>
+                <td></td>
+                <td>Principle C1 Security Monitoring</td>
+                <td>-</td>
+            </tr>
+            <tr>
+                <td></td>
+                <td>C1.a Monitoring Coverage</td>
+                <td>
+                    <ul>
+                        <li><strong>Not Achieved:</strong> Data relating to the security and operation of your essential function(s) is not collected.</li>
+                        <li><strong>Not Achieved:</strong> You do not confidently detect the presence or absence of Indicators of Compromise (loCs) on your essential function(s), such as known malicious command and control signatures (e.g. because applying the indicator is difficult or your log data is not sufficiently detailed).</li>
+                        <li><strong>Not Achieved:</strong> You are not able to audit the activities of users in relation to your essential function(s).</li>
+                        <li><strong>Not Achieved:</strong> You do not capture any traffic crossing your network boundary including as a minimum IP connections.</li>
+                        <li><strong>Partially Achieved:</strong> Data relating to the security and operation of some areas of your essential function(s) is collected but coverage is not comprehensive.</li>
+                        <li><strong>Partially Achieved:</strong> You easily detect the presence or absence of loCs on your essential function(s), such as known malicious command and control signatures.</li>
+                        <li><strong>Partially Achieved:</strong> Some user monitoring is done, but not covering a fully agreed list of suspicious or undesirable behaviour.</li>
+                        <li><strong>Partially Achieved:</strong> You monitor traffic crossing your network boundary (including IP address connections as a minimum).</li>
+                        <li><strong>Achieved:</strong> Monitoring is based on an understanding of your networks, common cyber attack methods and what you need awareness of in order to detect potential security incidents that could affect the operation of your essential function(s) (e.g. presence of malware, malicious emails, user policy violations).</li>
+                        <li><strong>Achieved:</strong> Your monitoring data provides enough detail to reliably detect security incidents that could affect the operation of your essential function(s).</li>
+                        <li><strong>Achieved:</strong> You easily detect the presence or absence of loCs on your essential function(s), such as known malicious command and control signatures.</li>
+                        <li><strong>Achieved:</strong> Extensive monitoring of user activity in relation to the operation of your essential function(s) enables you to detect policy violations and an agreed list of suspicious or undesirable behaviour.</li>
+                        <li><strong>Achieved:</strong> You have extensive monitoring coverage that includes host-based monitoring and network gateways.</li>
+                        <li><strong>Achieved:</strong> All new systems are considered as potential monitoring data sources to maintain a comprehensive monitoring capability.</li>
+                    </ul>
+                </td>
+            </tr>
+            <tr>
+                <td></td>
+                <td>C1.b Securing Logs</td>
+                <td>
+                    <ul>
+                        <li><strong>Not Achieved:</strong> It is possible for log data to be easily edited or deleted by unauthorised users or malicious attackers.</li>
+                        <li><strong>Not Achieved:</strong> There is no controlled list of the users and systems that can view and query log data.</li>
+                        <li><strong>Not Achieved:</strong> There is no monitoring of the access to log data.</li>
+                        <li><strong>Not Achieved:</strong> There is no policy for accessing log data.</li>
+                        <li><strong>Not Achieved:</strong> Log data is not synchronised, using an accurate common time source.</li>
+                        <li><strong>Partially Achieved:</strong> Only authorised staff can view log data for investigations.</li>
+                        <li><strong>Partially Achieved:</strong> Authorised users and systems can appropriately access log data.</li>
+                        <li><strong>Partially Achieved:</strong> There is some monitoring of access to log data (e.g. copying, deleting, modifying or viewing).</li>
+                        <li><strong>Achieved:</strong> The integrity of log data is protected, or any modification is detected and attributed.</li>
+                        <li><strong>Achieved:</strong> The logging architecture has mechanisms, policies, processes and procedures to ensure that it can protect itself from threats comparable to those it is trying to identify. This includes protecting the essential function(s) itself, and the data within it.</li>
+                        <li><strong>Achieved:</strong> Log data analysis and normalisation is only performed on copies of the data keeping the master copy unaltered.</li>
+                        <li><strong>Achieved:</strong> Log data is synchronised, using an accurate common time source, so that separate datasets can be correlated in different ways.</li>
+                        <li><strong>Achieved:</strong> Access to log data is limited to those with business need and no others.</li>
+                        <li><strong>Achieved:</strong> All actions involving all log data (e.g. copying, deleting, modifying or viewing) can be traced back to a unique user.</li>
+                        <li><strong>Achieved:</strong> Legitimate reasons for accessing log data are given in use policies.</li>
+                    </ul>
+                </td>
+            </tr>
+            <tr>
+                <td></td>
+                <td>C1.c Generating Alerts</td>
+                <td>
+                    <ul>
+                        <li><strong>Not Achieved:</strong> Alerts from third party security software are not investigated (e.g. Anti-Virus (AV) providers).</li>
+                        <li><strong>Not Achieved:</strong> Logs are distributed across devices with no easy way to access them other than manual login or physical action.</li>
+                        <li><strong>Not Achieved:</strong> The resolution of alerts to a network asset or system is not performed.</li>
+                        <li><strong>Not Achieved:</strong> Security alerts relating to essential function(s) are not prioritised.</li>
+                        <li><strong>Not Achieved:</strong> Logs are reviewed infrequently.</li>
+                        <li><strong>Partially Achieved:</strong> Alerts from third party security software are investigated, and action taken.</li>
+                        <li><strong>Partially Achieved:</strong> Some, but not all, log data can be easily queried with search tools to aid investigations.</li>
+                        <li><strong>Partially Achieved:</strong> The resolution of alerts to a network asset or system is performed regularly.</li>
+                        <li><strong>Partially Achieved:</strong> Security alerts relating to some essential function(s) are prioritised.</li>
+                        <li><strong>Partially Achieved:</strong> Logs are reviewed at regular intervals.</li>
+                        <li><strong>Achieved:</strong> Log data is enriched with other network knowledge and data when investigating certain suspicious activity or alerts.</li>
+                        <li><strong>Achieved:</strong> A wide range of signatures and indicators of compromise is used for investigations of suspicious activity and alerts.</li>
+                        <li><strong>Achieved:</strong> Alerts can be easily resolved to network assets using knowledge of networks and systems. The resolution of these alerts is performed in almost real time.</li>
+                        <li><strong>Achieved:</strong> Security alerts relating to all essential function(s) are prioritised and this information is used to support incident management.</li>
+                        <li><strong>Achieved:</strong> Logs are reviewed almost continuously, in real time.</li>
+                        <li><strong>Achieved:</strong> Alerts are tested to ensure that they are generated reliably and that it is possible to distinguish genuine security incidents from false alarms.</li>
+                    </ul>
+                </td>
+            </tr>
+            <tr>
+                <td></td>
+                <td>C1.d Identifying Security Incidents</td>
+                <td>
+                    <ul>
+                        <li><strong>Not Achieved:</strong> Your organisation has no sources of threat intelligence.</li>
+                        <li><strong>Not Achieved:</strong> You do not apply updates in a timely way, after receiving them (e.g. AV signature updates, other threat signatures or Indicators of Compromise (loCs)).</li>
+                        <li><strong>Not Achieved:</strong> You do not receive signature updates for all protective technologies such as AV and IDS or other software in use.</li>
+                        <li><strong>Not Achieved:</strong> You do not evaluate the usefulness of your threat intelligence or share feedback with providers or other users.</li>
+                        <li><strong>Partially Achieved:</strong> Your organisation uses some threat intelligence services, but you don’t necessarily choose sources or providers specifically because of your business needs, or specific threats in your sector (e.g. sector-based infoshare, ICS software vendors, anti-virus providers, specialist threat intel firms, special interest groups).</li>
+                        <li><strong>Partially Achieved:</strong> You receive updates for all your signature based protective technologies (e.g. AV, IDS).</li>
+                        <li><strong>Partially Achieved:</strong> You apply some updates, signatures and loCs in a timely way.</li>
+                        <li><strong>Partially Achieved:</strong> You know how effective your threat intelligence is (e.g. by tracking how threat intelligence helps you identify security problems).</li>
+                        <li><strong>Achieved:</strong> You have selected threat intelligence sources or services using risk-based and threat-informed decisions based on your business needs and sector (e.g. vendor reporting and patching, strong anti-virus providers, sector and community-based infoshare, special interest groups).</li>
+                        <li><strong>Achieved:</strong> You apply all new signatures and loCs within a reasonable (risk-based) time of receiving them.</li>
+                        <li><strong>Achieved:</strong> You receive signature updates for all your protective technologies (e.g. AV, IDS).</li>
+                        <li><strong>Achieved:</strong> You track the effectiveness of your intelligence feeds and actively share feedback on the usefulness of loCs and any other indicators with the threat community (e.g. sector partners, threat intelligence providers, government agencies).</li>
+                    </ul>
+                </td>
+            </tr>
+            <tr>
+                <td></td>
+                <td>C1.e Monitoring Tools and Skills</td>
+                <td>
+                    <ul>
+                        <li><strong>Not Achieved:</strong> There are no staff who perform a monitoring function.</li>
+                        <li><strong>Not Achieved:</strong> Monitoring staff do not have the correct specialist skills.</li>
+                        <li><strong>Not Achieved:</strong> Monitoring staff are not capable of reporting against governance requirements.</li>
+                        <li><strong>Not Achieved:</strong> Monitoring staff lack the skills to successfully perform some significant parts of the defined workflow.</li>
+                        <li><strong>Not Achieved:</strong> Monitoring tools are only able to make use of a fraction of log data being collected.</li>
+                        <li><strong>Not Achieved:</strong> Monitoring tools cannot be configured to make use of new logging streams, as they come online.</li>
+                        <li><strong>Not Achieved:</strong> Monitoring staff have a lack of awareness of the essential function(s) the organisation provides, what assets relate to those functions and hence the importance of the log data and security events.</li>
+                        <li><strong>Partially Achieved:</strong> Monitoring staff have some investigative skills and a basic understanding of the data they need to work with.</li>
+                        <li><strong>Partially Achieved:</strong> Monitoring staff can report to other parts of the organisation (e.g. security directors, resilience managers).</li>
+                        <li><strong>Partially Achieved:</strong> Monitoring staff are capable of following most of the required workflows.</li>
+                        <li><strong>Partially Achieved:</strong> Your monitoring tools can make use of logging that would capture most unsophisticated and untargeted attack types.</li>
+                        <li><strong>Partially Achieved:</strong> Your monitoring tools work with most log data, with some configuration.</li>
+                        <li><strong>Partially Achieved:</strong> Monitoring staff are aware of some essential function(s) and can manage alerts relating to them.</li>
+                        <li><strong>Achieved:</strong> You have monitoring staff, who are responsible for the analysis, investigation and reporting of monitoring alerts covering both security and performance.</li>
+                        <li><strong>Achieved:</strong> Monitoring staff have defined roles and skills that cover all parts of the monitoring and investigation process.</li>
+                        <li><strong>Achieved:</strong> Monitoring staff follow policies, processes and procedures that address all governance reporting requirements, internal and external.</li>
+                        <li><strong>Achieved:</strong> Monitoring staff are empowered to look beyond the fixed process to investigate and understand non-standard threats, by developing their own investigative techniques and making new use of data.</li>
+                        <li><strong>Achieved:</strong> Your monitoring tools make use of all log data collected to pinpoint activity within an incident.</li>
+                        <li><strong>Achieved:</strong> Monitoring staff and tools drive and shape new log data collection and can make wide use of it.</li>
+                        <li><strong>Achieved:</strong> Monitoring staff are aware of the operation of essential function(s) and related assets and can identify and prioritise alerts or investigations that relate to them.</li>
+                    </ul>
+                </td>
+            </tr>
+            <tr>
+                <td></td>
+                <td>Principle C2 Proactive Security Event Discovery</td>
+                <td>-</td>
+            </tr>
+            <tr>
+                <td></td>
+                <td>C2.a System Abnormalities for Attack Detection</td>
+                <td>
+                    <ul>
+                        <li><strong>Not Achieved:</strong> Normal system behaviour is insufficiently understood to be able to use system abnormalities to detect malicious activity.</li>
+                        <li><strong>Not Achieved:</strong> You have no established understanding of what abnormalities to look for that might signify malicious activities.</li>
+                        <li><strong>Achieved:</strong> Normal system behaviour is fully understood to such an extent that searching for system abnormalities is a potentially effective way of detecting malicious activity (e.g. You fully understand which systems should and should not communicate and when).</li>
+                        <li><strong>Achieved:</strong> System abnormality descriptions from past attacks and threat intelligence, on yours and other networks, are used to signify malicious activity.</li>
+                        <li><strong>Achieved:</strong> The system abnormalities you search for consider the nature of attacks likely to impact on the network and information systems supporting the operation of your essential function(s).</li>
+                        <li><strong>Achieved:</strong> The system abnormality descriptions you use are updated to reflect changes in your network and information systems and current threat intelligence.</li>
+                    </ul>
+                </td>
+            </tr>
+            <tr>
+                <td></td>
+                <td>C2.b Proactive Attack Discovery</td>
+                <td>
+                    <ul>
+                        <li><strong>Not Achieved:</strong> You do not routinely search for system abnormalities indicative of malicious activity.</li>
+                        <li><strong>Achieved:</strong> You routinely search for system abnormalities indicative of malicious activity on the network and information systems supporting the operation of your essential function(s), generating alerts based on the results of such searches.</li>
+                        <li><strong>Achieved:</strong> You have justified confidence in the effectiveness of your searches for system abnormalities indicative of malicious activity.</li>
+                    </ul>
+                </td>
+            </tr>
+
+            <!-- Objective D: Minimising the impact of cyber security incidents -->
+            <tr>
+                <td>CAF - Objective D - Minimising the impact of cyber security incidents</td>
+                <td>-</td>
+                <td>-</td>
+            </tr>
+            <tr>
+                <td></td>
+                <td>Principle D1 Response and Recovery Planning</td>
+                <td>-</td>
+            </tr>
+            <tr>
+                <td></td>
+                <td>D1.a Response Plan</td>
+                <td>
+                    <ul>
+                        <li><strong>Not Achieved:</strong> Your incident response plan is not documented.</li>
+                        <li><strong>Not Achieved:</strong> Your incident response plan does not include your organisations identified essential function(s).</li>
+                        <li><strong>Not Achieved:</strong> Your incident response plan is not well understood by relevant staff.</li>
+                        <li><strong>Partially Achieved:</strong> Your incident response plan covers your essential function(s).</li>
+                        <li><strong>Partially Achieved:</strong> Your incident response plan comprehensively covers scenarios that are focused on likely impacts of known and well understood attacks only.</li>
+                        <li><strong>Partially Achieved:</strong> Your incident response plan is understood by all staff who are involved with your organisation’s response function.</li>
+                        <li><strong>Partially Achieved:</strong> Your incident response plan is documented and shared with all relevant stakeholders.</li>
+                        <li><strong>Achieved:</strong> Your incident response plan is based on a clear understanding of the security risks to the network and information systems supporting your essential function(s).</li>
+                        <li><strong>Achieved:</strong> Your incident response plan is comprehensive (i.e. covers the complete lifecycle of an incident, roles and responsibilities, and reporting) and covers likely impacts of both known attack patterns and of possible attacks, previously unseen.</li>
+                        <li><strong>Achieved:</strong> Your incident response plan is documented and integrated with wider organisational business plans and supply chain response plans, as well as dependencies on supporting infrastructure (e.g. power, cooling etc).</li>
+                        <li><strong>Achieved:</strong> Your incident response plan is communicated and understood by the business areas involved with the operation of your essential function(s).</li>
+                    </ul>
+                </td>
+            </tr>
+            <tr>
+                <td></td>
+                <td>D1.b Response and Recovery Capability</td>
+                <td>
+                    <ul>
+                        <li><strong>Not Achieved:</strong> Inadequate arrangements have been made to make the right resources available to implement your response plan.</li>
+                        <li><strong>Not Achieved:</strong> Your response team members are not equipped to make good response decisions and put them into effect.</li>
+                        <li><strong>Not Achieved:</strong> Inadequate back-up mechanisms exist to allow the continued operation of your essential function(s) during an incident.</li>
+                        <li><strong>Achieved:</strong> You understand the resources that will likely be needed to carry out any required response activities, and arrangements are in place to make these resources available.</li>
+                        <li><strong>Achieved:</strong> You understand the types of information that will likely be needed to inform response decisions and arrangements are in place to make this information available.</li>
+                        <li><strong>Achieved:</strong> Your response team members have the skills and knowledge required to decide on the response actions necessary to limit harm, and the authority to carry them out.</li>
+                        <li><strong>Achieved:</strong> Key roles are duplicated, and operational delivery knowledge is shared with all individuals involved in the operations and recovery of the essential function(s).</li>
+                        <li><strong>Achieved:</strong> Back-up mechanisms are available that can be readily activated to allow continued operation of your essential function(s), although possibly at a reduced level, if primary network and information systems fail or are unavailable.</li>
+                        <li><strong>Achieved:</strong> Arrangements exist to augment your organisation’s incident response capabilities with external support if necessary (e.g. specialist cyber incident responders).</li>
+                    </ul>
+                </td>
+            </tr>
+            <tr>
+                <td></td>
+                <td>D1.c Testing and Exercising</td>
+                <td>
+                    <ul>
+                        <li><strong>Not Achieved:</strong> Exercises test only a discrete part of the process (e.g. that backups are working), but do not consider all areas.</li>
+                        <li><strong>Not Achieved:</strong> Incident response exercises are not routinely carried out or are carried out in an ad-hoc way.</li>
+                        <li><strong>Not Achieved:</strong> Outputs from exercises are not fed into the organisation’s lessons learned process.</li>
+                        <li><strong>Not Achieved:</strong> Exercises do not test all parts of the response cycle.</li>
+                        <li><strong>Achieved:</strong> Exercise scenarios are based on incidents experienced by your and other organisations or are composed using experience or threat intelligence.</li>
+                        <li><strong>Achieved:</strong> Exercise scenarios are documented, regularly reviewed, and validated.</li>
+                        <li><strong>Achieved:</strong> Exercises are routinely run, with the findings documented and used to refine incident response plans and protective security, in line with the lessons learned.</li>
+                        <li><strong>Achieved:</strong> Exercises test all parts of your response cycle relating to your essential function(s) (e.g. restoration of normal function(s) levels).</li>
+                    </ul>
+                </td>
+            </tr>
+            <tr>
+                <td></td>
+                <td>Principle D2 Lessons Learned</td>
+                <td>-</td>
+            </tr>
+            <tr>
+                <td></td>
+                <td>D2.a Incident Root Cause Analysis</td>
+                <td>
+                    <ul>
+                        <li><strong>Not Achieved:</strong> You are not usually able to resolve incidents to a root cause.</li>
+                        <li><strong>Not Achieved:</strong> You do not have a formal process for investigating causes.</li>
+                        <li><strong>Achieved:</strong> Root cause analysis is conducted routinely as a key part of your lessons learned activities following an incident.</li>
+                        <li><strong>Achieved:</strong> Your root cause analysis is comprehensive, covering organisational process issues, as well as vulnerabilities in your networks, systems or software.</li>
+                        <li><strong>Achieved:</strong> All relevant incident data is made available to the analysis team to perform root cause analysis.</li>
+                    </ul>
+                </td>
+            </tr>
+            <tr>
+                <td></td>
+                <td>D2.b Using Incidents to Drive Improvements</td>
+                <td>
+                    <ul>
+                        <li><strong>Not Achieved:</strong> Following incidents, lessons learned are not captured or are limited in scope.</li>
+                        <li><strong>Not Achieved:</strong> Improvements arising from lessons learned following an incident are not implemented or not given sufficient organisational priority.</li>
+                        <li><strong>Achieved:</strong> You have a documented incident review process/policy which ensures that lessons learned from each incident are identified, captured, and acted upon.</li>
+                        <li><strong>Achieved:</strong> Lessons learned cover issues with reporting, roles, governance, skills and organisational processes as well as technical aspects of network and information systems.</li>
+                        <li><strong>Achieved:</strong> You use lessons learned to improve security measures, including updating and retesting response plans when necessary.</li>
+                        <li><strong>Achieved:</strong> Security improvements identified as a result of lessons learned are prioritised, with the highest priority improvements completed quickly.</li>
+                        <li><strong>Achieved:</strong> Analysis is fed to senior management and incorporated into risk management and continuous improvement.</li>
+                    </ul>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+</body>
+</html>
