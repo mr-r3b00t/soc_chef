@@ -23,6 +23,9 @@ Reactive Orgs that either do not have Policies, Processes and Procedures or ones
 
 🔐 [Threat Model - DREAD](https://mr-r3b00t.github.io/soc_chef/processes/threat/dread_v1.html)
 
+🔐 [Kill Chain Analysis - MITRE ATT&CK](https://mr-r3b00t.github.io/soc_chef/processes/analysis/kill_chain.html)
+
+
 
 Copyright (c) Xservus Limited
 Created by mRr3b00t
