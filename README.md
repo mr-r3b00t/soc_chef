@@ -5,6 +5,8 @@ Security Operations Chef
 
 📧 [Business Email Compromise (BEC) Response Plan](https://mr-r3b00t.github.io/soc_chef/processes/ir/bec.html)
 
+🔐 [Penetration Test Scoping](https://mr-r3b00t.github.io/soc_chef/processes/assuance/pentest_scoping.html)
+
 Copyright (c) Xservus Limited
 Created by mRr3b00t
 
