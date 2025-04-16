@@ -7,6 +7,8 @@ Reactive Orgs that either do not have Policies, Processes and Procedures or ones
 
 🗒️ [Cyber Security Policy Generation Tool - High Level](https://mr-r3b00t.github.io/soc_chef/policy/high_level_policy_tool.html)
 
+💻 [Device Security Policy Generation Tool - High Level](https://mr-r3b00t.github.io/soc_chef/policy/device_security.html)
+
 🏥 [Generic Cyber Incident Response Plan](https://mr-r3b00t.github.io/soc_chef/processes/ir/generic_incident_response.html)
 
 📧 [Business Email Compromise (BEC) Response Plan](https://mr-r3b00t.github.io/soc_chef/processes/ir/bec.html)
