@@ -1,0 +1,564 @@
+<script type="text/javascript">
+        var gk_isXlsx = false;
+        var gk_xlsxFileLookup = {};
+        var gk_fileData = {};
+        function loadFileData(filename) {
+        if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
+            try {
+                var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
+                var firstSheetName = workbook.SheetNames[0];
+                var worksheet = workbook.Sheets[firstSheetName];
+
+                // Convert sheet to JSON to filter blank rows
+                var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
+                // Filter out blank rows (rows where all cells are empty, null, or undefined)
+                var filteredData = jsonData.filter(row =>
+                    row.some(cell => cell !== '' && cell !== null && cell !== undefined)
+                );
+
+                // Convert filtered JSON back to CSV
+                var csv = XLSX.utils.aoa_to_sheet(filteredData); // Create a new sheet from filtered array of arrays
+                csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
+                return csv;
+            } catch (e) {
+                console.error(e);
+                return "";
+            }
+        }
+        return gk_fileData[filename] || "";
+        }
+        </script><!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>[Incident Response Plan Title]</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            line-height: 1.6;
+            margin: 40px;
+            max-width: 800px;
+            margin-left: auto;
+            margin-right: auto;
+            color: #333;
+        }
+        h1 {
+            font-size: 2.2em;
+            text-align: center;
+            color: #2c3e50;
+            margin-bottom: 20px;
+        }
+        h2 {
+            font-size: 1.8em;
+            color: #34495e;
+            margin-top: 30px;
+            border-bottom: 2px solid #ecf0f1;
+            padding-bottom: 5px;
+        }
+        h3 {
+            font-size: 1.4em;
+            color: #3c5a76;
+            margin-top: 20px;
+        }
+        p {
+            margin: 10px 0;
+        }
+        ul {
+            list-style-type: none;
+            padding-left: 20px;
+        }
+        ul li {
+            margin: 8px 0;
+            display: block;
+        }
+        input[type="checkbox"] {
+            margin-right: 10px;
+        }
+        code {
+            font-family: 'Consolas', monospace;
+            background-color: #f5f6fa;
+            padding: 2px 4px;
+            border-radius: 3px;
+        }
+        .section {
+            margin-bottom: 20px;
+        }
+        .note {
+            background-color: #e8f4f8;
+            padding: 15px;
+            border-left: 4px solid #3498db;
+            margin: 20px 0;
+            border-radius: 5px;
+        }
+        #log-section {
+            margin-top: 40px;
+            padding: 20px;
+            background-color: #f9f9f9;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        #log-section h2 {
+            margin-top: 0;
+        }
+        #log-list {
+            max-height: 200px;
+            overflow-y: auto;
+            margin-bottom: 10px;
+        }
+        #log-list p {
+            margin: 5px 0;
+            font-size: 0.9em;
+        }
+        .button-container {
+            display: flex;
+            gap: 10px;
+        }
+        button {
+            padding: 10px 20px;
+            background-color: #3498db;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1em;
+        }
+        button:hover {
+            background-color: #2980b9;
+        }
+        #clear-state-button {
+            background-color: #e74c3c;
+        }
+        #clear-state-button:hover {
+            background-color: #c0392b;
+        }
+        .input-group {
+            margin-bottom: 15px;
+        }
+        .input-group label {
+            display: inline-block;
+            width: 120px;
+            font-weight: bold;
+        }
+        .input-group input, .input-group textarea {
+            padding: 5px;
+            width: 200px;
+            border: 1px solid #ddd;
+            border-radius: 3px;
+            vertical-align: top;
+        }
+        .input-group textarea {
+            width: 300px;
+            height: 60px;
+            resize: vertical;
+        }
+        #timeline-error {
+            color: #e74c3c;
+            font-size: 0.9em;
+            margin-top: 5px;
+            display: none;
+        }
+        .footer {
+            text-align: center;
+            margin-top: 40px;
+            font-size: 0.9em;
+            color: #7f8c8d;
+        }
+        #jump-to-log {
+            display: block;
+            margin: 20px auto;
+            text-align: center;
+        }
+        #user-info-section {
+            padding: 20px;
+            background-color: #f9f9f9;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+        .copy-button {
+            padding: 5px 10px;
+            font-size: 0.9em;
+            margin-left: 10px;
+        }
+        .copy-button.copied {
+            background-color: #2ecc71;
+        }
+        .copy-button.copied:hover {
+            background-color: #27ae60;
+        }
+        .email-template {
+            background-color: #f9f9f9;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-family: 'Consolas', monospace;
+            font-size: 0.9em;
+            line-height: 1.5;
+            white-space: pre-wrap;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <h1>[Incident Response Plan Title]</h1>
+    <button id="jump-to-log">Jump to Action Log</button>
+
+    <div id="user-info-section">
+        <h2>User Information</h2>
+        <div class="input-group">
+            <label for="user-name">Name:</label>
+            <input type="text" id="user-name" placeholder="Enter your name">
+        </div>
+        <div class="input-group">
+            <label for="user-title">Title:</label>
+            <input type="text" id="user-title" placeholder="Enter your title">
+        </div>
+        <div class="input-group">
+            <label for="user-role">Role:</label>
+            <input type="text" id="user-role" placeholder="Enter your role">
+        </div>
+        <div class="input-group">
+            <label for="user-org">Organisation:</label>
+            <input type="text" id="user-org" placeholder="Enter your organisation">
+        </div>
+    </div>
+
+    <div class="section">
+        <h2>Executive Summary</h2>
+        <p>[Insert overview of the incident response plan, including its purpose, scope, and key objectives.]</p>
+    </div>
+
+    <div class="section">
+        <h2>Incident Response Checklist</h2>
+        <p>[Insert high-level checklist summarizing key actions for the incident response process.]</p>
+        <ul>
+            <li><input type="checkbox" id="triage" data-label="Triage">Triage
+                <ul>
+                    <!-- Add specific triage actions here -->
+                </ul>
+            </li>
+            <li><input type="checkbox" id="analysis" data-label="Analysis">Analysis
+                <ul>
+                    <!-- Add specific analysis actions here -->
+                </ul>
+            </li>
+            <li><input type="checkbox" id="containment" data-label="Containment">Containment
+                <ul>
+                    <!-- Add specific containment actions here -->
+                </ul>
+            </li>
+            <li><input type="checkbox" id="eradication" data-label="Eradication">Eradication
+                <ul>
+                    <!-- Add specific eradication actions here -->
+                </ul>
+            </li>
+            <li><input type="checkbox" id="restoration" data-label="Restoration">Restoration
+                <ul>
+                    <!-- Add specific restoration actions here -->
+                </ul>
+            </li>
+            <li><input type="checkbox" id="post-incident" data-label="Post-Incident Activities">Post-Incident Activities
+                <ul>
+                    <!-- Add specific post-incident actions here -->
+                </ul>
+            </li>
+        </ul>
+    </div>
+
+    <div class="section">
+        <h2>1. Incident Response Triage</h2>
+        <p>[Insert description of triage phase and its objectives.]</p>
+        <!-- Add subsections for specific triage steps -->
+    </div>
+
+    <div class="section">
+        <h2>2. Analysis</h2>
+        <p>[Insert description of analysis phase and its objectives.]</p>
+        <!-- Add subsections for specific analysis steps, e.g., log review, IOC collection -->
+        <h3>Notify External Parties</h3>
+        <ul>
+            <li>[Identify third parties involved using IOCs.]</li>
+            <li>[Send notification to their security contact (e.g., <code>security@domain.com</code>).]</li>
+            <li>[Include incident timestamp, nature, IOCs, and investigation request.]</li>
+            <li>Use a professional tone, noting no knowledge of their policies. Example:
+                <div class="email-template" id="email-template">
+Subject: Notification of Potential [Incident Type] Involving Your System
+
+Dear [Organization/Security Team],
+
+We have identified suspicious activity linked to your system ([domain.com or IP]). The incident, detected on [date/time], involves [brief description].
+
+To assist your investigation, we are sharing the following indicators of compromise:
+- Source: [domain.com or IP]
+- Malicious URL: [if applicable]
+- File Hash: [if applicable]
+
+We kindly request that you investigate this matter and take appropriate action. Please let us know if you need further details or coordination. We have no knowledge of your internal policies and provide this information to support a secure resolution.
+
+Best regards,
+[Your Name]
+[Your Organization]
+[Contact Information]
+                </div>
+                <button id="copy-email-template" class="copy-button">Copy to Clipboard</button>
+            </li>
+            <li>[Log the notification and retain a copy.]</li>
+            <li>[Escalate if no response within 24-48 hours.]</li>
+        </ul>
+    </div>
+
+    <div class="section">
+        <h2>3. Containment</h2>
+        <p>[Insert description of containment phase and its objectives.]</p>
+        <!-- Add subsections for specific containment steps -->
+    </div>
+
+    <div class="section">
+        <h2>4. Eradication</h2>
+        <p>[Insert description of eradication phase and its objectives.]</p>
+        <!-- Add subsections for specific eradication steps -->
+    </div>
+
+    <div class="section">
+        <h2>5. Restoration</h2>
+        <p>[Insert description of restoration phase and its objectives.]</p>
+        <!-- Add subsections for specific restoration steps -->
+    </div>
+
+    <div class="section">
+        <h2>6. Post-Incident Activities</h2>
+        <p>[Insert description of post-incident phase and its objectives.]</p>
+        <!-- Add subsections for specific post-incident steps -->
+    </div>
+
+    <div class="section">
+        <h2>Additional Notes</h2>
+        <div class="note">
+            <ul>
+                <li><strong>Preserve Evidence:</strong> [Maintain evidence chain of custody.]</li>
+                <li><strong>Leverage Automation:</strong> [Use tools to automate response tasks.]</li>
+                <li><strong>Engage Experts:</strong> [Involve specialists for complex incidents.]</li>
+                <li><strong>Continuous Monitoring:</strong> [Monitor post-incident for recurrence.]</li>
+                <li><strong>External Limitations:</strong> [Focus on your systems and coordinate externally.]</li>
+            </ul>
+        </div>
+        <p>[Insert additional guidance or best practices.]</p>
+    </div>
+
+    <div id="log-section">
+        <h2>Action Log</h2>
+        <div class="input-group">
+            <label for="timeline-alt-name">Alternative Name:</label>
+            <input type="text" id="timeline-alt-name" placeholder="Enter alternative name (optional)">
+        </div>
+        <div class="input-group">
+            <label for="timeline-activity">Timeline Entry:</label>
+            <textarea id="timeline-activity" placeholder="Enter activity description"></textarea>
+            <button id="add-timeline" style="margin-left: 10px;">Add Timeline Entry</button>
+        </div>
+        <p id="timeline-error">Please enter a name (either in User Information or Alternative Name) to add a timeline entry.</p>
+        <div id="log-list"></div>
+        <div class="button-container">
+            <button id="export-log">Export Log</button>
+            <button id="clear-state-button">Clear State</button>
+        </div>
+    </div>
+
+    <div class="footer">
+        <p>© Xservus Limited</p>
+    </div>
+
+    <script>
+        // Initialize log array
+        let logEntries = [];
+
+        // Load user info from local storage
+        function loadUserInfo() {
+            document.getElementById('user-name').value = localStorage.getItem('cyberChecklistUserName') || '';
+            document.getElementById('user-title').value = localStorage.getItem('cyberChecklistUserTitle') || '';
+            document.getElementById('user-role').value = localStorage.getItem('cyberChecklistUserRole') || '';
+            document.getElementById('user-org').value = localStorage.getItem('cyberChecklistUserOrg') || '';
+            document.getElementById('timeline-alt-name').value = localStorage.getItem('cyberChecklistTimelineAltName') || '';
+        }
+
+        // Save user info to local storage
+        function saveUserInfo() {
+            localStorage.setItem('cyberChecklistUserName', document.getElementById('user-name').value);
+            localStorage.setItem('cyberChecklistUserTitle', document.getElementById('user-title').value);
+            localStorage.setItem('cyberChecklistUserRole', document.getElementById('user-role').value);
+            localStorage.setItem('cyberChecklistUserOrg', document.getElementById('user-org').value);
+            localStorage.setItem('cyberChecklistTimelineAltName', document.getElementById('timeline-alt-name').value);
+        }
+
+        // Load checkbox states from local storage
+        function loadCheckboxStates() {
+            const checkboxes = document.querySelectorAll('input[type="checkbox"]');
+            checkboxes.forEach(checkbox => {
+                const state = localStorage.getItem(checkbox.id);
+                if (state === 'checked') {
+                    checkbox.checked = true;
+                }
+            });
+        }
+
+        // Save checkbox state to local storage
+        function saveCheckboxState(checkbox) {
+            localStorage.setItem(checkbox.id, checkbox.checked ? 'checked' : 'unchecked');
+        }
+
+        // Get user info for log entry
+        function getUserInfo() {
+            const name = document.getElementById('user-name').value || 'Unknown';
+            const title = document.getElementById('user-title').value || 'N/A';
+            const role = document.getElementById('user-role').value || 'N/A';
+            const org = document.getElementById('user-org').value || 'N/A';
+            return { name, title, role, org };
+        }
+
+        // Add checkbox log entry
+        function addCheckboxLogEntry(checkbox, action) {
+            const timestamp = new Date().toLocaleString();
+            const { name, title, role, org } = getUserInfo();
+            const label = checkbox.dataset.label;
+            const entry = `[${timestamp}] ${name} (${title}, ${role}, ${org}) - ${label} ${action}`;
+            logEntries.push(entry);
+            updateLogDisplay();
+        }
+
+        // Add timeline log entry
+        function addTimelineLogEntry() {
+            const nameInput = document.getElementById('user-name');
+            const altNameInput = document.getElementById('timeline-alt-name');
+            const activityInput = document.getElementById('timeline-activity');
+            const errorDisplay = document.getElementById('timeline-error');
+
+            if (!nameInput.value.trim() && !altNameInput.value.trim()) {
+                errorDisplay.style.display = 'block';
+                return false;
+            }
+
+            errorDisplay.style.display = 'none';
+            const timestamp = new Date().toLocaleString();
+            const { title, role, org } = getUserInfo();
+            const name = altNameInput.value.trim() || nameInput.value.trim() || 'Unknown';
+            const activity = activityInput.value.trim() || 'No description provided';
+            const entry = `[${timestamp}] ${name} (${title}, ${role}, ${org}) - Timeline Entry: ${activity}`;
+            logEntries.push(entry);
+            updateLogDisplay();
+            activityInput.value = ''; // Clear the textarea
+            altNameInput.value = ''; // Clear the alternative name
+            saveUserInfo();
+            return true;
+        }
+
+        // Update log display
+        function updateLogDisplay() {
+            const logList = document.getElementById('log-list');
+            logList.innerHTML = logEntries.map(entry => `<p>${entry}</p>`).join('');
+            logList.scrollTop = logList.scrollHeight; // Scroll to bottom
+            localStorage.setItem('cyberChecklistLog', JSON.stringify(logEntries));
+        }
+
+        // Export log as text file
+        function exportLog() {
+            const { name, title, role, org } = getUserInfo();
+            const header = `[Incident Response Plan Title] Log\nUser: ${name}\nTitle: ${title}\nRole: ${role}\nOrganisation: ${org}\nGenerated: ${new Date().toLocaleString()}\n\n`;
+            const footer = `\nCreated using the PwnDefend Incident Response Playbook - copyright (c) xservus limited`;
+            const content = header + logEntries.join('\n') + footer;
+            const blob = new Blob([content], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `Incident_Response_Log_${new Date().toISOString().replace(/[:.]/g, '-')}.txt`;
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        // Clear checkbox states, user info, timeline entries, and log
+        function clearState() {
+            const checkboxes = document.querySelectorAll('input[type="checkbox"]');
+            checkboxes.forEach(checkbox => {
+                checkbox.checked = false;
+                localStorage.setItem(checkbox.id, 'unchecked');
+            });
+            document.getElementById('user-name').value = '';
+            document.getElementById('user-title').value = '';
+            document.getElementById('user-role').value = '';
+            document.getElementById('user-org').value = '';
+            document.getElementById('timeline-alt-name').value = '';
+            document.getElementById('timeline-activity').value = '';
+            localStorage.removeItem('cyberChecklistUserName');
+            localStorage.removeItem('cyberChecklistUserTitle');
+            localStorage.removeItem('cyberChecklistUserRole');
+            localStorage.removeItem('cyberChecklistUserOrg');
+            localStorage.removeItem('cyberChecklistTimelineAltName');
+            logEntries = [];
+            updateLogDisplay();
+            document.getElementById('timeline-error').style.display = 'none';
+        }
+
+        // Initialize event listeners
+        document.addEventListener('DOMContentLoaded', () => {
+            // Load saved log entries
+            const savedLog = localStorage.getItem('cyberChecklistLog');
+            if (savedLog) {
+                logEntries = JSON.parse(savedLog);
+                updateLogDisplay();
+            }
+
+            // Load user info and checkbox states
+            loadUserInfo();
+            loadCheckboxStates();
+
+            // User info input listeners
+            ['user-name', 'user-title', 'user-role', 'user-org', 'timeline-alt-name'].forEach(id => {
+                document.getElementById(id).addEventListener('input', saveUserInfo);
+            });
+
+            // Checkbox event listeners
+            const checkboxes = document.querySelectorAll('input[type="checkbox"]');
+            checkboxes.forEach(checkbox => {
+                checkbox.addEventListener('change', () => {
+                    saveCheckboxState(checkbox);
+                    addCheckboxLogEntry(checkbox, checkbox.checked ? 'checked' : 'unchecked');
+                });
+            });
+
+            // Timeline entry button
+            document.getElementById('add-timeline').addEventListener('click', () => {
+                if (addTimelineLogEntry()) {
+                    localStorage.setItem('cyberChecklistLog', JSON.stringify(logEntries));
+                }
+            });
+
+            // Export log button
+            document.getElementById('export-log').addEventListener('click', exportLog);
+
+            // Clear state button
+            document.getElementById('clear-state-button').addEventListener('click', clearState);
+
+            // Jump to Action Log button
+            document.getElementById('jump-to-log').addEventListener('click', () => {
+                document.getElementById('log-section').scrollIntoView({ behavior: 'smooth' });
+            });
+
+            // Copy to Clipboard button for email template
+            const copyButton = document.getElementById('copy-email-template');
+            if (copyButton) {
+                copyButton.addEventListener('click', () => {
+                    const queryText = document.getElementById('email-template').textContent;
+                    navigator.clipboard.writeText(queryText).then(() => {
+                        copyButton.textContent = 'Copied!';
+                        copyButton.classList.add('copied');
+                        setTimeout(() => {
+                            copyButton.textContent = 'Copy to Clipboard';
+                            copyButton.classList.remove('copied');
+                        }, 2000);
+                    });
+                });
+            }
+        });
+    </script>
+</body>
+</html>
