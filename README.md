@@ -25,6 +25,7 @@ Reactive Orgs that either do not have Policies, Processes and Procedures or ones
 
 🔐 [Kill Chain Analysis - MITRE ATT&CK](https://mr-r3b00t.github.io/soc_chef/processes/analysis/kill_chain.html)
 
+🔐 [Diamond Model Creator](https://mr-r3b00t.github.io/soc_chef/processes/analysis/diamond_model.html)
 
 
 Copyright (c) Xservus Limited
