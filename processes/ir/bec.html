@@ -1,0 +1,852 @@
+<script type="text/javascript">
+        var gk_isXlsx = false;
+        var gk_xlsxFileLookup = {};
+        var gk_fileData = {};
+        function loadFileData(filename) {
+        if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
+            try {
+                var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
+                var firstSheetName = workbook.SheetNames[0];
+                var worksheet = workbook.Sheets[firstSheetName];
+
+                // Convert sheet to JSON to filter blank rows
+                var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
+                // Filter out blank rows (rows where all cells are empty, null, or undefined)
+                var filteredData = jsonData.filter(row =>
+                    row.some(cell => cell !== '' && cell !== null && cell !== undefined)
+                );
+
+                // Convert filtered JSON back to CSV
+                var csv = XLSX.utils.aoa_to_sheet(filteredData); // Create a new sheet from filtered array of arrays
+                csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
+                return csv;
+            } catch (e) {
+                console.error(e);
+                return "";
+            }
+        }
+        return gk_fileData[filename] || "";
+        }
+        </script><!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Business Email Compromise (BEC) Response Plan for Microsoft Office 365</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            line-height: 1.6;
+            margin: 40px;
+            max-width: 800px;
+            margin-left: auto;
+            margin-right: auto;
+            color: #333;
+        }
+        h1 {
+            font-size: 2.2em;
+            text-align: center;
+            color: #2c3e50;
+            margin-bottom: 20px;
+        }
+        h2 {
+            font-size: 1.8em;
+            color: #34495e;
+            margin-top: 30px;
+            border-bottom: 2px solid #ecf0f1;
+            padding-bottom: 5px;
+        }
+        h3 {
+            font-size: 1.4em;
+            color: #3c5a76;
+            margin-top: 20px;
+        }
+        p {
+            margin: 10px 0;
+        }
+        ul {
+            list-style-type: none;
+            padding-left: 20px;
+        }
+        ul li {
+            margin: 8px 0;
+            display: flex;
+            align-items: center;
+        }
+        ul ul {
+            padding-left: 20px;
+        }
+        ul ul ul {
+            padding-left: 15px;
+        }
+        input[type="checkbox"] {
+            margin-right: 10px;
+        }
+        pre {
+            background-color: #fafafa;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            font-family: 'Consolas', monospace;
+            font-size: 0.85em;
+            overflow-x: auto;
+            line-height: 1.4;
+            margin: 0;
+        }
+        code {
+            font-family: 'Consolas', monospace;
+            background-color: #f5f6fa;
+            padding: 2px 4px;
+            border-radius: 3px;
+        }
+        .section {
+            margin-bottom: 20px;
+        }
+        .note {
+            background-color: #e8f4f8;
+            padding: 15px;
+            border-left: 4px solid #3498db;
+            margin: 20px 0;
+            border-radius: 5px;
+        }
+        #log-section {
+            margin-top: 40px;
+            padding: 20px;
+            background-color: #f9f9f9;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        #log-section h2 {
+            margin-top: 0;
+        }
+        #log-list {
+            max-height: 200px;
+            overflow-y: auto;
+            margin-bottom: 10px;
+        }
+        #log-list p {
+            margin: 5px 0;
+            font-size: 0.9em;
+        }
+        .button-container {
+            display: flex;
+            gap: 10px;
+        }
+        button {
+            padding: 10px 20px;
+            background-color: #3498db;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1em;
+        }
+        button:hover {
+            background-color: #2980b9;
+        }
+        #clear-state-button {
+            background-color: #e74c3c;
+        }
+        #clear-state-button:hover {
+            background-color: #c0392b;
+        }
+        .input-group {
+            margin-bottom: 15px;
+        }
+        .input-group label {
+            display: inline-block;
+            width: 120px;
+            font-weight: bold;
+        }
+        .input-group input, .input-group textarea {
+            padding: 5px;
+            width: 200px;
+            border: 1px solid #ddd;
+            border-radius: 3px;
+            vertical-align: top;
+        }
+        .input-group textarea {
+            width: 300px;
+            height: 60px;
+            resize: vertical;
+        }
+        #timeline-error {
+            color: #e74c3c;
+            font-size: 0.9em;
+            margin-top: 5px;
+            display: none;
+        }
+        .footer {
+            text-align: center;
+            margin-top: 40px;
+            font-size: 0.9em;
+            color: #7f8c8d;
+        }
+        #jump-to-log {
+            display: block;
+            margin: 20px auto;
+            text-align: center;
+        }
+        #user-info-section {
+            padding: 20px;
+            background-color: #f9f9f9;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+        .copy-button {
+            padding: 5px 10px;
+            font-size: 0.9em;
+            margin-left: 10px;
+        }
+        .copy-button.copied {
+            background-color: #2ecc71;
+        }
+        .copy-button.copied:hover {
+            background-color: #27ae60;
+        }
+        .email-template {
+            background-color: #f9f9f9;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-family: 'Consolas', monospace;
+            font-size: 0.9em;
+            line-height: 1.5;
+            white-space: pre-wrap;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <h1>Business Email Compromise (BEC) Response Plan for Microsoft Office 365</h1>
+    <button id="jump-to-log">Jump to Action Log</button>
+
+    <div id="user-info-section">
+        <h2>User Information</h2>
+        <div class="input-group">
+            <label for="user-name">Name:</label>
+            <input type="text" id="user-name" placeholder="Enter your name">
+        </div>
+        <div class="input-group">
+            <label for="user-title">Title:</label>
+            <input type="text" id="user-title" placeholder="Enter your title">
+        </div>
+        <div class="input-group">
+            <label for="user-role">Role:</label>
+            <input type="text" id="user-role" placeholder="Enter your role">
+        </div>
+        <div class="input-group">
+            <label for="user-org">Organisation:</label>
+            <input type="text" id="user-org" placeholder="Enter your organisation">
+        </div>
+    </div>
+
+    <div class="section">
+        <h2>Executive Summary</h2>
+        <p>This document provides a comprehensive response plan for addressing a suspected Business Email Compromise (BEC) event in a Microsoft Office 365 environment. It is designed to guide the Cybersecurity Incident Response Team (CSIRT) through triage, analysis, containment, eradication, restoration, and post-incident activities, while ensuring evidence preservation through litigation hold. The plan specifically addresses scenarios where the threat actor operates from another organization’s Microsoft 365 tenant, over which there is no access or knowledge of their policies or processes. By leveraging Microsoft 365 Defender, Microsoft Purview, and industry best practices, this plan ensures a swift, secure, and legally defensible response to mitigate damage, protect the organization, and coordinate with external parties as needed.</p>
+    </div>
+
+    <div class="section">
+        <h2>BEC Response Checklist</h2>
+        <p>The following checklist summarizes key actions to be completed during a BEC incident response. Refer to the detailed sections below for step-by-step guidance.</p>
+        <ul>
+            <li><input type="checkbox" id="triage" data-label="Triage">Triage
+                <ul>
+                    <li><input type="checkbox" id="triage-log-ticket" data-label="Log a ticket">Log a ticket</li>
+                    <li><input type="checkbox" id="triage-acknowledge" data-label="Acknowledge user report">Acknowledge user report of suspicious email(s).</li>
+                    <li><input type="checkbox" id="triage-validate" data-label="Validate incident">Validate incident using Microsoft Defender for Office 365 (check email headers, alerts).</li>
+                    <li><input type="checkbox" id="triage-external" data-label="Confirm external tenant">Confirm if the email originates from an external tenant (analyze sender domain/tenant ID).</li>
+                    <li><input type="checkbox" id="triage-severity" data-label="Classify severity">Classify incident severity (low, medium, high).</li>
+                    <li><input type="checkbox" id="triage-owner" data-label="Assign incident owner">Assign incident owner in Microsoft Defender portal.</li>
+                    <li><input type="checkbox" id="triage-litigation" data-label="Enable litigation hold">Enable litigation hold on affected user’s mailbox in Microsoft 365 Compliance Center.</li>
+                </ul>
+            </li>
+            <li><input type="checkbox" id="analysis" data-label="Analysis">Analysis
+                <ul>
+                    <li><input type="checkbox" id="analysis-review" data-label="Review email and logs">Review email details (headers, URLs, attachments) and Unified Audit Logs (UAL).</li>
+                    <li><input type="checkbox" id="analysis-iocs" data-label="Collect IOCs">Collect Indicators of Compromise (IOCs) (e.g., malicious URLs, IPs, email addresses).</li>
+                    <li><input type="checkbox" id="analysis-scope" data-label="Assess scope">Assess scope of compromise within your tenant (accounts, services).</li>
+                    <li><input type="checkbox" id="analysis-forensics" data-label="Engage forensics">Engage forensics team for sensitive data or litigation cases.</li>
+                    <li><input type="checkbox" id="analysis-legal" data-label="Consult legal">Consult legal counsel for regulatory or litigation risks.</li>
+                    <li><input type="checkbox" id="analysis-notify" data-label="Notify external">Notify external organization if threat actor is in their tenant (send IOCs, request investigation).</li>
+                </ul>
+            </li>
+            <li><input type="checkbox" id="containment" data-label="Containment">Containment
+                <ul>
+                    <li><input type="checkbox" id="containment-isolate" data-label="Isolate accounts">Disable/lock compromised accounts in Microsoft Entra ID.</li>
+                    <li><input type="checkbox" id="containment-reset" data-label="Reset credentials">Reset passwords and enforce MFA for affected accounts.</li>
+                    <li><input type="checkbox" id="containment-rules" data-label="Disable mail rules">Disable malicious mail rules in affected mailboxes.</li>
+                    <li><input type="checkbox" id="containment-emails" data-label="Quarantine emails">Quarantine/remove malicious emails using Microsoft Defender for Office 365.</li>
+                    <li><input type="checkbox" id="containment-iocs" data-label="Block IOCs">Block IOCs in tenant-wide policies (URLs, IPs, domains).</li>
+                    <li><input type="checkbox" id="containment-coordinate" data-label="Coordinate external">Coordinate with external organization for updates on their investigation.</li>
+                </ul>
+            </li>
+            <li><input type="checkbox" id="eradication" data-label="Eradication">Eradication
+                <ul>
+                    <li><input type="checkbox" id="eradication-remove" data-label="Remove access">Remove threat actor access (disable unauthorized accounts/apps).</li>
+                    <li><input type="checkbox" id="eradication-vulnerabilities" data-label="Remediate vulnerabilities">Remediate vulnerabilities (e.g., patch systems, harden configurations).</li>
+                    <li><input type="checkbox" id="eradication-clean" data-label="Clean systems">Clean affected systems (use Microsoft Defender for Endpoint).</li>
+                    <li><input type="checkbox" id="eradication-review" data-label="Tenant review">Conduct full tenant review for residual threats.</li>
+                    <li><input type="checkbox" id="eradication-monitor" data-label="Monitor external">Monitor for recurring activity from external tenant.</li>
+                </ul>
+            </li>
+            <li><input type="checkbox" id="restoration" data-label="Restoration">Restoration
+                <ul>
+                    <li><input type="checkbox" id="restoration-restore" data-label="Restore accounts">Re-enable secure user accounts and services.</li>
+                    <li><input type="checkbox" id="restoration-validate" data-label="Validate recovery">Validate recovery (monitor for re-compromise, verify backups).</li>
+                    <li><input type="checkbox" id="restoration-controls" data-label="Enhance controls">Enhance security controls (e.g., Safe Links, Safe Attachments).</li>
+                    <li><input type="checkbox" id="restoration-training" data-label="Employee training">Conduct employee training on phishing/BEC recognition.</li>
+                </ul>
+            </li>
+            <li><input type="checkbox" id="post-incident" data-label="Post-Incident Activities">Post-Incident Activities
+                <ul>
+                    <li><input type="checkbox" id="post-incident-report" data-label="Incident report">Create incident report (include external tenant details).</li>
+                    <li><input type="checkbox" id="post-incident-lessons" data-label="Lessons learned">Conduct lessons learned meeting and update response plan.</li>
+                    <li><input type="checkbox" id="post-incident-litigation" data-label="Maintain litigation">Maintain litigation hold until legal counsel approves lifting.</li>
+                    <li><input type="checkbox" id="post-incident-notify" data-label="Notify regulators">Notify regulators/stakeholders if required (include external tenant details).</li>
+                    <li><input type="checkbox" id="post-incident-defenses" data-label="Strengthen defenses">Strengthen defenses (e.g., enhanced monitoring, configuration reviews).</li>
+                    <li><input type="checkbox" id="post-incident-close-ticket" data-label="Close ticket">Close ticket</li>
+                </ul>
+            </li>
+        </ul>
+    </div>
+
+    <div class="section">
+        <h2>1. Incident Response Triage</h2>
+        <p>Triage is the initial phase to validate and prioritize the incident, ensuring rapid response to limit damage.</p>
+
+        <h3>Log a Ticket</h3>
+        <ul>
+            <li>Create a ticket in the incident management system to formally document the reported suspicious email(s) and initiate the response process.</li>
+        </ul>
+
+        <h3>Acknowledge User Report</h3>
+        <ul>
+            <li>Confirm receipt of the user’s report of suspicious email(s) via an automated ticketing system or direct communication.</li>
+            <li>Instruct the user not to interact with the email (e.g., clicking links, replying, or forwarding) to prevent further compromise.</li>
+        </ul>
+
+        <h3>Validate the Incident</h3>
+        <ul>
+            <li>Review the flagged email(s) in Microsoft Defender for Office 365 or Microsoft 365 Defender portal to confirm suspicious indicators (e.g., spoofed sender, malicious links, or unusual content).</li>
+            <li>Check email headers to determine the originating tenant (e.g., sender’s domain or tenant ID in Microsoft 365 authentication headers).</li>
+            <li>Identify if the email originates from another organization’s Microsoft 365 tenant by analyzing the sender’s domain and SMTP headers.</li>
+            <li>Check for alerts in Microsoft Defender for Office 365, such as phishing or malware verdicts, and correlate with other signals (e.g., Microsoft Defender for Endpoint or Identity).</li>
+            <li>Determine if the email is a false positive (e.g., part of a phishing simulation or sent to a SecOps mailbox).</li>
+        </ul>
+
+        <h3>Classify Severity</h3>
+        <ul>
+            <li>Assign a severity level (low, medium, high) based on potential impact (e.g., financial fraud, data exfiltration, or privileged account compromise).</li>
+            <li>Escalate high-severity incidents to the CSIRT immediately, noting if the threat actor is likely in an external tenant.</li>
+        </ul>
+
+        <h3>Assign Incident Owner</h3>
+        <ul>
+            <li>Assign the incident to a security analyst or team in the Microsoft Defender portal for ownership and tracking.</li>
+            <li>Document the incident in a Security Information and Event Management (SIEM) system (e.g., Microsoft Sentinel) for centralized logging, noting the external tenant involvement.</li>
+        </ul>
+
+        <h3>Enable Litigation Hold</h3>
+        <ul>
+            <li>Immediately enable litigation hold on the affected user’s mailbox in the Microsoft 365 Compliance Center to preserve all email data, including deleted items, for forensic analysis and potential legal proceedings.</li>
+            <li>Navigate to <code>Microsoft 355 Compliance Center > eDiscovery > Core eDiscovery</code>.</li>
+            <li>Create a new case, add the affected user’s mailbox to the hold, and enable litigation hold.</li>
+            <li>Verify that the hold is active to ensure no data is purged.</li>
+        </ul>
+    </div>
+
+    <div class="section">
+        <h2>2. Analysis</h2>
+        <p>Analyze the incident to understand the scope, impact, and tactics used by the threat actor, including considerations for external tenant involvement.</p>
+
+        <h3>Review Email and Audit Logs</h3>
+        <ul>
+            <li>Use the Microsoft 365 Defender portal to review email details, including headers, URLs, attachments, and delivery locations.</li>
+            <li>Analyze Unified Audit Logs (UAL) in Microsoft 365 to identify suspicious activities within your tenant, such as:
+                <ul>
+                    <li>Unauthorized logins (e.g., foreign IP addresses or unusual devices).</li>
+                    <li>Mail rule creation (e.g., auto-forwarding to external addresses).</li>
+                    <li>File access in OneDrive or SharePoint.</li>
+                </ul>
+            </li>
+            <li>Example UAL query:
+                <pre id="ual-query">Search-UnifiedAuditLog -StartDate (Get-Date).AddDays(-7) -EndDate (Get-Date) -UserIds <affected_user> -Operations UserLoggedIn, MailboxRuleCreated</pre>
+                <button id="copy-ual-query" class="copy-button">Copy to Clipboard</button>
+            </li>
+        </ul>
+
+        <h3>Identify Indicators of Compromise (IOCs)</h3>
+        <ul>
+            <li>Collect IOCs such as malicious URLs, IP addresses, email addresses, or file hashes from the email and related logs.</li>
+            <li>Note the sender’s domain and any tenant-specific identifiers (e.g., tenant ID in email headers) to confirm the external tenant’s involvement.</li>
+            <li>Use Microsoft Defender for Office 365’s Explorer to view email clusters (e.g., malicious, suspicious, or clean) and identify related threats.</li>
+        </ul>
+
+        <h3>Assess Scope of Compromise</h3>
+        <ul>
+            <li>Check for compromised accounts within your tenant by reviewing recently created users, disabled MFA, or unusual authentication tokens.</li>
+            <li>Investigate access to other Microsoft 365 services (e.g., OneDrive, SharePoint, Teams) for signs of data exfiltration or lateral movement.</li>
+            <li>Determine if the attack involved phishing, credential reuse, or exploited vulnerabilities (e.g., Microsoft Exchange).</li>
+            <li>Acknowledge that analysis of the external tenant is not possible due to lack of access; focus on impacts within your tenant.</li>
+        </ul>
+
+        <h3>Engage Forensics Team</h3>
+        <ul>
+            <li>If the incident involves sensitive data or potential litigation, engage a digital forensics team to perform in-depth analysis using tools like Microsoft Purview or third-party solutions.</li>
+            <li>Preserve volatile data (e.g., email headers, log files) in a forensically sound manner, storing copies in a password-protected, secure location.</li>
+        </ul>
+
+        <h3>Consult Legal Counsel</h3>
+        <ul>
+            <li>If sensitive data (e.g., PII, financial records) is potentially exposed, consult legal counsel to assess regulatory requirements (e.g., GDPR, CCPA) and litigation risks.</li>
+            <li>Discuss the external tenant scenario to determine if legal notifications or coordination with the other organization are required.</li>
+        </ul>
+
+        <h3>Notify External Organization</h3>
+        <ul>
+            <li>If the threat actor is confirmed to be operating from another organization’s tenant:
+                <ul>
+                    <li>Identify the external organization based on the sender’s domain or tenant ID.</li>
+                    <li>Send a formal notification to the organization’s security or IT contact (e.g., <code>abuse@domain.com</code> or <code>security@domain.com</code>, if available).</li>
+                    <li>Include relevant details without compromising sensitive information:
+                        <ul>
+                            <li>Timestamp and nature of the suspicious email(s).</li>
+                            <li>Sender’s email address and domain.</li>
+                            <li>IOCs (e.g., malicious URLs, IPs, or hashes).</li>
+                            <li>A request for the organization to investigate potential compromise in their tenant.</li>
+                        </ul>
+                    </li>
+                    <li>Use a professional, neutral tone, acknowledging that you have no knowledge of their policies or processes:
+                        <div class="email-template" id="email-template">
+Subject: Notification of Potential Business Email Compromise Involving Your Tenant
+
+Dear [Organization/Security Team],
+
+We have identified suspicious email activity originating from an account in your Microsoft 365 tenant ([sender@domain.com]). The email(s), received on [date/time], exhibit characteristics of a Business Email Compromise (BEC), including [brief description, e.g., spoofed headers, malicious links].
+
+To assist your investigation, we are sharing the following indicators of compromise:
+- Sender: [sender@domain.com]
+- Malicious URL: [if applicable]
+- IP Address: [if applicable]
+
+We kindly request that you investigate this matter within your tenant and take appropriate action. Please let us know if you require additional details or coordination. We have no knowledge of your internal policies or processes and are providing this information to support a secure resolution.
+
+Best regards,
+[Your Name]
+[Your Organization]
+[Contact Information]
+                        </div>
+                        <button id="copy-email-template" class="copy-button">Copy to Clipboard</button>
+                    </li>
+                    <li>Log the notification in your incident tracking system and retain a copy for legal and audit purposes.</li>
+                    <li>If no response is received within 24-48 hours, escalate to legal counsel or consider notifying Microsoft’s support team for assistance in coordinating with the external tenant.</li>
+                </ul>
+            </li>
+        </ul>
+    </div>
+
+    <div class="section">
+        <h2>3. Containment</h2>
+        <p>Contain the incident to prevent further damage while preserving evidence, focusing on actions within your tenant.</p>
+
+        <h3>Isolate Compromised Accounts</h3>
+        <ul>
+            <li>Disable or lock any compromised accounts in your tenant in Microsoft Entra ID to prevent further access.</li>
+            <li>Navigate to <code>Microsoft Entra ID > Users > Select User > Block Sign-in</code>.</li>
+            <li>Revoke all authentication tokens for affected user(s) to invalidate active sessions:
+                <pre id="revoke-token-query">Revoke-AzureADUserAllRefreshToken -ObjectId <user_object_id></pre>
+                <button id="copy-revoke-token-query" class="copy-button">Copy to Clipboard</button>
+            </li>
+        </ul>
+
+        <h3>Reset Credentials</h3>
+        <ul>
+            <li>Reset passwords for all affected accounts in your tenant, starting with email accounts, and enforce strong, unique passwords.</li>
+            <li>Enable or re-enable multi-factor authentication (MFA) for all affected users.</li>
+        </ul>
+
+        <h3>Disable Malicious Mail Rules</h3>
+        <ul>
+            <li>Identify and disable unauthorized mail rules (e.g., auto-forwarding or deletion rules) in affected mailboxes within your tenant:
+                <pre id="inbox-rule-query">Get-InboxRule -Mailbox <affected_user> | Remove-InboxRule</pre>
+                <button id="copy-inbox-rule-query" class="copy-button">Copy to Clipboard</button>
+            </li>
+            <li>Review rules across your tenant for suspicious activity.</li>
+        </ul>
+
+        <h3>Isolate Malicious Emails</h3>
+        <ul>
+            <li>Use Microsoft Defender for Office 365 to quarantine or remove malicious emails from all mailboxes in your tenant.</li>
+            <li>Navigate to <code>Microsoft 365 Defender > Email & Collaboration > Explorer</code>.</li>
+            <li>Search for the malicious email or cluster and select <code>Soft Delete</code> or <code>Move to Quarantine</code>.</li>
+            <li>Preserve copies of malicious emails in a secure, offline location for forensic analysis.</li>
+        </ul>
+
+        <h3>Block IOCs</h3>
+        <ul>
+            <li>Block malicious IPs, URLs, or domains in Microsoft Defender for Office 365’s tenant-wide policies.</li>
+            <li>Navigate to <code>Microsoft 365 Defender > Policies & Rules > Threat Policies > Tenant Allow/Block Lists</code>.</li>
+            <li>Share IOCs with your security team to update firewalls, proxies, and other defenses.</li>
+            <li>If the external tenant’s domain is confirmed malicious, consider temporarily blocking emails from that domain, but consult legal counsel to avoid disrupting legitimate communications.</li>
+        </ul>
+
+        <h3>Coordinate with External Organization</h3>
+        <ul>
+            <li>If the external organization responds, provide additional IOCs or details as requested, ensuring no sensitive internal data is shared.</li>
+            <li>Request updates on their investigation (e.g., confirmation of account compromise or remediation) to assess ongoing risk to your tenant.</li>
+            <li>If the external organization does not respond, escalate to Microsoft’s support team or a third-party incident response provider for guidance.</li>
+        </ul>
+    </div>
+
+    <div class="section">
+        <h2>4. Eradication</h2>
+        <p>Eliminate the threat actor’s access and mitigate vulnerabilities within your tenant.</p>
+
+        <h3>Remove Threat Actor Access</h3>
+        <ul>
+            <li>Confirm all compromised accounts in your tenant are disabled or reset, and no unauthorized users or applications remain.</li>
+            <li>Review Microsoft Entra ID for suspicious application permissions or certificates:
+                <pre id="azure-app-query">Get-AzureADApplication | Select-Object DisplayName, AppId, Permissions</pre>
+                <button id="copy-azure-app-query" class="copy-button">Copy to Clipboard</button>
+            </li>
+        </ul>
+
+        <h3>Remediate Vulnerabilities</h3>
+        <ul>
+            <li>Patch or mitigate any exploited vulnerabilities in your tenant (e.g., unpatched Microsoft Exchange servers).</li>
+            <li>Harden Microsoft 365 configurations using recommendations from the Microsoft 365 Secure Score or a third-party review.</li>
+            <li>Example: Enable Advanced Phishing Protection, enforce MFA, and restrict legacy authentication.</li>
+        </ul>
+
+        <h3>Clean Affected Systems</h3>
+        <ul>
+            <li>If malware is detected, use Microsoft Defender for Endpoint to isolate and remediate affected devices in your tenant.</li>
+            <li>Rebuild or restore compromised systems from a known good backup after preserving forensic images.</li>
+        </ul>
+
+        <h3>Conduct Full Tenant Review</h3>
+        <ul>
+            <li>Perform a comprehensive log analysis to ensure no residual threat actor activity in your tenant (e.g., foreign logins, suspicious file downloads).</li>
+            <li>Use Microsoft Defender for Office 365 to review all mailboxes for additional malicious emails or rules.</li>
+        </ul>
+
+        <h3>Monitor External Tenant Activity</h3>
+        <ul>
+            <li>Continue monitoring for emails from the external tenant’s domain to detect recurrence of malicious activity.</li>
+            <li>If the external organization confirms remediation, validate by checking for new suspicious emails or IOCs.</li>
+        </ul>
+    </div>
+
+    <div class="section">
+        <h2>5. Restoration</h2>
+        <p>Restore systems and services in your tenant to a secure state while maintaining vigilance.</p>
+
+        <h3>Restore Accounts and Services</h3>
+        <ul>
+            <li>Re-enable user accounts in your tenant after verifying they are secure (e.g., new passwords, MFA enabled).</li>
+            <li>Restore access to Microsoft 365 services (e.g., email, OneDrive, SharePoint) after confirming no residual threats.</li>
+        </ul>
+
+        <h3>Validate Recovery</h3>
+        <ul>
+            <li>Monitor restored systems for signs of re-compromise using Microsoft Defender for Office 365 and Microsoft Sentinel.</li>
+            <li>Verify that backups used for restoration are free of malware or unauthorized changes.</li>
+        </ul>
+
+        <h3>Enhance Security Controls</h3>
+        <ul>
+            <li>Implement recommended configurations from Microsoft Defender for Office 365, such as Safe Links and Safe Attachments.</li>
+            <li>Conduct a Microsoft 365 security assessment to identify and address configuration weaknesses.</li>
+        </ul>
+
+        <h3>Employee Training</h3>
+        <ul>
+            <li>Conduct security awareness training to educate employees on recognizing phishing and BEC attacks, including those originating from external tenants.</li>
+            <li>Simulate phishing campaigns to test employee resilience and improve detection.</li>
+        </ul>
+    </div>
+
+    <div class="section">
+        <h2>6. Post-Incident Activities</h2>
+        <p>Document findings, improve defenses, and meet legal obligations.</p>
+
+        <h3>Create Incident Report</h3>
+        <ul>
+            <li>Document a detailed timeline of the incident, including IOCs, affected systems, and response actions.</li>
+            <li>Include details of the external tenant involvement and communications with the other organization.</li>
+            <li>Distribute a technical report to the CSIRT and a summary to relevant stakeholders (e.g., leadership, legal counsel).</li>
+        </ul>
+
+        <h3>Conduct Lessons Learned</h3>
+        <ul>
+            <li>Hold a post-incident meeting to discuss what worked, what didn’t, and areas for improvement.</li>
+            <li>Update incident response plans to include procedures for handling external tenant scenarios (e.g., standardized notification templates).</li>
+        </ul>
+
+        <h3>Maintain Litigation Hold</h3>
+        <ul>
+            <li>Keep litigation hold active until legal counsel confirms it can be lifted, ensuring all relevant data is preserved for potential litigation or regulatory inquiries.</li>
+        </ul>
+
+        <h3>Notify Regulators and Stakeholders</h3>
+        <ul>
+            <li>If sensitive data was exposed, work with legal counsel to draft and send compliant notification letters to affected parties and regulators.</li>
+            <li>Include details of the external tenant’s involvement in regulatory reports, if required.</li>
+            <li>Standardize and deduplicate notification lists, cross-referencing with databases like the National Change of Address.</li>
+        </ul>
+
+        <h3>Strengthen Defenses</h3>
+        <ul>
+            <li>Deploy additional monitoring via Microsoft Defender for Office 365 or a managed detection and response (MDR) service.</li>
+            <li>Regularly review Microsoft 365 configurations against industry standards (e.g., Center for Internet Security benchmarks).</li>
+            <li>Consider adding the external tenant’s domain to a watchlist for enhanced monitoring, if appropriate.</li>
+        </ul>
+
+        <h3>Close Ticket</h3>
+        <ul>
+            <li>Close the incident ticket in the incident management system after confirming all response actions are complete and documented.</li>
+        </ul>
+    </div>
+
+    <div class="section">
+        <h2>Additional Notes</h2>
+        <div class="note">
+            <ul>
+                <li><strong>Preserve Evidence:</strong> Maintain a strict chain of custody for all collected evidence (e.g., emails, headers, logs, forensic images) to support litigation or investigations.</li>
+                <li><strong>Leverage Automation:</strong> Use Microsoft Defender for Office 365’s automated investigation and response (AIR) capabilities to streamline remediation of malicious emails and clusters within your tenant.</li>
+                <li><strong>Engage Experts:</strong> For complex incidents or lack of response from the external organization, consider engaging a third-party incident response provider (e.g., Kroll, Microsoft Incident Response) with expertise in Office 365 forensics and cross-tenant investigations.</li>
+                <li><strong>Continuous Monitoring:</strong> Post-incident, maintain enhanced vigilance through Microsoft 365 Defender and Sentinel to detect any recurrence of threat actor activity, including from the external tenant.</li>
+                <li><strong>External Tenant Limitations:</strong> Acknowledge that you cannot directly investigate or remediate issues in the external tenant. Focus on protecting your tenant and coordinating with the external organization or Microsoft support as needed.</li>
+            </ul>
+        </div>
+        <p>This plan aligns with Microsoft Office 365 security features and industry best practices for BEC response, ensuring a thorough and defensible approach to incident management, including scenarios involving external tenants.</p>
+    </div>
+
+    <div id="log-section">
+        <h2>Action Log</h2>
+        <div class="input-group">
+            <label for="timeline-alt-name">Alternative Name:</label>
+            <input type="text" id="timeline-alt-name" placeholder="Enter alternative name (optional)">
+        </div>
+        <div class="input-group">
+            <label for="timeline-activity">Timeline Entry:</label>
+            <textarea id="timeline-activity" placeholder="Enter activity description"></textarea>
+            <button id="add-timeline" style="margin-left: 10px;">Add Timeline Entry</button>
+        </div>
+        <p id="timeline-error">Please enter a name (either in User Information or Alternative Name) to add a timeline entry.</p>
+        <div id="log-list"></div>
+        <div class="button-container">
+            <button id="export-log">Export Log</button>
+            <button id="clear-state-button">Clear State</button>
+        </div>
+    </div>
+
+    <div class="footer">
+        <p>© Xservus Limited</p>
+    </div>
+
+    <script>
+        // Initialize log array
+        let logEntries = [];
+
+        // Load user info from local storage
+        function loadUserInfo() {
+            document.getElementById('user-name').value = localStorage.getItem('becChecklistUserName') || '';
+            document.getElementById('user-title').value = localStorage.getItem('becChecklistUserTitle') || '';
+            document.getElementById('user-role').value = localStorage.getItem('becChecklistUserRole') || '';
+            document.getElementById('user-org').value = localStorage.getItem('becChecklistUserOrg') || '';
+            document.getElementById('timeline-alt-name').value = localStorage.getItem('becChecklistTimelineAltName') || '';
+        }
+
+        // Save user info to local storage
+        function saveUserInfo() {
+            localStorage.setItem('becChecklistUserName', document.getElementById('user-name').value);
+            localStorage.setItem('becChecklistUserTitle', document.getElementById('user-title').value);
+            localStorage.setItem('becChecklistUserRole', document.getElementById('user-role').value);
+            localStorage.setItem('becChecklistUserOrg', document.getElementById('user-org').value);
+            localStorage.setItem('becChecklistTimelineAltName', document.getElementById('timeline-alt-name').value);
+        }
+
+        // Load checkbox states from local storage
+        function loadCheckboxStates() {
+            const checkboxes = document.querySelectorAll('input[type="checkbox"]');
+            checkboxes.forEach(checkbox => {
+                const state = localStorage.getItem(checkbox.id);
+                if (state === 'checked') {
+                    checkbox.checked = true;
+                }
+            });
+        }
+
+        // Save checkbox state to local storage
+        function saveCheckboxState(checkbox) {
+            localStorage.setItem(checkbox.id, checkbox.checked ? 'checked' : 'unchecked');
+        }
+
+        // Get user info for log entry
+        function getUserInfo() {
+            const name = document.getElementById('user-name').value || 'Unknown';
+            const title = document.getElementById('user-title').value || 'N/A';
+            const role = document.getElementById('user-role').value || 'N/A';
+            const org = document.getElementById('user-org').value || 'N/A';
+            return { name, title, role, org };
+        }
+
+        // Add checkbox log entry
+        function addCheckboxLogEntry(checkbox, action) {
+            const timestamp = new Date().toLocaleString();
+            const { name, title, role, org } = getUserInfo();
+            const label = checkbox.dataset.label;
+            const entry = `[${timestamp}] ${name} (${title}, ${role}, ${org}) - ${label} ${action}`;
+            logEntries.push(entry);
+            updateLogDisplay();
+        }
+
+        // Add timeline log entry
+        function addTimelineLogEntry() {
+            const nameInput = document.getElementById('user-name');
+            const altNameInput = document.getElementById('timeline-alt-name');
+            const activityInput = document.getElementById('timeline-activity');
+            const errorDisplay = document.getElementById('timeline-error');
+
+            if (!nameInput.value.trim() && !altNameInput.value.trim()) {
+                errorDisplay.style.display = 'block';
+                return false;
+            }
+
+            errorDisplay.style.display = 'none';
+            const timestamp = new Date().toLocaleString();
+            const { title, role, org } = getUserInfo();
+            const name = altNameInput.value.trim() || nameInput.value.trim() || 'Unknown';
+            const activity = activityInput.value.trim() || 'No description provided';
+            const entry = `[${timestamp}] ${name} (${title}, ${role}, ${org}) - Timeline Entry: ${activity}`;
+            logEntries.push(entry);
+            updateLogDisplay();
+            activityInput.value = ''; // Clear the textarea
+            altNameInput.value = ''; // Clear the alternative name
+            saveUserInfo();
+            return true;
+        }
+
+        // Update log display
+        function updateLogDisplay() {
+            const logList = document.getElementById('log-list');
+            logList.innerHTML = logEntries.map(entry => `<p>${entry}</p>`).join('');
+            logList.scrollTop = logList.scrollHeight; // Scroll to bottom
+            localStorage.setItem('becChecklistLog', JSON.stringify(logEntries));
+        }
+
+        // Export log as text file
+        function exportLog() {
+            const { name, title, role, org } = getUserInfo();
+            const header = `BEC Checklist Log\nUser: ${name}\nTitle: ${title}\nRole: ${role}\nOrganisation: ${org}\nGenerated: ${new Date().toLocaleString()}\n\n`;
+            const footer = `\nCreated using the PwnDefend BEC Playbook - copyright (c) xservus limited`;
+            const content = header + logEntries.join('\n') + footer;
+            const blob = new Blob([content], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `BEC_Checklist_Log_${new Date().toISOString().replace(/[:.]/g, '-')}.txt`;
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        // Clear checkbox states, user info, timeline entries, and log
+        function clearState() {
+            const checkboxes = document.querySelectorAll('input[type="checkbox"]');
+            checkboxes.forEach(checkbox => {
+                checkbox.checked = false;
+                localStorage.setItem(checkbox.id, 'unchecked');
+            });
+            document.getElementById('user-name').value = '';
+            document.getElementById('user-title').value = '';
+            document.getElementById('user-role').value = '';
+            document.getElementById('user-org').value = '';
+            document.getElementById('timeline-alt-name').value = '';
+            document.getElementById('timeline-activity').value = '';
+            localStorage.removeItem('becChecklistUserName');
+            localStorage.removeItem('becChecklistUserTitle');
+            localStorage.removeItem('becChecklistUserRole');
+            localStorage.removeItem('becChecklistUserOrg');
+            localStorage.removeItem('becChecklistTimelineAltName');
+            logEntries = [];
+            updateLogDisplay();
+            document.getElementById('timeline-error').style.display = 'none';
+        }
+
+        // Initialize event listeners
+        document.addEventListener('DOMContentLoaded', () => {
+            // Load saved log entries
+            const savedLog = localStorage.getItem('becChecklistLog');
+            if (savedLog) {
+                logEntries = JSON.parse(savedLog);
+                updateLogDisplay();
+            }
+
+            // Load user info and checkbox states
+            loadUserInfo();
+            loadCheckboxStates();
+
+            // User info input listeners
+            ['user-name', 'user-title', 'user-role', 'user-org', 'timeline-alt-name'].forEach(id => {
+                document.getElementById(id).addEventListener('input', saveUserInfo);
+            });
+
+            // Checkbox event listeners
+            const checkboxes = document.querySelectorAll('input[type="checkbox"]');
+            checkboxes.forEach(checkbox => {
+                checkbox.addEventListener('change', () => {
+                    saveCheckboxState(checkbox);
+                    addCheckboxLogEntry(checkbox, checkbox.checked ? 'checked' : 'unchecked');
+                });
+            });
+
+            // Timeline entry button
+            document.getElementById('add-timeline').addEventListener('click', () => {
+                if (addTimelineLogEntry()) {
+                    localStorage.setItem('becChecklistLog', JSON.stringify(logEntries));
+                }
+            });
+
+            // Export log button
+            document.getElementById('export-log').addEventListener('click', exportLog);
+
+            // Clear state button
+            document.getElementById('clear-state-button').addEventListener('click', clearState);
+
+            // Jump to Action Log button
+            document.getElementById('jump-to-log').addEventListener('click', () => {
+                document.getElementById('log-section').scrollIntoView({ behavior: 'smooth' });
+            });
+
+            // Copy to Clipboard buttons for PowerShell queries
+            const copyButtons = [
+                { id: 'copy-ual-query', queryId: 'ual-query' },
+                { id: 'copy-revoke-token-query', queryId: 'revoke-token-query' },
+                { id: 'copy-inbox-rule-query', queryId: 'inbox-rule-query' },
+                { id: 'copy-azure-app-query', queryId: 'azure-app-query' },
+                { id: 'copy-email-template', queryId: 'email-template' }
+            ];
+
+            copyButtons.forEach(({ id, queryId }) => {
+                const button = document.getElementById(id);
+                if (button) {
+                    button.addEventListener('click', () => {
+                        const queryText = document.getElementById(queryId).textContent;
+                        navigator.clipboard.writeText(queryText).then(() => {
+                            button.textContent = 'Copied!';
+                            button.classList.add('copied');
+                            setTimeout(() => {
+                                button.textContent = 'Copy to Clipboard';
+                                button.classList.remove('copied');
+                            }, 2000);
+                        });
+                    });
+                }
+            });
+        });
+    </script>
+</body>
+</html>
