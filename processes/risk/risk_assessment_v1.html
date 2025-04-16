@@ -1,0 +1,679 @@
+<script type="text/javascript">
+        var gk_isXlsx = false;
+        var gk_xlsxFileLookup = {};
+        var gk_fileData = {};
+        function loadFileData(filename) {
+        if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
+            try {
+                var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
+                var firstSheetName = workbook.SheetNames[0];
+                var worksheet = workbook.Sheets[firstSheetName];
+
+                // Convert sheet to JSON to filter blank rows
+                var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
+                // Filter out blank rows (rows where all cells are empty, null, or undefined)
+                var filteredData = jsonData.filter(row =>
+                    row.some(cell => cell !== '' && cell !== null && cell !== undefined)
+                );
+
+                // Convert filtered JSON back to CSV
+                var csv = XLSX.utils.aoa_to_sheet(filteredData); // Create a new sheet from filtered array of arrays
+                csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
+                return csv;
+            } catch (e) {
+                console.error(e);
+                return "";
+            }
+        }
+        return gk_fileData[filename] || "";
+        }
+        </script><!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Enterprise Risk Assessment Application</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            line-height: 1.6;
+            margin: 40px;
+            max-width: 800px;
+            margin-left: auto;
+            margin-right: auto;
+            color: #333;
+        }
+        h1 {
+            font-size: 2.2em;
+            text-align: center;
+            color: #2c3e50;
+            margin-bottom: 20px;
+        }
+        h2 {
+            font-size: 1.8em;
+            color: #34495e;
+            margin-top: 30px;
+            border-bottom: 2px solid #ecf0f1;
+            padding-bottom: 5px;
+        }
+        h3 {
+            font-size: 1.4em;
+            color: #3c5a76;
+            margin-top: 20px;
+        }
+        p {
+            margin: 10px 0;
+        }
+        .section {
+            margin-bottom: 20px;
+        }
+        #user-info-section, #log-section {
+            padding: 20px;
+            background-color: #f9f9f9;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+        .input-group {
+            margin-bottom: 15px;
+        }
+        .input-group label {
+            display: inline-block;
+            width: 150px;
+            font-weight: bold;
+        }
+        .input-group input, .input-group textarea, .input-group select {
+            padding: 5px;
+            width: 300px;
+            border: 1px solid #ddd;
+            border-radius: 3px;
+            vertical-align: top;
+        }
+        .input-group textarea {
+            height: 60px;
+            resize: vertical;
+        }
+        #risk-table-section {
+            margin-top: 20px;
+        }
+        #risk-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+        #risk-table th, #risk-table td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+            font-size: 0.9em;
+        }
+        #risk-table th {
+            background-color: #f2f2f2;
+            font-weight: bold;
+        }
+        #risk-table tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+        #timeline-error {
+            color: #e74c3c;
+            font-size: 0.9em;
+            margin-top: 5px;
+            display: none;
+        }
+        .button-container {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+        }
+        button {
+            padding: 10px 20px;
+            background-color: #3498db;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1em;
+        }
+        button:hover {
+            background-color: #2980b9;
+        }
+        #clear-state-button {
+            background-color: #e74c3c;
+        }
+        #clear-state-button:hover {
+            background-color: #c0392b;
+        }
+        #export-excel-button {
+            background-color: #2ecc71;
+        }
+        #export-excel-button:hover {
+            background-color: #27ae60;
+        }
+        #jump-to-log {
+            display: block;
+            margin: 20px auto;
+            text-align: center;
+        }
+        .copy-button {
+            padding: 5px 10px;
+            font-size: 0.9em;
+            margin-left: 10px;
+        }
+        .copy-button.copied {
+            background-color: #2ecc71;
+        }
+        .copy-button.copied:hover {
+            background-color: #27ae60;
+        }
+        .email-template {
+            background-color: #f9f9f9;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-family: 'Consolas', monospace;
+            font-size: 0.9em;
+            line-height: 1.5;
+            white-space: pre-wrap;
+            margin: 10px 0;
+        }
+        .footer {
+            text-align: center;
+            margin-top: 40px;
+            font-size: 0.9em;
+            color: #7f8c8d;
+        }
+    </style>
+</head>
+<body>
+    <h1>Enterprise Risk Assessment Application</h1>
+    <button id="jump-to-log">Jump to Action Log</button>
+
+    <div id="user-info-section">
+        <h2>User Information</h2>
+        <div class="input-group">
+            <label for="user-name">Name:</label>
+            <input type="text" id="user-name" placeholder="Enter your name">
+        </div>
+        <div class="input-group">
+            <label for="user-title">Title:</label>
+            <input type="text" id="user-title" placeholder="Enter your title">
+        </div>
+        <div class="input-group">
+            <label for="user-role">Role:</label>
+            <input type="text" id="user-role" placeholder="Enter your role">
+        </div>
+        <div class="input-group">
+            <label for="user-org">Organisation:</label>
+            <input type="text" id="user-org" placeholder="Enter your organisation">
+        </div>
+    </div>
+
+    <div class="section">
+        <h2>Executive Summary</h2>
+        <p>This application guides enterprises through a structured risk assessment, treatment, and residual risk evaluation process. It enables security teams to identify critical assets, assess threats and attack vectors, define risks, implement controls/mitigations, and evaluate residual risks. Results are recorded in a dynamic risk table, exportable to Excel, with an Action Log to track activities, ensuring a comprehensive approach to managing cybersecurity risks.</p>
+    </div>
+
+    <div class="section">
+        <h2>1. Preparation</h2>
+        <p>Prepare the organization for a thorough risk assessment process.</p>
+        <ul>
+            <li>Identify the scope of the assessment (e.g., systems, departments, third-party services).</li>
+            <li>Assemble a team including IT, security, and business stakeholders.</li>
+            <li>Define risk criteria (e.g., likelihood: Low/Medium/High, impact: Minor/Moderate/Severe).</li>
+            <li>Prepare tools for documentation (this app’s risk table will store results).</li>
+        </ul>
+    </div>
+
+    <div class="section">
+        <h2>2. Risk Identification</h2>
+        <p>Identify assets, threats, attack vectors, and risks to be assessed.</p>
+        <ul>
+            <li><strong>Asset</strong>: List critical systems, data, or processes (e.g., customer database).</li>
+            <li><strong>Threat</strong>: Specify potential threats (e.g., malware, insider threat).</li>
+            <li><strong>Attack Vector</strong>: Define how threats could occur (e.g., phishing, unpatched software).</li>
+            <li><strong>Risk</strong>: Describe the potential impact (e.g., data breach, service disruption).</li>
+            <li>Use the form below to document each risk.</li>
+        </ul>
+    </div>
+
+    <div class="section">
+        <h2>3. Risk Analysis</h2>
+        <p>Analyze each identified risk to determine its likelihood and impact.</p>
+        <ul>
+            <li>Assign <strong>Likelihood</strong> (Low/Medium/High) based on threat probability.</li>
+            <li>Assign <strong>Impact</strong> (Minor/Moderate/Severe) based on potential harm.</li>
+            <li>Calculate <strong>Risk Level</strong> (Low/Medium/High) using a risk matrix.</li>
+            <li>Enter analysis details in the form below.</li>
+        </ul>
+    </div>
+
+    <div class="section">
+        <h2>4. Risk Treatment</h2>
+        <p>Define controls or mitigations to address each risk.</p>
+        <ul>
+            <li>Identify existing controls (e.g., firewalls, training).</li>
+            <li>Propose new mitigations (e.g., encryption, access controls).</li>
+            <li>Specify implementation plans (e.g., owner, timeline).</li>
+            <li>Document treatments in the form below.</li>
+        </ul>
+        <h3>Notify Stakeholders</h3>
+        <ul>
+            <li>If third parties are involved, send a notification for coordination.</li>
+            <li>Use a professional tone and log communications. Example:
+                <div class="email-template" id="email-template">
+Subject: Risk Assessment Coordination Request
+
+Dear [Stakeholder Contact],
+
+We are conducting a cybersecurity risk assessment and have identified [asset/system] under your management as relevant. The risk involves [brief risk description, e.g., potential data breach via phishing].
+
+Proposed mitigations include:
+- [e.g., Enhanced email filtering]
+- [e.g., User training]
+
+Please confirm these actions or suggest alternatives by [deadline]. Contact us for further details.
+
+Best regards,
+[Your Name]
+[Your Organization]
+[Contact Information]
+                </div>
+                <button id="copy-email-template" class="copy-button">Copy to Clipboard</button>
+            </li>
+            <li>Log notifications in the Action Log below.</li>
+        </ul>
+    </div>
+
+    <div class="section">
+        <h2>5. Residual Risk Evaluation</h2>
+        <p>Assess remaining risks after applying controls/mitigations.</p>
+        <ul>
+            <li>Re-evaluate <strong>Residual Likelihood</strong> and <strong>Residual Impact</strong> post-mitigation.</li>
+            <li>Calculate <strong>Residual Risk Level</strong> (Low/Medium/High).</li>
+            <li>Add notes on acceptability or further actions needed.</li>
+            <li>Enter residual risk details in the form below.</li>
+        </ul>
+    </div>
+
+    <div class="section" id="risk-table-section">
+        <h2>Risk Assessment Form</h2>
+        <div class="input-group">
+            <label for="asset">Asset:</label>
+            <input type="text" id="asset" placeholder="e.g., Customer Database">
+        </div>
+        <div class="input-group">
+            <label for="threat">Threat:</label>
+            <input type="text" id="threat" placeholder="e.g., Malware">
+        </div>
+        <div class="input-group">
+            <label for="vector">Attack Vector:</label>
+            <input type="text" id="vector" placeholder="e.g., Phishing Email">
+        </div>
+        <div class="input-group">
+            <label for="risk-description">Risk Description:</label>
+            <textarea id="risk-description" placeholder="e.g., Data breach causing financial loss"></textarea>
+        </div>
+        <div class="input-group">
+            <label for="likelihood">Likelihood:</label>
+            <select id="likelihood">
+                <option value="Low">Low</option>
+                <option value="Medium">Medium</option>
+                <option value="High">High</option>
+            </select>
+        </div>
+        <div class="input-group">
+            <label for="impact">Impact:</label>
+            <select id="impact">
+                <option value="Minor">Minor</option>
+                <option value="Moderate">Moderate</option>
+                <option value="Severe">Severe</option>
+            </select>
+        </div>
+        <div class="input-group">
+            <label for="control">Control/Mitigation:</label>
+            <textarea id="control" placeholder="e.g., Implement MFA, update antivirus"></textarea>
+        </div>
+        <div class="input-group">
+            <label for="residual-likelihood">Residual Likelihood:</label>
+            <select id="residual-likelihood">
+                <option value="Low">Low</option>
+                <option value="Medium">Medium</option>
+                <option value="High">High</option>
+            </select>
+        </div>
+        <div class="input-group">
+            <label for="residual-impact">Residual Impact:</label>
+            <select id="residual-impact">
+                <option value="Minor">Minor</option>
+                <option value="Moderate">Moderate</option>
+                <option value="Severe">Severe</option>
+            </select>
+        </div>
+        <div class="input-group">
+            <label for="notes">Notes:</label>
+            <textarea id="notes" placeholder="e.g., Further review needed"></textarea>
+        </div>
+        <div class="button-container">
+            <button id="add-risk">Add Risk to Table</button>
+            <button id="export-excel-button">Export to Excel</button>
+        </div>
+
+        <h3>Risk Table</h3>
+        <table id="risk-table">
+            <thead>
+                <tr>
+                    <th>Asset</th>
+                    <th>Threat</th>
+                    <th>Attack Vector</th>
+                    <th>Risk Description</th>
+                    <th>Likelihood</th>
+                    <th>Impact</th>
+                    <th>Risk Level</th>
+                    <th>Control/Mitigation</th>
+                    <th>Residual Likelihood</th>
+                    <th>Residual Impact</th>
+                    <th>Residual Risk Level</th>
+                    <th>Notes</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
+
+    <div id="log-section">
+        <h2>Action Log</h2>
+        <div class="input-group">
+            <label for="timeline-alt-name">Alternative Name:</label>
+            <input type="text" id="timeline-alt-name" placeholder="Enter alternative name (optional)">
+        </div>
+        <div class="input-group">
+            <label for="timeline-activity">Timeline Entry:</label>
+            <textarea id="timeline-activity" placeholder="Enter activity description"></textarea>
+            <button id="add-timeline" style="margin-left: 10px;">Add Timeline Entry</button>
+        </div>
+        <p id="timeline-error">Please enter a name (either in User Information or Alternative Name) to add a timeline entry.</p>
+        <div id="log-list"></div>
+        <div class="button-container">
+            <button id="export-log">Export Log</button>
+            <button id="clear-state-button">Clear State</button>
+        </div>
+    </div>
+
+    <div class="footer">
+        <p>© Xservus Limited</p>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <script>
+        // Initialize log and risk arrays
+        let logEntries = [];
+        let risks = [];
+
+        // Load data from local storage
+        function loadData() {
+            const savedLog = localStorage.getItem('riskAssessmentLog');
+            if (savedLog) {
+                logEntries = JSON.parse(savedLog);
+                updateLogDisplay();
+            }
+            const savedRisks = localStorage.getItem('riskAssessmentRisks');
+            if (savedRisks) {
+                risks = JSON.parse(savedRisks);
+                updateRiskTable();
+            }
+            loadUserInfo();
+        }
+
+        // Load user info from local storage
+        function loadUserInfo() {
+            document.getElementById('user-name').value = localStorage.getItem('riskAssessmentUserName') || '';
+            document.getElementById('user-title').value = localStorage.getItem('riskAssessmentUserTitle') || '';
+            document.getElementById('user-role').value = localStorage.getItem('riskAssessmentUserRole') || '';
+            document.getElementById('user-org').value = localStorage.getItem('riskAssessmentUserOrg') || '';
+            document.getElementById('timeline-alt-name').value = localStorage.getItem('riskAssessmentTimelineAltName') || '';
+        }
+
+        // Save user info to local storage
+        function saveUserInfo() {
+            localStorage.setItem('riskAssessmentUserName', document.getElementById('user-name').value);
+            localStorage.setItem('riskAssessmentUserTitle', document.getElementById('user-title').value);
+            localStorage.setItem('riskAssessmentUserRole', document.getElementById('user-role').value);
+            localStorage.setItem('riskAssessmentUserOrg', document.getElementById('user-org').value);
+            localStorage.setItem('riskAssessmentTimelineAltName', document.getElementById('timeline-alt-name').value);
+        }
+
+        // Calculate risk level
+        function calculateRiskLevel(likelihood, impact) {
+            if (likelihood === 'High' && impact === 'Severe') return 'High';
+            if ((likelihood === 'High' && impact === 'Moderate') || (likelihood === 'Medium' && impact === 'Severe')) return 'High';
+            if (likelihood === 'Low' && impact === 'Minor') return 'Low';
+            return 'Medium';
+        }
+
+        // Update risk table
+        function updateRiskTable() {
+            const tbody = document.querySelector('#risk-table tbody');
+            tbody.innerHTML = '';
+            risks.forEach(risk => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${risk.asset}</td>
+                    <td>${risk.threat}</td>
+                    <td>${risk.vector}</td>
+                    <td>${risk.riskDescription}</td>
+                    <td>${risk.likelihood}</td>
+                    <td>${risk.impact}</td>
+                    <td>${risk.riskLevel}</td>
+                    <td>${risk.control}</td>
+                    <td>${risk.residualLikelihood}</td>
+                    <td>${risk.residualImpact}</td>
+                    <td>${risk.residualRiskLevel}</td>
+                    <td>${risk.notes}</td>
+                `;
+                tbody.appendChild(row);
+            });
+            localStorage.setItem('riskAssessmentRisks', JSON.stringify(risks));
+        }
+
+        // Add risk to table
+        document.getElementById('add-risk').addEventListener('click', () => {
+            const risk = {
+                asset: document.getElementById('asset').value,
+                threat: document.getElementById('threat').value,
+                vector: document.getElementById('vector').value,
+                riskDescription: document.getElementById('risk-description').value,
+                likelihood: document.getElementById('likelihood').value,
+                impact: document.getElementById('impact').value,
+                control: document.getElementById('control').value,
+                residualLikelihood: document.getElementById('residual-likelihood').value,
+                residualImpact: document.getElementById('residual-impact').value,
+                notes: document.getElementById('notes').value
+            };
+            risk.riskLevel = calculateRiskLevel(risk.likelihood, risk.impact);
+            risk.residualRiskLevel = calculateRiskLevel(risk.residualLikelihood, risk.residualImpact);
+            risks.push(risk);
+            updateRiskTable();
+
+            // Log the action
+            const timestamp = new Date().toLocaleString();
+            const { name, title, role, org } = getUserInfo();
+            const entry = `[${timestamp}] ${name} (${title}, ${role}, ${org}) - Added risk for asset: ${risk.asset}`;
+            logEntries.push(entry);
+            updateLogDisplay();
+
+            // Clear form
+            document.getElementById('asset').value = '';
+            document.getElementById('threat').value = '';
+            document.getElementById('vector').value = '';
+            document.getElementById('risk-description').value = '';
+            document.getElementById('likelihood').value = 'Low';
+            document.getElementById('impact').value = 'Minor';
+            document.getElementById('control').value = '';
+            document.getElementById('residual-likelihood').value = 'Low';
+            document.getElementById('residual-impact').value = 'Minor';
+            document.getElementById('notes').value = '';
+        });
+
+        // Export risk table to Excel
+        document.getElementById('export-excel-button').addEventListener('click', () => {
+            const worksheetData = risks.map(risk => ({
+                Asset: risk.asset,
+                Threat: risk.threat,
+                'Attack Vector': risk.vector,
+                'Risk Description': risk.riskDescription,
+                Likelihood: risk.likelihood,
+                Impact: risk.impact,
+                'Risk Level': risk.riskLevel,
+                'Control/Mitigation': risk.control,
+                'Residual Likelihood': risk.residualLikelihood,
+                'Residual Impact': risk.residualImpact,
+                'Residual Risk Level': risk.residualRiskLevel,
+                Notes: risk.notes
+            }));
+            const worksheet = XLSX.utils.json_to_sheet(worksheetData);
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, worksheet, 'Risks');
+            const excelBuffer = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' });
+            const blob = new Blob([excelBuffer], { type: 'application/octet-stream' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `Risk_Assessment_${new Date().toISOString().replace(/[:.]/g, '-')}.xlsx`;
+            a.click();
+            URL.revokeObjectURL(url);
+
+            // Log the action
+            const timestamp = new Date().toLocaleString();
+            const { name, title, role, org } = getUserInfo();
+            const entry = `[${timestamp}] ${name} (${title}, ${role}, ${org}) - Exported risk table to Excel`;
+            logEntries.push(entry);
+            updateLogDisplay();
+        });
+
+        // Get user info for log entry
+        function getUserInfo() {
+            return {
+                name: document.getElementById('user-name').value || 'Unknown',
+                title: document.getElementById('user-title').value || 'N/A',
+                role: document.getElementById('user-role').value || 'N/A',
+                org: document.getElementById('user-org').value || 'N/A'
+            };
+        }
+
+        // Add timeline log entry
+        function addTimelineLogEntry() {
+            const nameInput = document.getElementById('user-name');
+            const altNameInput = document.getElementById('timeline-alt-name');
+            const activityInput = document.getElementById('timeline-activity');
+            const errorDisplay = document.getElementById('timeline-error');
+
+            if (!nameInput.value.trim() && !altNameInput.value.trim()) {
+                errorDisplay.style.display = 'block';
+                return false;
+            }
+
+            errorDisplay.style.display = 'none';
+            const timestamp = new Date().toLocaleString();
+            const { title, role, org } = getUserInfo();
+            const name = altNameInput.value.trim() || nameInput.value.trim() || 'Unknown';
+            const activity = activityInput.value.trim() || 'No description provided';
+            const entry = `[${timestamp}] ${name} (${title}, ${role}, ${org}) - Timeline Entry: ${activity}`;
+            logEntries.push(entry);
+            updateLogDisplay();
+            activityInput.value = '';
+            altNameInput.value = '';
+            saveUserInfo();
+            return true;
+        }
+
+        // Update log display
+        function updateLogDisplay() {
+            const logList = document.getElementById('log-list');
+            logList.innerHTML = logEntries.map(entry => `<p>${entry}</p>`).join('');
+            logList.scrollTop = logList.scrollHeight;
+            localStorage.setItem('riskAssessmentLog', JSON.stringify(logEntries));
+        }
+
+        // Export log as text file
+        function exportLog() {
+            const { name, title, role, org } = getUserInfo();
+            const header = `Risk Assessment Log\nUser: ${name}\nTitle: ${title}\nRole: ${role}\nOrganisation: ${org}\nGenerated: ${new Date().toLocaleString()}\n\n`;
+            const footer = `\nCreated using the PwnDefend Risk Assessment App - copyright (c) xservus limited`;
+            const content = header + logEntries.join('\n') + footer;
+            const blob = new Blob([content], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `Risk_Assessment_Log_${new Date().toISOString().replace(/[:.]/g, '-')}.txt`;
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        // Clear state
+        function clearState() {
+            risks = [];
+            logEntries = [];
+            updateRiskTable();
+            updateLogDisplay();
+            document.getElementById('user-name').value = '';
+            document.getElementById('user-title').value = '';
+            document.getElementById('user-role').value = '';
+            document.getElementById('user-org').value = '';
+            document.getElementById('timeline-alt-name').value = '';
+            document.getElementById('timeline-activity').value = '';
+            localStorage.removeItem('riskAssessmentUserName');
+            localStorage.removeItem('riskAssessmentUserTitle');
+            localStorage.removeItem('riskAssessmentUserRole');
+            localStorage.removeItem('riskAssessmentUserOrg');
+            localStorage.removeItem('riskAssessmentTimelineAltName');
+            localStorage.removeItem('riskAssessmentLog');
+            localStorage.removeItem('riskAssessmentRisks');
+            document.getElementById('timeline-error').style.display = 'none';
+        }
+
+        // Initialize event listeners
+        document.addEventListener('DOMContentLoaded', () => {
+            loadData();
+
+            // User info input listeners
+            ['user-name', 'user-title', 'user-role', 'user-org', 'timeline-alt-name'].forEach(id => {
+                document.getElementById(id).addEventListener('input', saveUserInfo);
+            });
+
+            // Timeline entry button
+            document.getElementById('add-timeline').addEventListener('click', () => {
+                if (addTimelineLogEntry()) {
+                    localStorage.setItem('riskAssessmentLog', JSON.stringify(logEntries));
+                }
+            });
+
+            // Export log button
+            document.getElementById('export-log').addEventListener('click', exportLog);
+
+            // Clear state button
+            document.getElementById('clear-state-button').addEventListener('click', clearState);
+
+            // Jump to Action Log button
+            document.getElementById('jump-to-log').addEventListener('click', () => {
+                document.getElementById('log-section').scrollIntoView({ behavior: 'smooth' });
+            });
+
+            // Copy to Clipboard button for email template
+            const copyButton = document.getElementById('copy-email-template');
+            if (copyButton) {
+                copyButton.addEventListener('click', () => {
+                    const queryText = document.getElementById('email-template').textContent;
+                    navigator.clipboard.writeText(queryText).then(() => {
+                        copyButton.textContent = 'Copied!';
+                        copyButton.classList.add('copied');
+                        setTimeout(() => {
+                            copyButton.textContent = 'Copy to Clipboard';
+                            copyButton.classList.remove('copied');
+                        }, 2000);
+                    });
+                });
+            }
+        });
+    </script>
+</body>
+</html>
