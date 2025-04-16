@@ -70,14 +70,7 @@
         }
         ul li {
             margin: 8px 0;
-            display: flex;
-            align-items: center;
-        }
-        ul ul {
-            padding-left: 20px;
-        }
-        ul ul ul {
-            padding-left: 15px;
+            display: block;
         }
         input[type="checkbox"] {
             margin-right: 10px;
@@ -351,7 +344,7 @@
         <h3>Enable Litigation Hold</h3>
         <ul>
             <li>Immediately enable litigation hold on the affected user’s mailbox in the Microsoft 365 Compliance Center to preserve all email data, including deleted items, for forensic analysis and potential legal proceedings.</li>
-            <li>Navigate to <code>Microsoft 355 Compliance Center > eDiscovery > Core eDiscovery</code>.</li>
+            <li>Navigate to <code>Microsoft 365 Compliance Center > eDiscovery > Core eDiscovery</code>.</li>
             <li>Create a new case, add the affected user’s mailbox to the hold, and enable litigation hold.</li>
             <li>Verify that the hold is active to ensure no data is purged.</li>
         </ul>
@@ -406,20 +399,11 @@
 
         <h3>Notify External Organization</h3>
         <ul>
-            <li>If the threat actor is confirmed to be operating from another organization’s tenant:
-                <ul>
-                    <li>Identify the external organization based on the sender’s domain or tenant ID.</li>
-                    <li>Send a formal notification to the organization’s security or IT contact (e.g., <code>abuse@domain.com</code> or <code>security@domain.com</code>, if available).</li>
-                    <li>Include relevant details without compromising sensitive information:
-                        <ul>
-                            <li>Timestamp and nature of the suspicious email(s).</li>
-                            <li>Sender’s email address and domain.</li>
-                            <li>IOCs (e.g., malicious URLs, IPs, or hashes).</li>
-                            <li>A request for the organization to investigate potential compromise in their tenant.</li>
-                        </ul>
-                    </li>
-                    <li>Use a professional, neutral tone, acknowledging that you have no knowledge of their policies or processes:
-                        <div class="email-template" id="email-template">
+            <li>If the threat actor operates from another organization’s tenant, identify the organization using the sender’s domain or tenant ID.</li>
+            <li>Send a formal notification to their security or IT contact (e.g., <code>abuse@domain.com</code> or <code>security@domain.com</code>).</li>
+            <li>Include in the notification: timestamp and nature of the suspicious email(s), sender’s email and domain, IOCs (e.g., URLs, IPs, hashes), and a request to investigate their tenant, without sharing sensitive internal data.</li>
+            <li>Use a professional, neutral tone, noting you have no knowledge of their policies. Example:
+                <div class="email-template" id="email-template">
 Subject: Notification of Potential Business Email Compromise Involving Your Tenant
 
 Dear [Organization/Security Team],
@@ -437,13 +421,11 @@ Best regards,
 [Your Name]
 [Your Organization]
 [Contact Information]
-                        </div>
-                        <button id="copy-email-template" class="copy-button">Copy to Clipboard</button>
-                    </li>
-                    <li>Log the notification in your incident tracking system and retain a copy for legal and audit purposes.</li>
-                    <li>If no response is received within 24-48 hours, escalate to legal counsel or consider notifying Microsoft’s support team for assistance in coordinating with the external tenant.</li>
-                </ul>
+                </div>
+                <button id="copy-email-template" class="copy-button">Copy to Clipboard</button>
             </li>
+            <li>Log the notification in your incident tracking system and keep a copy for legal and audit purposes.</li>
+            <li>If no response is received within 24-48 hours, escalate to legal counsel or contact Microsoft’s support team for assistance with the external tenant.</li>
         </ul>
     </div>
 
@@ -821,7 +803,7 @@ Best regards,
                 document.getElementById('log-section').scrollIntoView({ behavior: 'smooth' });
             });
 
-            // Copy to Clipboard buttons for PowerShell queries
+            // Copy to Clipboard buttons for queries and email template
             const copyButtons = [
                 { id: 'copy-ual-query', queryId: 'ual-query' },
                 { id: 'copy-revoke-token-query', queryId: 'revoke-token-query' },
