@@ -299,14 +299,26 @@
         }
 
         function exportToJPG() {
-            const container = document.getElementById('canvas-container');
-            html2canvas(container, { width: 600, height: 600 }).then(canvas => {
+            const svg = document.getElementById('diamond-svg');
+            console.log('Starting JPG export for diamond-svg');
+            html2canvas(svg, {
+                width: 600,
+                height: 600,
+                scale: 2, // Increase resolution
+                backgroundColor: '#ffffff', // Ensure a white background
+                useCORS: true // Handle any external resources
+            }).then(canvas => {
+                console.log('Canvas generated, creating download link');
                 const imgData = canvas.toDataURL('image/jpeg', 0.9);
                 const link = document.createElement('a');
                 link.href = imgData;
                 link.download = 'diamond_model.jpg';
                 link.click();
-            }).catch(e => console.error('Error exporting JPG:', e));
+                console.log('JPG export completed');
+            }).catch(e => {
+                console.error('Error exporting JPG:', e);
+                alert('Failed to export JPG. Check console for details.');
+            });
         }
 
         function exportToExcel() {
@@ -463,5 +475,6 @@
         document.getElementById('toggle-sidebar').addEventListener('click', toggleSidebar);
     </script>
     <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9315c0f6b9991379',t:'MTc0NDgyODIyNS4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9315ed0df93dbcbf',t:'MTc0NDgzMDAzMS4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script>
 </body>
 </html>
