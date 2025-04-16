@@ -1,0 +1,790 @@
+<script type="text/javascript">
+        var gk_isXlsx = false;
+        var gk_xlsxFileLookup = {};
+        var gk_fileData = {};
+        function loadFileData(filename) {
+        if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
+            try {
+                var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
+                var firstSheetName = workbook.SheetNames[0];
+                var worksheet = workbook.Sheets[firstSheetName];
+
+                // Convert sheet to JSON to filter blank rows
+                var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
+                // Filter out blank rows (rows where all cells are empty, null, or undefined)
+                var filteredData = jsonData.filter(row =>
+                    row.some(cell => cell !== '' && cell !== null && cell !== undefined)
+                );
+
+                // Convert filtered JSON back to CSV
+                var csv = XLSX.utils.aoa_to_sheet(filteredData); // Create a new sheet from filtered array of arrays
+                csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
+                return csv;
+            } catch (e) {
+                console.error(e);
+                return "";
+            }
+        }
+        return gk_fileData[filename] || "";
+        }
+        </script><!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cyber Incident Response Plan</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            line-height: 1.6;
+            margin: 40px;
+            max-width: 800px;
+            margin-left: auto;
+            margin-right: auto;
+            color: #333;
+        }
+        h1 {
+            font-size: 2.2em;
+            text-align: center;
+            color: #2c3e50;
+            margin-bottom: 20px;
+        }
+        h2 {
+            font-size: 1.8em;
+            color: #34495e;
+            margin-top: 30px;
+            border-bottom: 2px solid #ecf0f1;
+            padding-bottom: 5px;
+        }
+        h3 {
+            font-size: 1.4em;
+            color: #3c5a76;
+            margin-top: 20px;
+        }
+        p {
+            margin: 10px 0;
+        }
+        ul {
+            list-style-type: none;
+            padding-left: 20px;
+        }
+        ul li {
+            margin: 8px 0;
+            display: block;
+        }
+        input[type="checkbox"] {
+            margin-right: 10px;
+        }
+        code {
+            font-family: 'Consolas', monospace;
+            background-color: #f5f6fa;
+            padding: 2px 4px;
+            border-radius: 3px;
+        }
+        .section {
+            margin-bottom: 20px;
+        }
+        .note {
+            background-color: #e8f4f8;
+            padding: 15px;
+            border-left: 4px solid #3498db;
+            margin: 20px 0;
+            border-radius: 5px;
+        }
+        #log-section {
+            margin-top: 40px;
+            padding: 20px;
+            background-color: #f9f9f9;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        #log-section h2 {
+            margin-top: 0;
+        }
+        #log-list {
+            max-height: 200px;
+            overflow-y: auto;
+            margin-bottom: 10px;
+        }
+        #log-list p {
+            margin: 5px 0;
+            font-size: 0.9em;
+        }
+        .button-container {
+            display: flex;
+            gap: 10px;
+        }
+        button {
+            padding: 10px 20px;
+            background-color: #3498db;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1em;
+        }
+        button:hover {
+            background-color: #2980b9;
+        }
+        #clear-state-button {
+            background-color: #e74c3c;
+        }
+        #clear-state-button:hover {
+            background-color: #c0392b;
+        }
+        .input-group {
+            margin-bottom: 15px;
+        }
+        .input-group label {
+            display: inline-block;
+            width: 120px;
+            font-weight: bold;
+        }
+        .input-group input, .input-group textarea {
+            padding: 5px;
+            width: 200px;
+            border: 1px solid #ddd;
+            border-radius: 3px;
+            vertical-align: top;
+        }
+        .input-group textarea {
+            width: 300px;
+            height: 60px;
+            resize: vertical;
+        }
+        #timeline-error {
+            color: #e74c3c;
+            font-size: 0.9em;
+            margin-top: 5px;
+            display: none;
+        }
+        .footer {
+            text-align: center;
+            margin-top: 40px;
+            font-size: 0.9em;
+            color: #7f8c8d;
+        }
+        #jump-to-log {
+            display: block;
+            margin: 20px auto;
+            text-align: center;
+        }
+        #user-info-section {
+            padding: 20px;
+            background-color: #f9f9f9;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+        .copy-button {
+            padding: 5px 10px;
+            font-size: 0.9em;
+            margin-left: 10px;
+        }
+        .copy-button.copied {
+            background-color: #2ecc71;
+        }
+        .copy-button.copied:hover {
+            background-color: #27ae60;
+        }
+        .email-template {
+            background-color: #f9f9f9;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-family: 'Consolas', monospace;
+            font-size: 0.9em;
+            line-height: 1.5;
+            white-space: pre-wrap;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <h1>Cyber Incident Response Plan</h1>
+    <button id="jump-to-log">Jump to Action Log</button>
+
+    <div id="user-info-section">
+        <h2>User Information</h2>
+        <div class="input-group">
+            <label for="user-name">Name:</label>
+            <input type="text" id="user-name" placeholder="Enter your name">
+        </div>
+        <div class="input-group">
+            <label for="user-title">Title:</label>
+            <input type="text" id="user-title" placeholder="Enter your title">
+        </div>
+        <div class="input-group">
+            <label for="user-role">Role:</label>
+            <input type="text" id="user-role" placeholder="Enter your role">
+        </div>
+        <div class="input-group">
+            <label for="user-org">Organisation:</label>
+            <input type="text" id="user-org" placeholder="Enter your organisation">
+        </div>
+    </div>
+
+    <div class="section">
+        <h2>Executive Summary</h2>
+        <p>This document outlines a comprehensive response plan for addressing cyber incidents in an IT environment. It guides the Cybersecurity Incident Response Team (CSIRT) through triage, analysis, containment, eradication, restoration, and post-incident activities, while ensuring evidence preservation. The plan is designed for incidents such as unauthorized access, malware, data breaches, or other threats, including scenarios involving third-party systems. By leveraging security monitoring tools and industry best practices, this plan ensures a swift, secure, and legally defensible response to mitigate damage and protect the organization.</p>
+    </div>
+
+    <div class="section">
+        <h2>Incident Response Checklist</h2>
+        <p>The following checklist summarizes key actions to be completed during a cyber incident response. Refer to the detailed sections below for step-by-step guidance.</p>
+        <ul>
+            <li><input type="checkbox" id="triage" data-label="Triage">Triage
+                <ul>
+                    <li><input type="checkbox" id="triage-log-ticket" data-label="Log a ticket">Log a ticket</li>
+                    <li><input type="checkbox" id="triage-acknowledge" data-label="Acknowledge report">Acknowledge report of suspicious activity.</li>
+                    <li><input type="checkbox" id="triage-validate" data-label="Validate incident">Validate incident using security monitoring tools.</li>
+                    <li><input type="checkbox" id="triage-external" data-label="Check external involvement">Check if the incident involves an external system.</li>
+                    <li><input type="checkbox" id="triage-severity" data-label="Classify severity">Classify incident severity (low, medium, high).</li>
+                    <li><input type="checkbox" id="triage-owner" data-label="Assign incident owner">Assign incident owner in the incident management system.</li>
+                    <li><input type="checkbox" id="triage-evidence" data-label="Preserve evidence">Preserve evidence for affected systems.</li>
+                </ul>
+            </li>
+            <li><input type="checkbox" id="analysis" data-label="Analysis">Analysis
+                <ul>
+                    <li><input type="checkbox" id="analysis-review" data-label="Review logs and alerts">Review logs, alerts, and affected systems.</li>
+                    <li><input type="checkbox" id="analysis-iocs" data-label="Collect IOCs">Collect Indicators of Compromise (IOCs) (e.g., IPs, hashes, URLs).</li>
+                    <li><input type="checkbox" id="analysis-scope" data-label="Assess scope">Assess scope of compromise (systems, data).</li>
+                    <li><input type="checkbox" id="analysis-forensics" data-label="Engage forensics">Engage forensics team for sensitive data or legal cases.</li>
+                    <li><input type="checkbox" id="analysis-legal" data-label="Consult legal">Consult legal counsel for regulatory or litigation risks.</li>
+                    <li><input type="checkbox" id="analysis-notify" data-label="Notify external">Notify external parties if their systems are involved.</li>
+                </ul>
+            </li>
+            <li><input type="checkbox" id="containment" data-label="Containment">Containment
+                <ul>
+                    <li><input type="checkbox" id="containment-isolate" data-label="Isolate systems">Isolate compromised systems or accounts.</li>
+                    <li><input type="checkbox" id="containment-reset" data-label="Reset credentials">Reset credentials and enforce strong authentication.</li>
+                    <li><input type="checkbox" id="containment-configs" data-label="Remove malicious configs">Remove malicious configurations.</li>
+                    <li><input type="checkbox" id="containment-quarantine" data-label="Quarantine threats">Quarantine or remove threats.</li>
+                    <li><input type="checkbox" id="containment-iocs" data-label="Block IOCs">Block IOCs in security policies.</li>
+                    <li><input type="checkbox" id="containment-coordinate" data-label="Coordinate external">Coordinate with external parties.</li>
+                </ul>
+            </li>
+            <li><input type="checkbox" id="eradication" data-label="Eradication">Eradication
+                <ul>
+                    <li><input type="checkbox" id="eradication-remove" data-label="Remove access">Remove threat actor access.</li>
+                    <li><input type="checkbox" id="eradication-vulnerabilities" data-label="Remediate vulnerabilities">Remediate vulnerabilities.</li>
+                    <li><input type="checkbox" id="eradication-clean" data-label="Clean systems">Clean affected systems.</li>
+                    <li><input type="checkbox" id="eradication-review" data-label="System review">Conduct full system review for residual threats.</li>
+                    <li><input type="checkbox" id="eradication-monitor" data-label="Monitor external">Monitor for recurring external activity.</li>
+                </ul>
+            </li>
+            <li><input type="checkbox" id="restoration" data-label="Restoration">Restoration
+                <ul>
+                    <li><input type="checkbox" id="restoration-restore" data-label="Restore systems">Restore systems and accounts.</li>
+                    <li><input type="checkbox" id="restoration-validate" data-label="Validate recovery">Validate recovery.</li>
+                    <li><input type="checkbox" id="restoration-controls" data-label="Enhance controls">Enhance security controls.</li>
+                    <li><input type="checkbox" id="restoration-training" data-label="Employee training">Conduct employee training on cyber threats.</li>
+                </ul>
+            </li>
+            <li><input type="checkbox" id="post-incident" data-label="Post-Incident Activities">Post-Incident Activities
+                <ul>
+                    <li><input type="checkbox" id="post-incident-report" data-label="Incident report">Create incident report.</li>
+                    <li><input type="checkbox" id="post-incident-lessons" data-label="Lessons learned">Conduct lessons learned meeting.</li>
+                    <li><input type="checkbox" id="post-incident-evidence" data-label="Maintain evidence">Maintain evidence until approved for release.</li>
+                    <li><input type="checkbox" id="post-incident-notify" data-label="Notify regulators">Notify regulators/stakeholders if required.</li>
+                    <li><input type="checkbox" id="post-incident-defenses" data-label="Strengthen defenses">Strengthen defenses.</li>
+                    <li><input type="checkbox" id="post-incident-close-ticket" data-label="Close ticket">Close ticket</li>
+                </ul>
+            </li>
+        </ul>
+    </div>
+
+    <div class="section">
+        <h2>1. Incident Response Triage</h2>
+        <p>Triage is the initial phase to validate and prioritize the incident, ensuring a rapid response to limit damage.</p>
+
+        <h3>Log a Ticket</h3>
+        <ul>
+            <li>Create a ticket in the incident management system to document the reported suspicious activity and initiate the response process.</li>
+        </ul>
+
+        <h3>Acknowledge Report</h3>
+        <ul>
+            <li>Confirm receipt of the report via the ticketing system or direct communication, instructing users to avoid actions that could worsen the issue.</li>
+        </ul>
+
+        <h3>Validate the Incident</h3>
+        <ul>
+            <li>Review security monitoring tools (e.g., SIEM, endpoint protection) for alerts, logs, or indicators of compromise (e.g., unusual logins, malicious files).</li>
+            <li>Correlate signals from network, endpoint, or identity systems to confirm the incident.</li>
+            <li>Determine if the incident is a false positive (e.g., part of a security test).</li>
+        </ul>
+
+        <h3>Check External Involvement</h3>
+        <ul>
+            <li>Identify if the incident involves an external system by analyzing logs or IOCs (e.g., foreign IPs, third-party domains).</li>
+        </ul>
+
+        <h3>Classify Severity</h3>
+        <ul>
+            <li>Assign a severity level (low, medium, high) based on impact (e.g., data loss, system disruption).</li>
+            <li>Escalate high-severity incidents to the CSIRT immediately.</li>
+        </ul>
+
+        <h3>Assign Incident Owner</h3>
+        <ul>
+            <li>Assign the incident to a security analyst or team in the incident management system.</li>
+            <li>Document in a centralized tracking system for visibility.</li>
+        </ul>
+
+        <h3>Preserve Evidence</h3>
+        <ul>
+            <li>Preserve evidence on affected systems (e.g., logs, files) to support analysis or legal needs.</li>
+            <li>Use a compliance platform or secure storage to ensure data integrity.</li>
+            <li>Verify evidence is protected from tampering or deletion.</li>
+        </ul>
+    </div>
+
+    <div class="section">
+        <h2>2. Analysis</h2>
+        <p>Analyze the incident to determine its scope, impact, and tactics used by the threat actor.</p>
+
+        <h3>Review Logs and Alerts</h3>
+        <ul>
+            <li>Use security monitoring tools to review alerts, logs, and affected systems (e.g., servers, endpoints, accounts).</li>
+            <li>Analyze logs for suspicious activities, such as:
+                <ul>
+                    <li>Unauthorized logins from unfamiliar IPs or devices.</li>
+                    <li>Suspicious configuration changes (e.g., new permissions).</li>
+                    <li>Unusual data access or transfers.</li>
+                </ul>
+            </li>
+        </ul>
+
+        <h3>Collect Indicators of Compromise (IOCs)</h3>
+        <ul>
+            <li>Gather IOCs like malicious IPs, domains, file hashes, or URLs from logs and alerts.</li>
+            <li>Use threat intelligence or security tools to identify patterns.</li>
+        </ul>
+
+        <h3>Assess Scope of Compromise</h3>
+        <ul>
+            <li>Check for compromised accounts, systems, or data (e.g., altered settings, accessed files).</li>
+            <li>Investigate network, application, or cloud services for signs of exfiltration or lateral movement.</li>
+            <li>Determine the attack vector (e.g., phishing, vulnerability exploit).</li>
+        </ul>
+
+        <h3>Engage Forensics Team</h3>
+        <ul>
+            <li>If sensitive data or legal implications are involved, engage a forensics team for in-depth analysis.</li>
+            <li>Preserve evidence (e.g., logs, memory dumps) in a secure, tamper-proof location.</li>
+        </ul>
+
+        <h3>Consult Legal Counsel</h3>
+        <ul>
+            <li>If data exposure (e.g., PII, financial records) is suspected, consult legal counsel to assess regulatory requirements (e.g., GDPR, CCPA).</li>
+            <li>Discuss external system involvement for potential legal coordination.</li>
+        </ul>
+
+        <h3>Notify External Parties</h3>
+        <ul>
+            <li>If an external system is involved, identify the third party using IOCs (e.g., domain, IP).</li>
+            <li>Send a formal notification to their security contact (e.g., <code>security@domain.com</code>).</li>
+            <li>Include in the notification: timestamp and nature of the incident, relevant IOCs (e.g., IPs, domains), and a request to investigate their system, without sharing sensitive internal data.</li>
+            <li>Use a professional, neutral tone, noting you have no knowledge of their policies. Example:
+                <div class="email-template" id="email-template">
+Subject: Notification of Potential Cyber Incident Involving Your System
+
+Dear [Organization/Security Team],
+
+We have identified suspicious activity linked to your system ([domain.com or IP]). The incident, detected on [date/time], involves [brief description, e.g., unauthorized access, malware].
+
+To assist your investigation, we are sharing the following indicators of compromise:
+- Source: [domain.com or IP]
+- Malicious URL: [if applicable]
+- File Hash: [if applicable]
+
+We kindly request that you investigate this matter and take appropriate action. Please let us know if you need further details or coordination. We have no knowledge of your internal policies and provide this information to support a secure resolution.
+
+Best regards,
+[Your Name]
+[Your Organization]
+[Contact Information]
+                </div>
+                <button id="copy-email-template" class="copy-button">Copy to Clipboard</button>
+            </li>
+            <li>Log the notification in your incident tracking system and retain a copy for legal and audit purposes.</li>
+            <li>If no response is received within 24-48 hours, escalate to legal counsel or consider further coordination steps.</li>
+        </ul>
+    </div>
+
+    <div class="section">
+        <h2>3. Containment</h2>
+        <p>Contain the incident to prevent further damage while preserving evidence.</p>
+
+        <h3>Isolate Compromised Systems</h3>
+        <ul>
+            <li>Isolate compromised systems or accounts (e.g., disable accounts, disconnect devices from the network).</li>
+            <li>Use identity management systems to block unauthorized access.</li>
+        </ul>
+
+        <h3>Reset Credentials</h3>
+        <ul>
+            <li>Reset passwords for affected accounts, enforcing strong, unique credentials.</li>
+            <li>Enable or strengthen authentication controls (e.g., MFA).</li>
+        </ul>
+
+        <h3>Remove Malicious Configurations</h3>
+        <ul>
+            <li>Identify and remove unauthorized configurations (e.g., rogue apps, altered settings).</li>
+            <li>Review system-wide configurations for suspicious changes.</li>
+        </ul>
+
+        <h3>Quarantine Threats</h3>
+        <ul>
+            <li>Quarantine or remove threats (e.g., malware, suspicious scripts) using endpoint protection tools.</li>
+            <li>Preserve copies of threats in a secure location for analysis.</li>
+        </ul>
+
+        <h3>Block IOCs</h3>
+        <ul>
+            <li>Block malicious IPs, URLs, or domains in firewalls or security policies.</li>
+            <li>Share IOCs with your security team to update defenses.</li>
+        </ul>
+
+        <h3>Coordinate with External Parties</h3>
+        <ul>
+            <li>If external parties respond, provide additional IOCs as requested, avoiding sensitive data.</li>
+            <li>Request updates on their investigation to assess ongoing risk.</li>
+        </ul>
+    </div>
+
+    <div class="section">
+        <h2>4. Eradication</h2>
+        <p>Eliminate the threat actor’s access and mitigate vulnerabilities.</p>
+
+        <h3>Remove Threat Actor Access</h3>
+        <ul>
+            <li>Ensure all compromised accounts, systems, or apps are disabled or reset.</li>
+            <li>Review configurations for unauthorized permissions or backdoors.</li>
+        </ul>
+
+        <h3>Remediate Vulnerabilities</h3>
+        <ul>
+            <li>Patch exploited vulnerabilities (e.g., outdated software, misconfigurations).</li>
+            <li>Harden systems using security best practices.</li>
+        </ul>
+
+        <h3>Clean Affected Systems</h3>
+        <ul>
+            <li>Use security tools to clean affected systems of malware or unauthorized changes.</li>
+            <li>Rebuild systems from verified backups after preserving evidence.</li>
+        </ul>
+
+        <h3>Conduct Full System Review</h3>
+        <ul>
+            <li>Analyze logs to ensure no residual threats (e.g., dormant malware).</li>
+            <li>Review all systems for unauthorized changes.</li>
+        </ul>
+
+        <h3>Monitor External System Activity</h3>
+        <ul>
+            <li>Monitor for activity from external systems to detect recurrence.</li>
+            <li>Validate remediation if external parties confirm action.</li>
+        </ul>
+    </div>
+
+    <div class="section">
+        <h2>5. Restoration</h2>
+        <p>Restore systems and services securely while maintaining vigilance.</p>
+
+        <h3>Restore Systems and Accounts</h3>
+        <ul>
+            <li>Re-enable systems and accounts after verifying security (e.g., new credentials, controls).</li>
+            <li>Restore access to services after confirming no threats.</li>
+        </ul>
+
+        <h3>Validate Recovery</h3>
+        <ul>
+            <li>Monitor systems for re-compromise using security tools.</li>
+            <li>Verify backups are clean before restoration.</li>
+        </ul>
+
+        <h3>Enhance Security Controls</h3>
+        <ul>
+            <li>Implement stronger security measures (e.g., updated policies, monitoring).</li>
+            <li>Conduct a security assessment to address weaknesses.</li>
+        </ul>
+
+        <h3>Employee Training</h3>
+        <ul>
+            <li>Train employees on recognizing cyber threats (e.g., phishing, social engineering).</li>
+            <li>Run simulated attacks to improve detection.</li>
+        </ul>
+    </div>
+
+    <div class="section">
+        <h2>6. Post-Incident Activities</h2>
+        <p>Document findings, strengthen defenses, and meet legal obligations.</p>
+
+        <h3>Create Incident Report</h3>
+        <ul>
+            <li>Document a timeline, IOCs, affected systems, and response actions.</li>
+            <li>Include external system details if applicable.</li>
+            <li>Share a technical report with CSIRT and a summary with stakeholders.</li>
+        </ul>
+
+        <h3>Conduct Lessons Learned</h3>
+        <ul>
+            <li>Hold a meeting to review response effectiveness and identify improvements.</li>
+            <li>Update the incident response plan with new procedures.</li>
+        </ul>
+
+        <h3>Maintain Evidence</h3>
+        <ul>
+            <li>Retain evidence until legal counsel approves release.</li>
+        </ul>
+
+        <h3>Notify Regulators and Stakeholders</h3>
+        <ul>
+            <li>Work with legal counsel to notify affected parties and regulators if data was exposed.</li>
+            <li>Ensure compliance with applicable regulations.</li>
+        </ul>
+
+        <h3>Strengthen Defenses</h3>
+        <ul>
+            <li>Deploy enhanced monitoring or security services.</li>
+            <li>Review configurations against industry standards.</li>
+        </ul>
+
+        <h3>Close Ticket</h3>
+        <ul>
+            <li>Close the incident ticket after confirming all actions are complete.</li>
+        </ul>
+    </div>
+
+    <div class="section">
+        <h2>Additional Notes</h2>
+        <div class="note">
+            <ul>
+                <li><strong>Preserve Evidence:</strong> Maintain a chain of custody for evidence to support investigations.</li>
+                <li><strong>Leverage Automation:</strong> Use security tools to automate threat detection and response.</li>
+                <li><strong>Engage Experts:</strong> For complex incidents, involve third-party providers with expertise.</li>
+                <li><strong>Continuous Monitoring:</strong> Post-incident, enhance vigilance to detect recurring threats.</li>
+                <li><strong>External Limitations:</strong> Focus on securing your systems and coordinating with external parties, as you cannot directly remediate their systems.</li>
+            </ul>
+        </div>
+        <p>This plan aligns with industry best practices for cyber incident response, ensuring a thorough and defensible approach.</p>
+    </div>
+
+    <div id="log-section">
+        <h2>Action Log</h2>
+        <div class="input-group">
+            <label for="timeline-alt-name">Alternative Name:</label>
+            <input type="text" id="timeline-alt-name" placeholder="Enter alternative name (optional)">
+        </div>
+        <div class="input-group">
+            <label for="timeline-activity">Timeline Entry:</label>
+            <textarea id="timeline-activity" placeholder="Enter activity description"></textarea>
+            <button id="add-timeline" style="margin-left: 10px;">Add Timeline Entry</button>
+        </div>
+        <p id="timeline-error">Please enter a name (either in User Information or Alternative Name) to add a timeline entry.</p>
+        <div id="log-list"></div>
+        <div class="button-container">
+            <button id="export-log">Export Log</button>
+            <button id="clear-state-button">Clear State</button>
+        </div>
+    </div>
+
+    <div class="footer">
+        <p>© Xservus Limited</p>
+    </div>
+
+    <script>
+        // Initialize log array
+        let logEntries = [];
+
+        // Load user info from local storage
+        function loadUserInfo() {
+            document.getElementById('user-name').value = localStorage.getItem('cyberChecklistUserName') || '';
+            document.getElementById('user-title').value = localStorage.getItem('cyberChecklistUserTitle') || '';
+            document.getElementById('user-role').value = localStorage.getItem('cyberChecklistUserRole') || '';
+            document.getElementById('user-org').value = localStorage.getItem('cyberChecklistUserOrg') || '';
+            document.getElementById('timeline-alt-name').value = localStorage.getItem('cyberChecklistTimelineAltName') || '';
+        }
+
+        // Save user info to local storage
+        function saveUserInfo() {
+            localStorage.setItem('cyberChecklistUserName', document.getElementById('user-name').value);
+            localStorage.setItem('cyberChecklistUserTitle', document.getElementById('user-title').value);
+            localStorage.setItem('cyberChecklistUserRole', document.getElementById('user-role').value);
+            localStorage.setItem('cyberChecklistUserOrg', document.getElementById('user-org').value);
+            localStorage.setItem('cyberChecklistTimelineAltName', document.getElementById('timeline-alt-name').value);
+        }
+
+        // Load checkbox states from local storage
+        function loadCheckboxStates() {
+            const checkboxes = document.querySelectorAll('input[type="checkbox"]');
+            checkboxes.forEach(checkbox => {
+                const state = localStorage.getItem(checkbox.id);
+                if (state === 'checked') {
+                    checkbox.checked = true;
+                }
+            });
+        }
+
+        // Save checkbox state to local storage
+        function saveCheckboxState(checkbox) {
+            localStorage.setItem(checkbox.id, checkbox.checked ? 'checked' : 'unchecked');
+        }
+
+        // Get user info for log entry
+        function getUserInfo() {
+            const name = document.getElementById('user-name').value || 'Unknown';
+            const title = document.getElementById('user-title').value || 'N/A';
+            const role = document.getElementById('user-role').value || 'N/A';
+            const org = document.getElementById('user-org').value || 'N/A';
+            return { name, title, role, org };
+        }
+
+        // Add checkbox log entry
+        function addCheckboxLogEntry(checkbox, action) {
+            const timestamp = new Date().toLocaleString();
+            const { name, title, role, org } = getUserInfo();
+            const label = checkbox.dataset.label;
+            const entry = `[${timestamp}] ${name} (${title}, ${role}, ${org}) - ${label} ${action}`;
+            logEntries.push(entry);
+            updateLogDisplay();
+        }
+
+        // Add timeline log entry
+        function addTimelineLogEntry() {
+            const nameInput = document.getElementById('user-name');
+            const altNameInput = document.getElementById('timeline-alt-name');
+            const activityInput = document.getElementById('timeline-activity');
+            const errorDisplay = document.getElementById('timeline-error');
+
+            if (!nameInput.value.trim() && !altNameInput.value.trim()) {
+                errorDisplay.style.display = 'block';
+                return false;
+            }
+
+            errorDisplay.style.display = 'none';
+            const timestamp = new Date().toLocaleString();
+            const { title, role, org } = getUserInfo();
+            const name = altNameInput.value.trim() || nameInput.value.trim() || 'Unknown';
+            const activity = activityInput.value.trim() || 'No description provided';
+            const entry = `[${timestamp}] ${name} (${title}, ${role}, ${org}) - Timeline Entry: ${activity}`;
+            logEntries.push(entry);
+            updateLogDisplay();
+            activityInput.value = ''; // Clear the textarea
+            altNameInput.value = ''; // Clear the alternative name
+            saveUserInfo();
+            return true;
+        }
+
+        // Update log display
+        function updateLogDisplay() {
+            const logList = document.getElementById('log-list');
+            logList.innerHTML = logEntries.map(entry => `<p>${entry}</p>`).join('');
+            logList.scrollTop = logList.scrollHeight; // Scroll to bottom
+            localStorage.setItem('cyberChecklistLog', JSON.stringify(logEntries));
+        }
+
+        // Export log as text file
+        function exportLog() {
+            const { name, title, role, org } = getUserInfo();
+            const header = `Cyber Incident Checklist Log\nUser: ${name}\nTitle: ${title}\nRole: ${role}\nOrganisation: ${org}\nGenerated: ${new Date().toLocaleString()}\n\n`;
+            const footer = `\nCreated using the PwnDefend Cyber Incident Playbook - copyright (c) xservus limited`;
+            const content = header + logEntries.join('\n') + footer;
+            const blob = new Blob([content], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `Cyber_Incident_Checklist_Log_${new Date().toISOString().replace(/[:.]/g, '-')}.txt`;
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        // Clear checkbox states, user info, timeline entries, and log
+        function clearState() {
+            const checkboxes = document.querySelectorAll('input[type="checkbox"]');
+            checkboxes.forEach(checkbox => {
+                checkbox.checked = false;
+                localStorage.setItem(checkbox.id, 'unchecked');
+            });
+            document.getElementById('user-name').value = '';
+            document.getElementById('user-title').value = '';
+            document.getElementById('user-role').value = '';
+            document.getElementById('user-org').value = '';
+            document.getElementById('timeline-alt-name').value = '';
+            document.getElementById('timeline-activity').value = '';
+            localStorage.removeItem('cyberChecklistUserName');
+            localStorage.removeItem('cyberChecklistUserTitle');
+            localStorage.removeItem('cyberChecklistUserRole');
+            localStorage.removeItem('cyberChecklistUserOrg');
+            localStorage.removeItem('cyberChecklistTimelineAltName');
+            logEntries = [];
+            updateLogDisplay();
+            document.getElementById('timeline-error').style.display = 'none';
+        }
+
+        // Initialize event listeners
+        document.addEventListener('DOMContentLoaded', () => {
+            // Load saved log entries
+            const savedLog = localStorage.getItem('cyberChecklistLog');
+            if (savedLog) {
+                logEntries = JSON.parse(savedLog);
+                updateLogDisplay();
+            }
+
+            // Load user info and checkbox states
+            loadUserInfo();
+            loadCheckboxStates();
+
+            // User info input listeners
+            ['user-name', 'user-title', 'user-role', 'user-org', 'timeline-alt-name'].forEach(id => {
+                document.getElementById(id).addEventListener('input', saveUserInfo);
+            });
+
+            // Checkbox event listeners
+            const checkboxes = document.querySelectorAll('input[type="checkbox"]');
+            checkboxes.forEach(checkbox => {
+                checkbox.addEventListener('change', () => {
+                    saveCheckboxState(checkbox);
+                    addCheckboxLogEntry(checkbox, checkbox.checked ? 'checked' : 'unchecked');
+                });
+            });
+
+            // Timeline entry button
+            document.getElementById('add-timeline').addEventListener('click', () => {
+                if (addTimelineLogEntry()) {
+                    localStorage.setItem('cyberChecklistLog', JSON.stringify(logEntries));
+                }
+            });
+
+            // Export log button
+            document.getElementById('export-log').addEventListener('click', exportLog);
+
+            // Clear state button
+            document.getElementById('clear-state-button').addEventListener('click', clearState);
+
+            // Jump to Action Log button
+            document.getElementById('jump-to-log').addEventListener('click', () => {
+                document.getElementById('log-section').scrollIntoView({ behavior: 'smooth' });
+            });
+
+            // Copy to Clipboard button for email template
+            const copyButton = document.getElementById('copy-email-template');
+            if (copyButton) {
+                copyButton.addEventListener('click', () => {
+                    const queryText = document.getElementById('email-template').textContent;
+                    navigator.clipboard.writeText(queryText).then(() => {
+                        copyButton.textContent = 'Copied!';
+                        copyButton.classList.add('copied');
+                        setTimeout(() => {
+                            copyButton.textContent = 'Copy to Clipboard';
+                            copyButton.classList.remove('copied');
+                        }, 2000);
+                    });
+                });
+            }
+        });
+    </script>
+</body>
+</html>
