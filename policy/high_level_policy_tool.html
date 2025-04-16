@@ -1,0 +1,234 @@
+<script type="text/javascript">
+        var gk_isXlsx = false;
+        var gk_xlsxFileLookup = {};
+        var gk_fileData = {};
+        function loadFileData(filename) {
+        if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
+            try {
+                var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
+                var firstSheetName = workbook.SheetNames[0];
+                var worksheet = workbook.Sheets[firstSheetName];
+
+                // Convert sheet to JSON to filter blank rows
+                var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
+                // Filter out blank rows (rows where all cells are empty, null, or undefined)
+                var filteredData = jsonData.filter(row =>
+                    row.some(cell => cell !== '' && cell !== null && cell !== undefined)
+                );
+
+                // Convert filtered JSON back to CSV
+                var csv = XLSX.utils.aoa_to_sheet(filteredData); // Create a new sheet from filtered array of arrays
+                csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
+                return csv;
+            } catch (e) {
+                console.error(e);
+                return "";
+            }
+        }
+        return gk_fileData[filename] || "";
+        }
+        </script><!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cybersecurity Policy Builder</title>
+  <script src="https://cdn.jsdelivr.net/npm/react@18.2.0/umd/react.production.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/react-dom@18.2.0/umd/react-dom.production.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@babel/standalone@7.22.5/babel.min.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 font-sans">
+  <div id="root"></div>
+  <script type="text/babel">
+    const { useState } = React;
+
+    const policySections = [
+      {
+        name: "Governance and Accountability",
+        explanation: "This section defines how the organisation establishes leadership and oversight for cybersecurity. It ensures clear roles and responsibilities for protecting systems and data, aligning with UK HMG requirements for accountable governance.",
+        options: [
+          { risk: "High", text: "Cybersecurity oversight is informal, with no dedicated governance board." },
+          { risk: "Moderate-High", text: "A cybersecurity lead is appointed, with ad-hoc governance meetings." },
+          { risk: "Moderate-Low", text: "A formal governance board meets quarterly to oversee cybersecurity." },
+          { risk: "Low", text: "A dedicated governance board with senior leadership meets monthly, with clear accountability and reporting." },
+        ],
+      },
+      {
+        name: "Risk Management",
+        explanation: "Risk management involves identifying, assessing, and mitigating cybersecurity risks. This section ensures the organisation systematically addresses threats, as required by NCSC and HMG risk management principles.",
+        options: [
+          { risk: "High", text: "Risk assessments are conducted as needed, with no formal process." },
+          { risk: "Moderate-High", text: "Annual risk assessments are conducted with basic mitigation plans." },
+          { risk: "Moderate-Low", text: "Biannual risk assessments with documented mitigation strategies are mandatory." },
+          { risk: "Low", text: "Continuous risk assessments with detailed mitigation plans and regular reviews are enforced." },
+        ],
+      },
+      {
+        name: "Asset Management",
+        explanation: "This section ensures all IT assets (hardware, software, and data) are identified and protected. Proper asset management is critical for HMG compliance to safeguard government systems.",
+        options: [
+          { risk: "High", text: "Asset inventories are optional and not centrally managed." },
+          { risk: "Moderate-High", text: "Basic asset inventories are maintained but not regularly updated." },
+          { risk: "Moderate-Low", text: "Comprehensive asset inventories are maintained and updated annually." },
+          { risk: "Low", text: "Detailed asset inventories are continuously updated with strict change management." },
+        ],
+      },
+      {
+        name: "Access Control",
+        explanation: "Access control policies limit who can access systems and data. This section aligns with HMG’s focus on securing access to sensitive information and systems.",
+        options: [
+          { risk: "High", text: "Access controls are minimal, allowing broad access with single-factor authentication." },
+          { risk: "Moderate-High", text: "Basic access controls with password policies are enforced." },
+          { risk: "Moderate-Low", text: "Multi-factor authentication (MFA) is required for all sensitive systems." },
+          { risk: "Low", text: "MFA, role-based access, and biometric authentication are mandatory for all systems." },
+        ],
+      },
+      {
+        name: "Data Protection",
+        explanation: "Data protection ensures sensitive information is secure, whether stored or transmitted. This section complies with HMG and GDPR requirements for safeguarding data.",
+        options: [
+          { risk: "High", text: "Data encryption is optional for sensitive information." },
+          { risk: "Moderate-High", text: "Encryption is required only for highly sensitive data." },
+          { risk: "Moderate-Low", text: "All sensitive data is encrypted at rest and in transit." },
+          { risk: "Low", text: "All data is encrypted with regular key rotation and audited access logs." },
+        ],
+      },
+      {
+        name: "Incident Management",
+        explanation: "This section outlines how the organisation detects, responds to, and recovers from cybersecurity incidents. HMG standards require robust incident management to minimise impact.",
+        options: [
+          { risk: "High", text: "Incidents are handled ad-hoc with no formal reporting." },
+          { risk: "Moderate-High", text: "Incidents are reported within 48 hours with a basic response plan." },
+          { risk: "Moderate-Low", text: "Incidents are reported within 24 hours with a formal response plan." },
+          { risk: "Low", text: "Incidents are reported within 1 hour with a detailed response plan and post-incident audits." },
+        ],
+      },
+      {
+        name: "Network Security",
+        explanation: "Network security protects the organisation’s IT infrastructure from unauthorised access and attacks. This aligns with NCSC guidance on securing government networks.",
+        options: [
+          { risk: "High", text: "Basic firewall protection with no mandatory monitoring." },
+          { risk: "Moderate-High", text: "Firewalls and periodic network monitoring are required." },
+          { risk: "Moderate-Low", text: "Firewalls, intrusion detection, and regular scans are mandatory." },
+          { risk: "Low", text: "Advanced firewalls, continuous intrusion detection, and zero-trust architecture are enforced." },
+        ],
+      },
+      {
+        name: "Physical Security",
+        explanation: "Physical security protects IT assets from physical threats like theft or unauthorised access. HMG standards require robust measures for government facilities.",
+        options: [
+          { risk: "High", text: "Physical access to IT systems is unrestricted." },
+          { risk: "Moderate-High", text: "Basic locks and access badges are used for IT areas." },
+          { risk: "Moderate-Low", text: "Secure access controls and CCTV are required for IT areas." },
+          { risk: "Low", text: "Biometric access, CCTV, and 24/7 monitoring are mandatory for IT areas." },
+        ],
+      },
+      {
+        name: "Personnel Security",
+        explanation: "This section ensures employees and contractors are vetted and trusted to handle sensitive information, aligning with HMG’s personnel security requirements.",
+        options: [
+          { risk: "High", text: "No mandatory vetting for employees or contractors." },
+          { risk: "Moderate-High", text: "Basic vetting is required for sensitive roles only." },
+          { risk: "Moderate-Low", text: "Comprehensive vetting is required for all employees and contractors." },
+          { risk: "Low", text: "Enhanced vetting with regular rechecks is mandatory for all personnel." },
+        ],
+      },
+      {
+        name: "Supply Chain Security",
+        explanation: "Supply chain security ensures third-party vendors meet cybersecurity standards. HMG requires robust oversight of suppliers handling government data.",
+        options: [
+          { risk: "High", text: "No cybersecurity requirements for third-party vendors." },
+          { risk: "Moderate-High", text: "Vendors must meet basic cybersecurity standards." },
+          { risk: "Moderate-Low", text: "Vendors must comply with HMG cybersecurity standards and undergo audits." },
+          { risk: "Low", text: "Vendors must adhere to strict HMG standards with continuous monitoring and audits." },
+        ],
+      },
+      {
+        name: "Security Awareness and Training",
+        explanation: "This section ensures employees are trained to recognise and respond to cyber threats. NCSC and HMG emphasise ongoing awareness to reduce human error.",
+        options: [
+          { risk: "High", text: "Cybersecurity training is optional for employees." },
+          { risk: "Moderate-High", text: "Annual training is recommended but not mandatory." },
+          { risk: "Moderate-Low", text: "Annual mandatory training is required for all employees." },
+          { risk: "Low", text: "Quarterly mandatory training with simulated phishing tests and audits." },
+        ],
+      },
+      {
+        name: "Compliance and Assurance",
+        explanation: "Compliance ensures the organisation meets legal and regulatory requirements, such as GDPR and HMG standards. Assurance verifies policies are effective.",
+        options: [
+          { risk: "High", text: "Compliance checks are performed as needed, with no formal audits." },
+          { risk: "Moderate-High", text: "Annual compliance checks are conducted with basic audits." },
+          { risk: "Moderate-Low", text: "Biannual compliance audits with documented findings are required." },
+          { risk: "Low", text: "Continuous compliance monitoring with independent audits is mandatory." },
+        ],
+      },
+    ];
+
+    const PolicyBuilder = () => {
+      const [selections, setSelections] = useState({});
+      const [showPolicy, setShowPolicy] = useState(false);
+
+      const handleSelect = (sectionName, optionText) => {
+        setSelections((prev) => ({ ...prev, [sectionName]: optionText }));
+      };
+
+      const generatePolicy = () => {
+        setShowPolicy(true);
+      };
+
+      return (
+        <div className="max-w-5xl mx-auto p-6">
+          <h1 className="text-3xl font-bold text-center mb-8 text-gray-800">Cybersecurity Policy Builder (UK HMG Standards)</h1>
+          {policySections.map((section) => (
+            <div key={section.name} className="mb-8 bg-white p-6 rounded-lg shadow-md">
+              <h2 className="text-2xl font-semibold mb-2 text-gray-700">{section.name}</h2>
+              <p className="text-gray-600 mb-4">{section.explanation}</p>
+              <div className="space-y-4">
+                {section.options.map((option) => (
+                  <label key={option.risk} className="flex items-start space-x-3">
+                    <input
+                      type="radio"
+                      name={section.name}
+                      value={option.text}
+                      checked={selections[section.name] === option.text}
+                      onChange={() => handleSelect(section.name, option.text)}
+                      className="mt-1"
+                    />
+                    <div>
+                      <span className="font-medium text-gray-600">{option.risk} Risk Appetite:</span>
+                      <p className="text-gray-600">{option.text}</p>
+                    </div>
+                  </label>
+                ))}
+              </div>
+            </div>
+          ))}
+          <button
+            onClick={generatePolicy}
+            className="w-full bg-blue-600 text-white py-3 rounded-lg hover:bg-blue-700 transition disabled:bg-gray-400"
+            disabled={Object.keys(selections).length !== policySections.length}
+          >
+            Generate Policy
+          </button>
+          {showPolicy && (
+            <div className="mt-8 bg-white p-6 rounded-lg shadow-md">
+              <h2 className="text-2xl font-bold mb-4 text-gray-800">Generated Cybersecurity Policy</h2>
+              {policySections.map((section) => (
+                <div key={section.name} className="mb-6">
+                  <h3 className="text-xl font-semibold text-gray-700">{section.name}</h3>
+                  <p className="text-gray-600 italic mb-2">{section.explanation}</p>
+                  <p className="text-gray-600">{selections[section.name] || "No policy selected."}</p>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      );
+    };
+
+    ReactDOM.render(<PolicyBuilder />, document.getElementById("root"));
+  </script>
+</body>
+</html>
