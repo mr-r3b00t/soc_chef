@@ -1,0 +1,597 @@
+<script type="text/javascript">
+        var gk_isXlsx = false;
+        var gk_xlsxFileLookup = {};
+        var gk_fileData = {};
+        function loadFileData(filename) {
+        if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
+            try {
+                var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
+                var firstSheetName = workbook.SheetNames[0];
+                var worksheet = workbook.Sheets[firstSheetName];
+
+                // Convert sheet to JSON to filter blank rows
+                var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
+                // Filter out blank rows (rows where all cells are empty, null, or undefined)
+                var filteredData = jsonData.filter(row =>
+                    row.some(cell => cell !== '' && cell !== null && cell !== undefined)
+                );
+
+                // Convert filtered JSON back to CSV
+                var csv = XLSX.utils.aoa_to_sheet(filteredData); // Create a new sheet from filtered array of arrays
+                csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
+                return csv;
+            } catch (e) {
+                console.error(e);
+                return "";
+            }
+        }
+        return gk_fileData[filename] || "";
+        }
+        </script><!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cyber Kill Chain Analysis Application</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            line-height: 1.6;
+            margin: 40px;
+            max-width: 800px;
+            margin-left: auto;
+            margin-right: auto;
+            color: #333;
+        }
+        h1 {
+            font-size: 2.2em;
+            text-align: center;
+            color: #2c3e50;
+            margin-bottom: 20px;
+        }
+        h2 {
+            font-size: 1.8em;
+            color: #34495e;
+            margin-top: 30px;
+            border-bottom: 2px solid #ecf0f1;
+            padding-bottom: 5px;
+        }
+        h3 {
+            font-size: 1.4em;
+            color: #3c5a76;
+            margin-top: 20px;
+        }
+        p {
+            margin: 10px 0;
+        }
+        .section {
+            margin-bottom: 20px;
+        }
+        #user-info-section, #log-section {
+            padding: 20px;
+            background-color: #f9f9f9;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+        .input-group {
+            margin-bottom: 15px;
+        }
+        .input-group label {
+            display: inline-block;
+            width: 150px;
+            font-weight: bold;
+        }
+        .input-group input, .input-group textarea, .input-group select {
+            padding: 5px;
+            width: 300px;
+            border: 1px solid #ddd;
+            border-radius: 3px;
+            vertical-align: top;
+        }
+        .input-group textarea {
+            height: 60px;
+            resize: vertical;
+        }
+        #kill-chain-diagram {
+            margin: 20px 0;
+            text-align: center;
+        }
+        #kill-chain-diagram svg {
+            max-width: 100%;
+            height: auto;
+        }
+        #kill-chain-table-section {
+            margin-top: 20px;
+        }
+        #kill-chain-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+        #kill-chain-table th, #kill-chain-table td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+            font-size: 0.9em;
+        }
+        #kill-chain-table th {
+            background-color: #f2f2f2;
+            font-weight: bold;
+        }
+        #kill-chain-table tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+        #kill-chain-table .delete-button {
+            padding: 5px 10px;
+            background-color: #e74c3c;
+            color: white;
+            border: none;
+            border-radius: 3px;
+            cursor: pointer;
+            font-size: 0.8em;
+        }
+        #kill-chain-table .delete-button:hover {
+            background-color: #c0392b;
+        }
+        #timeline-error {
+            color: #e74c3c;
+            font-size: 0.9em;
+            margin-top: 5px;
+            display: none;
+        }
+        .button-container {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+        }
+        button {
+            padding: 10px 20px;
+            background-color: #3498db;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1em;
+        }
+        button:hover {
+            background-color: #2980b9;
+        }
+        #clear-state-button {
+            background-color: #e74c3c;
+        }
+        #clear-state-button:hover {
+            background-color: #c0392b;
+        }
+        #jump-to-log {
+            display: block;
+            margin: 20px auto;
+            text-align: center;
+        }
+        .copy-button {
+            padding: 5px 10px;
+            font-size: 0.9em;
+            margin-left: 10px;
+        }
+        .copy-button.copied {
+            background-color: #2ecc71;
+        }
+        .copy-button.copied:hover {
+            background-color: #27ae60;
+        }
+        .email-template {
+            background-color: #f9f9f9;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-family: 'Consolas', monospace;
+            font-size: 0.9em;
+            line-height: 1.5;
+            white-space: pre-wrap;
+            margin: 10px 0;
+        }
+        .footer {
+            text-align: center;
+            margin-top: 40px;
+            font-size: 0.9em;
+            color: #7f8c8d;
+        }
+    </style>
+</head>
+<body>
+    <h1>Cyber Kill Chain Analysis Application</h1>
+    <button id="jump-to-log">Jump to Action Log</button>
+
+    <div id="user-info-section">
+        <h2>User Information</h2>
+        <div class="input-group">
+            <label for="user-name">Name:</label>
+            <input type="text" id="user-name" placeholder="Enter your name">
+        </div>
+        <div class="input-group">
+            <label for="user-title">Title:</label>
+            <input type="text" id="user-title" placeholder="Enter your title">
+        </div>
+        <div class="input-group">
+            <label for="user-role">Role:</label>
+            <input type="text" id="user-role" placeholder="Enter your role">
+        </div>
+        <div class="input-group">
+            <label for="user-org">Organisation:</label>
+            <input type="text" id="user-org" placeholder="Enter your organisation">
+        </div>
+    </div>
+
+    <div class="section">
+        <h2>Executive Summary</h2>
+        <p>This application facilitates analysis of cyber threats using the MITRE ATT&CK Framework as a kill chain model. It guides security teams through documenting adversary tactics, techniques, and procedures (TTPs) across phases: Reconnaissance, Resource Development, Initial Access, Execution, Persistence, Privilege Escalation, Defense Evasion, Credential Access, Discovery, Lateral Movement, Collection, Command and Control, Exfiltration, and Impact. A dynamic table records observations, mitigations, and notes, with a diagram visualizing the kill chain, and an Action Log tracks activities.</p>
+    </div>
+
+    <div class="section" id="kill-chain-diagram">
+        <h2>Kill Chain Diagram</h2>
+        <svg width="700" height="100" viewBox="0 0 700 100" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+                <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto">
+                    <path d="M0,0 L0,6 L9,3 z" fill="#333" />
+                </marker>
+            </defs>
+            <rect x="10" y="30" width="40" height="30" fill="#3498db" stroke="#333" />
+            <text x="15" y="50" font-size="10" fill="white">Recon</text>
+            <path d="M50,45 L70,45" stroke="#333" marker-end="url(#arrow)" />
+            <rect x="70" y="30" width="40" height="30" fill="#3498db" stroke="#333" />
+            <text x="75" y="50" font-size="10" fill="white">ResDev</text>
+            <path d="M110,45 L130,45" stroke="#333" marker-end="url(#arrow)" />
+            <rect x="130" y="30" width="40" height="30" fill="#3498db" stroke="#333" />
+            <text x="135" y="50" font-size="10" fill="white">InitAcc</text>
+            <path d="M170,45 L190,45" stroke="#333" marker-end="url(#arrow)" />
+            <rect x="190" y="30" width="40" height="30" fill="#3498db" stroke="#333" />
+            <text x="195" y="50" font-size="10" fill="white">Exec</text>
+            <path d="M230,45 L250,45" stroke="#333" marker-end="url(#arrow)" />
+            <rect x="250" y="30" width="40" height="30" fill="#3498db" stroke="#333" />
+            <text x="255" y="50" font-size="10" fill="white">Persist</text>
+            <path d="M290,45 L310,45" stroke="#333" marker-end="url(#arrow)" />
+            <rect x="310" y="30" width="40" height="30" fill="#3498db" stroke="#333" />
+            <text x="315" y="50" font-size="10" fill="white">PrivEsc</text>
+            <path d="M350,45 L370,45" stroke="#333" marker-end="url(#arrow)" />
+            <rect x="370" y="30" width="40" height="30" fill="#3498db" stroke="#333" />
+            <text x="375" y="50" font-size="10" fill="white">DefEvade</text>
+            <path d="M410,45 L430,45" stroke="#333" marker-end="url(#arrow)" />
+            <rect x="430" y="30" width="40" height="30" fill="#3498db" stroke="#333" />
+            <text x="435" y="50" font-size="10" fill="white">CredAcc</text>
+            <path d="M470,45 L490,45" stroke="#333" marker-end="url(#arrow)" />
+            <rect x="490" y="30" width="40" height="30" fill="#3498db" stroke="#333" />
+            <text x="495" y="50" font-size="10" fill="white">Disc</text>
+            <path d="M530,45 L550,45" stroke="#333" marker-end="url(#arrow)" />
+            <rect x="550" y="30" width="40" height="30" fill="#3498db" stroke="#333" />
+            <text x="555" y="50" font-size="10" fill="white">LatMov</text>
+            <path d="M590,45 L610,45" stroke="#333" marker-end="url(#arrow)" />
+            <rect x="610" y="30" width="40" height="30" fill="#3498db" stroke="#333" />
+            <text x="615" y="50" font-size="10" fill="white">Collect</text>
+            <path d="M650,45 L670,45" stroke="#333" marker-end="url(#arrow)" />
+            <rect x="670" y="30" width="40" height="30" fill="#3498db" stroke="#333" />
+            <text x="675" y="50" font-size="10" fill="white">C2</text>
+            <path d="M710,45 L730,45" stroke="#333" marker-end="url(#arrow)" />
+            <rect x="730" y="30" width="40" height="30" fill="#3498db" stroke="#333" />
+            <text x="735" y="50" font-size="10" fill="white">Exfil</text>
+            <path d="M770,45 L790,45" stroke="#333" marker-end="url(#arrow)" />
+            <rect x="790" y="30" width="40" height="30" fill="#3498db" stroke="#333" />
+            <text x="795" y="50" font-size="10" fill="white">Impact</text>
+        </svg>
+    </div>
+
+    <div class="section" id="kill-chain-table-section">
+        <h2>Kill Chain Analysis Form</h2>
+        <div class="input-group">
+            <label for="phase">Phase:</label>
+            <select id="phase">
+                <option value="Reconnaissance">Reconnaissance</option>
+                <option value="Resource Development">Resource Development</option>
+                <option value="Initial Access">Initial Access</option>
+                <option value="Execution">Execution</option>
+                <option value="Persistence">Persistence</option>
+                <option value="Privilege Escalation">Privilege Escalation</option>
+                <option value="Defense Evasion">Defense Evasion</option>
+                <option value="Credential Access">Credential Access</option>
+                <option value="Discovery">Discovery</option>
+                <option value="Lateral Movement">Lateral Movement</option>
+                <option value="Collection">Collection</option>
+                <option value="Command and Control">Command and Control</option>
+                <option value="Exfiltration">Exfiltration</option>
+                <option value="Impact">Impact</option>
+            </select>
+        </div>
+        <div class="input-group">
+            <label for="tactic">Tactic:</label>
+            <input type="text" id="tactic" placeholder="e.g., Phishing">
+        </div>
+        <div class="input-group">
+            <label for="technique">Technique:</label>
+            <input type="text" id="technique" placeholder="e.g., Spearphishing Link (T1566.002)">
+        </div>
+        <div class="input-group">
+            <label for="activity">Observed Activity:</label>
+            <textarea id="activity" placeholder="e.g., Suspicious emails targeting executives"></textarea>
+        </div>
+        <div class="input-group">
+            <label for="mitigation">Mitigation:</label>
+            <textarea id="mitigation" placeholder="e.g., Deploy email filtering, conduct training"></textarea>
+        </div>
+        <div class="input-group">
+            <label for="notes">Notes:</label>
+            <textarea id="notes" placeholder="e.g., Review logs for further evidence"></textarea>
+        </div>
+        <div class="button-container">
+            <button id="add-entry">Add Entry to Table</button>
+        </div>
+
+        <h3>Kill Chain Table</h3>
+        <table id="kill-chain-table">
+            <thead>
+                <tr>
+                    <th>Phase</th>
+                    <th>Tactic</th>
+                    <th>Technique</th>
+                    <th>Observed Activity</th>
+                    <th>Mitigation</th>
+                    <th>Notes</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
+
+    <div id="log-section">
+        <h2>Action Log</h2>
+        <div class="input-group">
+            <label for="timeline-alt-name">Alternative Name:</label>
+            <input type="text" id="timeline-alt-name" placeholder="Enter alternative name (optional)">
+        </div>
+        <div class="input-group">
+            <label for="timeline-activity">Timeline Entry:</label>
+            <textarea id="timeline-activity" placeholder="Enter activity description"></textarea>
+            <button id="add-timeline" style="margin-left: 10px;">Add Timeline Entry</button>
+        </div>
+        <p id="timeline-error">Please enter a name (either in User Information or Alternative Name) to add a timeline entry.</p>
+        <div id="log-list"></div>
+        <div class="button-container">
+            <button id="export-log">Export Log</button>
+            <button id="clear-state-button">Clear State</button>
+        </div>
+    </div>
+
+    <div class="footer">
+        <p>© Xservus Limited</p>
+    </div>
+
+    <script>
+        // Initialize log and entries arrays
+        let logEntries = [];
+        let killChainEntries = [];
+
+        // Load data from local storage
+        function loadData() {
+            const savedLog = localStorage.getItem('killChainLog');
+            if (savedLog) {
+                logEntries = JSON.parse(savedLog);
+                updateLogDisplay();
+            }
+            const savedEntries = localStorage.getItem('killChainEntries');
+            if (savedEntries) {
+                killChainEntries = JSON.parse(savedEntries);
+                updateKillChainTable();
+            }
+            loadUserInfo();
+        }
+
+        // Load user info from local storage
+        function loadUserInfo() {
+            document.getElementById('user-name').value = localStorage.getItem('killChainUserName') || '';
+            document.getElementById('user-title').value = localStorage.getItem('killChainUserTitle') || '';
+            document.getElementById('user-role').value = localStorage.getItem('killChainUserRole') || '';
+            document.getElementById('user-org').value = localStorage.getItem('killChainUserOrg') || '';
+            document.getElementById('timeline-alt-name').value = localStorage.getItem('killChainTimelineAltName') || '';
+        }
+
+        // Save user info to local storage
+        function saveUserInfo() {
+            localStorage.setItem('killChainUserName', document.getElementById('user-name').value);
+            localStorage.setItem('killChainUserTitle', document.getElementById('user-title').value);
+            localStorage.setItem('killChainUserRole', document.getElementById('user-role').value);
+            localStorage.setItem('killChainUserOrg', document.getElementById('user-org').value);
+            localStorage.setItem('killChainTimelineAltName', document.getElementById('timeline-alt-name').value);
+        }
+
+        // Get user info for log entry
+        function getUserInfo() {
+            return {
+                name: document.getElementById('user-name').value || 'Unknown',
+                title: document.getElementById('user-title').value || 'N/A',
+                role: document.getElementById('user-role').value || 'N/A',
+                org: document.getElementById('user-org').value || 'N/A'
+            };
+        }
+
+        // Update kill chain table
+        function updateKillChainTable() {
+            const tbody = document.querySelector('#kill-chain-table tbody');
+            tbody.innerHTML = '';
+            killChainEntries.forEach((entry, index) => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${entry.phase}</td>
+                    <td>${entry.tactic || ''}</td>
+                    <td>${entry.technique || ''}</td>
+                    <td>${entry.activity || ''}</td>
+                    <td>${entry.mitigation || ''}</td>
+                    <td>${entry.notes || ''}</td>
+                    <td><button class="delete-button" data-index="${index}">Delete</button></td>
+                `;
+                tbody.appendChild(row);
+            });
+            localStorage.setItem('killChainEntries', JSON.stringify(killChainEntries));
+
+            // Attach delete event listeners
+            document.querySelectorAll('.delete-button').forEach(button => {
+                button.addEventListener('click', (e) => {
+                    const index = parseInt(e.target.dataset.index);
+                    const deletedPhase = killChainEntries[index].phase;
+                    killChainEntries.splice(index, 1);
+                    updateKillChainTable();
+
+                    // Log the deletion
+                    const timestamp = new Date().toLocaleString();
+                    const { name, title, role, org } = getUserInfo();
+                    const entry = `[${timestamp}] ${name} (${title}, ${role}, ${org}) - Deleted kill chain entry for phase: ${deletedPhase}`;
+                    logEntries.push(entry);
+                    updateLogDisplay();
+                });
+            });
+        }
+
+        // Add kill chain entry
+        document.getElementById('add-entry').addEventListener('click', () => {
+            const entry = {
+                phase: document.getElementById('phase').value,
+                tactic: document.getElementById('tactic').value,
+                technique: document.getElementById('technique').value,
+                activity: document.getElementById('activity').value,
+                mitigation: document.getElementById('mitigation').value,
+                notes: document.getElementById('notes').value
+            };
+            killChainEntries.push(entry);
+            updateKillChainTable();
+
+            // Log the action
+            const timestamp = new Date().toLocaleString();
+            const { name, title, role, org } = getUserInfo();
+            const logEntry = `[${timestamp}] ${name} (${title}, ${role}, ${org}) - Added kill chain entry for phase: ${entry.phase}`;
+            logEntries.push(logEntry);
+            updateLogDisplay();
+
+            // Clear form
+            document.getElementById('phase').value = 'Reconnaissance';
+            document.getElementById('tactic').value = '';
+            document.getElementById('technique').value = '';
+            document.getElementById('activity').value = '';
+            document.getElementById('mitigation').value = '';
+            document.getElementById('notes').value = '';
+        });
+
+        // Add timeline log entry
+        function addTimelineLogEntry() {
+            const nameInput = document.getElementById('user-name');
+            const altNameInput = document.getElementById('timeline-alt-name');
+            const activityInput = document.getElementById('timeline-activity');
+            const errorDisplay = document.getElementById('timeline-error');
+
+            if (!nameInput.value.trim() && !altNameInput.value.trim()) {
+                errorDisplay.style.display = 'block';
+                return false;
+            }
+
+            errorDisplay.style.display = 'none';
+            const timestamp = new Date().toLocaleString();
+            const { title, role, org } = getUserInfo();
+            const name = altNameInput.value.trim() || nameInput.value.trim() || 'Unknown';
+            const activity = activityInput.value.trim() || 'No description provided';
+            const entry = `[${timestamp}] ${name} (${title}, ${role}, ${org}) - Timeline Entry: ${activity}`;
+            logEntries.push(entry);
+            updateLogDisplay();
+            activityInput.value = '';
+            altNameInput.value = '';
+            saveUserInfo();
+            return true;
+        }
+
+        // Update log display
+        function updateLogDisplay() {
+            const logList = document.getElementById('log-list');
+            logList.innerHTML = logEntries.map(entry => `<p>${entry}</p>`).join('');
+            logList.scrollTop = logList.scrollHeight;
+            localStorage.setItem('killChainLog', JSON.stringify(logEntries));
+        }
+
+        // Export log as text file
+        function exportLog() {
+            const { name, title, role, org } = getUserInfo();
+            const header = `Kill Chain Analysis Log\nUser: ${name}\nTitle: ${title}\nRole: ${role}\nOrganisation: ${org}\nGenerated: ${new Date().toLocaleString()}\n\n`;
+            const footer = `\nCreated using the PwnDefend Kill Chain Analysis App - copyright (c) xservus limited`;
+            const content = header + logEntries.join('\n') + footer;
+            const blob = new Blob([content], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `Kill_Chain_Log_${new Date().toISOString().replace(/[:.]/g, '-')}.txt`;
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        // Clear state
+        function clearState() {
+            killChainEntries = [];
+            logEntries = [];
+            updateKillChainTable();
+            updateLogDisplay();
+            document.getElementById('user-name').value = '';
+            document.getElementById('user-title').value = '';
+            document.getElementById('user-role').value = '';
+            document.getElementById('user-org').value = '';
+            document.getElementById('timeline-alt-name').value = '';
+            document.getElementById('timeline-activity').value = '';
+            localStorage.removeItem('killChainUserName');
+            localStorage.removeItem('killChainUserTitle');
+            localStorage.removeItem('killChainUserRole');
+            localStorage.removeItem('killChainUserOrg');
+            localStorage.removeItem('killChainTimelineAltName');
+            localStorage.removeItem('killChainLog');
+            localStorage.removeItem('killChainEntries');
+            document.getElementById('timeline-error').style.display = 'none';
+        }
+
+        // Initialize event listeners
+        document.addEventListener('DOMContentLoaded', () => {
+            loadData();
+
+            // User info input listeners
+            ['user-name', 'user-title', 'user-role', 'user-org', 'timeline-alt-name'].forEach(id => {
+                document.getElementById(id).addEventListener('input', saveUserInfo);
+            });
+
+            // Timeline entry button
+            document.getElementById('add-timeline').addEventListener('click', () => {
+                if (addTimelineLogEntry()) {
+                    localStorage.setItem('killChainLog', JSON.stringify(logEntries));
+                }
+            });
+
+            // Export log button
+            document.getElementById('export-log').addEventListener('click', exportLog);
+
+            // Clear state button
+            document.getElementById('clear-state-button').addEventListener('click', clearState);
+
+            // Jump to Action Log button
+            document.getElementById('jump-to-log').addEventListener('click', () => {
+                document.getElementById('log-section').scrollIntoView({ behavior: 'smooth' });
+            });
+
+            // Copy to Clipboard button for email template
+            const copyButton = document.getElementById('copy-email-template');
+            if (copyButton) {
+                copyButton.addEventListener('click', () => {
+                    const queryText = document.getElementById('email-template').textContent;
+                    navigator.clipboard.writeText(queryText).then(() => {
+                        copyButton.textContent = 'Copied!';
+                        copyButton.classList.add('copied');
+                        setTimeout(() => {
+                            copyButton.textContent = 'Copy to Clipboard';
+                            copyButton.classList.remove('copied');
+                        }, 2000);
+                    });
+                });
+            }
+        });
+    </script>
+</body>
+</html>
