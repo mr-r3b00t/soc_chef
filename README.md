@@ -21,6 +21,8 @@ Reactive Orgs that either do not have Policies, Processes and Procedures or ones
 
 🔐 [Threat Model - PASTA](https://mr-r3b00t.github.io/soc_chef/processes/threat/pasta_v1.html)
 
+🔐 [Threat Model - DREAD](https://mr-r3b00t.github.io/soc_chef/processes/threat/dread_v1.html)
+
 
 Copyright (c) Xservus Limited
 Created by mRr3b00t
