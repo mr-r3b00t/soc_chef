@@ -144,6 +144,12 @@
             clearInputs('victim');
         }
 
+        function removeEntry(type, index) {
+            modelData[type].splice(index, 1);
+            updateDiagram();
+            updateModelList();
+        }
+
         function clearInputs(prefix) {
             document.getElementById(`${prefix}-name`).value = '';
             document.getElementById(`${prefix}-desc`).value = '';
@@ -213,15 +219,21 @@
             const list = document.getElementById('model-list');
             list.innerHTML = '';
             Object.keys(modelData).forEach(type => {
-                modelData[type].forEach(item => {
+                modelData[type].forEach((item, index) => {
                     const li = document.createElement('li');
-                    li.className = 'p-2 bg-gray-800 rounded';
+                    li.className = 'p-2 bg-gray-800 rounded flex justify-between items-center';
+                    const content = document.createElement('div');
                     const title = document.createElement('strong');
                     title.textContent = `${type.charAt(0).toUpperCase() + type.slice(1, -1)}: `;
                     const name = document.createTextNode(item.name);
                     const br = document.createElement('br');
                     const desc = document.createTextNode(item.desc);
-                    li.append(title, name, br, desc);
+                    content.append(title, name, br, desc);
+                    const removeButton = document.createElement('button');
+                    removeButton.textContent = 'Remove';
+                    removeButton.className = 'bg-red-500 hover:bg-red-600 text-white text-sm px-2 py-1 rounded';
+                    removeButton.onclick = () => removeEntry(type, index);
+                    li.append(content, removeButton);
                     list.appendChild(li);
                 });
             });
