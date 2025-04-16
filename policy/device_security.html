@@ -1,0 +1,294 @@
+<script type="text/javascript">
+        var gk_isXlsx = false;
+        var gk_xlsxFileLookup = {};
+        var gk_fileData = {};
+        function loadFileData(filename) {
+        if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
+            try {
+                var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
+                var firstSheetName = workbook.SheetNames[0];
+                var worksheet = workbook.Sheets[firstSheetName];
+
+                // Convert sheet to JSON to filter blank rows
+                var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
+                // Filter out blank rows (rows where all cells are empty, null, or undefined)
+                var filteredData = jsonData.filter(row =>
+                    row.some(cell => cell !== '' && cell !== null && cell !== undefined)
+                );
+
+                // Convert filtered JSON back to CSV
+                var csv = XLSX.utils.aoa_to_sheet(filteredData); // Create a new sheet from filtered array of arrays
+                csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
+                return csv;
+            } catch (e) {
+                console.error(e);
+                return "";
+            }
+        }
+        return gk_fileData[filename] || "";
+        }
+        </script><!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Endpoint Security Policy Builder (based on NCSC Guidance)</title>
+  <script src="https://cdn.jsdelivr.net/npm/react@18.2.0/umd/react.production.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/react-dom@18.2.0/umd/react-dom.production.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@babel/standalone@7.22.5/babel.min.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 font-sans">
+  <div id="root"></div>
+  <script type="text/babel">
+    const { useState } = React;
+
+    const policySections = [
+      {
+        name: "Device Procurement",
+        explanation: "This section ensures devices are sourced from trusted vendors to meet NCSC security standards. Secure procurement reduces supply chain risks and ensures devices have minimal vulnerabilities from the start.",
+        options: [
+          { risk: "High", text: "Devices can be procured from any vendor without security checks." },
+          { risk: "Moderate-High", text: "Devices are sourced from known vendors with basic security reviews." },
+          { risk: "Moderate-Low", text: "Devices must be sourced from NCSC-approved vendors with secure configurations." },
+          { risk: "Low", text: "Devices must be sourced from NCSC-approved vendors with audited secure configurations and supply chain checks." },
+        ],
+      },
+      {
+        name: "Secure Configuration",
+        explanation: "Secure configuration hardens devices against threats by applying NCSC policy packs (e.g., for Windows, iOS). This ensures settings like firewalls and permissions are optimized for security without hindering usability.",
+        options: [
+          { risk: "High", text: "Devices use default configurations with no mandatory hardening." },
+          { risk: "Moderate-High", text: "Devices follow basic NCSC configuration guidelines with optional hardening." },
+          { risk: "Moderate-Low", text: "Devices must use NCSC policy packs for secure configuration." },
+          { risk: "Low", text: "Devices use NCSC policy packs with continuous configuration auditing and compliance checks." },
+        ],
+      },
+      {
+        name: "Operating System Updates",
+        explanation: "Timely OS updates patch known vulnerabilities, a key NCSC recommendation. This section ensures devices stay protected against exploits targeting outdated software.",
+        options: [
+          { risk: "High", text: "OS updates are optional and user-managed." },
+          { risk: "Moderate-High", text: "OS updates are prompted but not enforced." },
+          { risk: "Moderate-Low", text: "OS updates are mandatory within 14 days of release." },
+          { risk: "Low", text: "OS updates are automatically applied within 48 hours of release with compliance monitoring." },
+        ],
+      },
+      {
+        name: "Application Control",
+        explanation: "Application control prevents unauthorized software from running, reducing malware risks. NCSC advocates allowlisting to ensure only trusted applications are permitted.",
+        options: [
+          { risk: "High", text: "No restrictions on application installation or execution." },
+          { risk: "Moderate-High", text: "Users can install apps with basic approval processes." },
+          { risk: "Moderate-Low", text: "Only allowlisted applications can be installed and executed." },
+          { risk: "Low", text: "Only allowlisted applications are permitted, with strict approval and regular audits." },
+        ],
+      },
+      {
+        name: "Antivirus and Security Software",
+        explanation: "Antivirus and security tools protect against malware and other threats. NCSC recommends robust, centrally managed software to ensure consistent protection across devices.",
+        options: [
+          { risk: "High", text: "Antivirus software is optional and user-managed." },
+          { risk: "Moderate-High", text: "Antivirus software is installed but not centrally managed." },
+          { risk: "Moderate-Low", text: "Centrally managed antivirus software is mandatory with regular updates." },
+          { risk: "Low", text: "Centrally managed antivirus with real-time monitoring and threat detection is enforced." },
+        ],
+      },
+      {
+        name: "Mobile Device Management (MDM)",
+        explanation: "MDM enforces security policies across mobile and remote devices. NCSC’s MDM guidance ensures consistent settings, remote management, and compliance for all endpoints.",
+        options: [
+          { risk: "High", text: "No MDM solution is required for device management." },
+          { risk: "Moderate-High", text: "MDM is optional for corporate devices with basic policies." },
+          { risk: "Moderate-Low", text: "MDM is mandatory for all corporate devices with NCSC-aligned policies." },
+          { risk: "Low", text: "MDM is mandatory with NCSC-aligned policies, remote wipe, and continuous compliance checks." },
+        ],
+      },
+      {
+        name: "Network Access Control",
+        explanation: "Network access control verifies device security before granting network access. NCSC recommends compliance checks to protect corporate networks from compromised devices.",
+        options: [
+          { risk: "High", text: "No checks on devices connecting to corporate networks." },
+          { risk: "Moderate-High", text: "Basic device checks before network access." },
+          { risk: "Moderate-Low", text: "Devices must pass security compliance checks before network access." },
+          { risk: "Low", text: "Devices require continuous compliance checks and zero-trust policies for network access." },
+        ],
+      },
+      {
+        name: "Data Encryption",
+        explanation: "Encryption protects data on devices from unauthorized access. NCSC mandates strong encryption for data at rest and in transit to safeguard sensitive information.",
+        options: [
+          { risk: "High", text: "Data encryption is optional on devices." },
+          { risk: "Moderate-High", text: "Encryption is required only for sensitive data." },
+          { risk: "Moderate-Low", text: "All data on devices must be encrypted at rest and in transit." },
+          { risk: "Low", text: "All data is encrypted with NCSC-approved algorithms and regular key rotation." },
+        ],
+      },
+      {
+        name: "User Authentication",
+        explanation: "Strong authentication prevents unauthorized device access. NCSC recommends multi-factor authentication (MFA) and secure credentials to enhance endpoint security.",
+        options: [
+          { risk: "High", text: "Single-factor authentication with simple passwords is sufficient." },
+          { risk: "Moderate-High", text: "Single-factor authentication with complex password policies." },
+          { risk: "Moderate-Low", text: "Multi-factor authentication is required for all users." },
+          { risk: "Low", text: "MFA with biometrics and regular credential audits is mandatory." },
+        ],
+      },
+      {
+        name: "Device Monitoring and Logging",
+        explanation: "Monitoring and logging track device activity to detect incidents. NCSC advises centralized logging to support investigations and ensure compliance with security policies.",
+        options: [
+          { risk: "High", text: "No device monitoring or logging is required." },
+          { risk: "Moderate-High", text: "Basic logging is enabled but not centrally managed." },
+          { risk: "Moderate-Low", text: "Centralized logging and periodic monitoring are mandatory." },
+          { risk: "Low", text: "Continuous centralized monitoring and logging with real-time alerts are enforced." },
+        ],
+      },
+      {
+        name: "Bring Your Own Device (BYOD) Policy",
+        explanation: "BYOD policies secure personal devices used for work. NCSC’s guidance outlines secure access methods (e.g., web browsers, MAM) to balance usability and security.",
+        options: [
+          { risk: "High", text: "BYOD is allowed with no security controls." },
+          { risk: "Moderate-High", text: "BYOD requires basic security controls like web browser access." },
+          { risk: "Moderate-Low", text: "BYOD requires MDM or MAM with NCSC-aligned policies." },
+          { risk: "Low", text: "BYOD requires MDM, MAM, and zero-trust access with strict compliance checks." },
+        ],
+      },
+      {
+        name: "End-User Security Awareness",
+        explanation: "Training users reduces risks from human error. NCSC emphasizes regular security awareness programs to ensure users understand device security best practices.",
+        options: [
+          { risk: "High", text: "Security awareness training is optional for users." },
+          { risk: "Moderate-High", text: "Annual security awareness training is recommended." },
+          { risk: "Moderate-Low", text: "Annual mandatory security awareness training is required." },
+          { risk: "Low", text: "Quarterly mandatory training with phishing simulations and compliance audits." },
+        ],
+      },
+      {
+        name: "Removable Media Control",
+        explanation: "Removable media (e.g., USB drives) can introduce malware or leak data. NCSC recommends strict controls to prevent unauthorized use and ensure device security.",
+        options: [
+          { risk: "High", text: "No restrictions on removable media usage." },
+          { risk: "Moderate-High", text: "Removable media is allowed with basic user approval." },
+          { risk: "Moderate-Low", text: "Only encrypted, organization-approved removable media is permitted." },
+          { risk: "Low", text: "Removable media is banned except for audited, encrypted devices with strict controls." },
+        ],
+      },
+      {
+        name: "Secure Boot and Firmware Security",
+        explanation: "Secure boot ensures devices start with trusted software, preventing rootkits. NCSC advises enabling secure boot and protecting firmware to maintain device integrity.",
+        options: [
+          { risk: "High", text: "Secure boot and firmware security are optional." },
+          { risk: "Moderate-High", text: "Secure boot is enabled but not enforced." },
+          { risk: "Moderate-Low", text: "Secure boot is mandatory with firmware updates applied periodically." },
+          { risk: "Low", text: "Secure boot and firmware security are mandatory with continuous monitoring and updates." },
+        ],
+      },
+      {
+        name: "Device Backup and Recovery",
+        explanation: "Backups ensure data can be restored after incidents. NCSC recommends secure, regular backups to minimize data loss while protecting backup integrity.",
+        options: [
+          { risk: "High", text: "Device backups are optional and user-managed." },
+          { risk: "Moderate-High", text: "Backups are recommended but not centrally managed." },
+          { risk: "Moderate-Low", text: "Centrally managed, encrypted backups are mandatory." },
+          { risk: "Low", text: "Centrally managed, encrypted backups with regular testing and auditing are enforced." },
+        ],
+      },
+      {
+        name: "Remote Wipe and Lock Capabilities",
+        explanation: "Remote wipe and lock protect lost or stolen devices. NCSC’s MDM guidance includes enabling these features to prevent unauthorized access to sensitive data.",
+        options: [
+          { risk: "High", text: "No remote wipe or lock capabilities are required." },
+          { risk: "Moderate-High", text: "Remote wipe and lock are optional for corporate devices." },
+          { risk: "Moderate-Low", text: "Remote wipe and lock are mandatory for all corporate devices." },
+          { risk: "Low", text: "Remote wipe and lock are mandatory with automated triggers for non-compliant devices." },
+        ],
+      },
+      {
+        name: "Endpoint Detection and Response (EDR)",
+        explanation: "EDR tools detect and respond to advanced threats on devices. NCSC recommends EDR for real-time monitoring and incident response to enhance endpoint security.",
+        options: [
+          { risk: "High", text: "No EDR tools are required on devices." },
+          { risk: "Moderate-High", text: "EDR tools are optional with basic monitoring." },
+          { risk: "Moderate-Low", text: "EDR tools are mandatory with centralized monitoring." },
+          { risk: "Low", text: "EDR tools are mandatory with real-time threat detection and automated response." },
+        ],
+      },
+      {
+        name: "Device Decommissioning and Disposal",
+        explanation: "Proper decommissioning ensures devices are wiped before disposal to prevent data leaks. NCSC advises secure erasure and disposal processes to meet compliance requirements.",
+        options: [
+          { risk: "High", text: "No formal process for device decommissioning or disposal." },
+          { risk: "Moderate-High", text: "Basic data wiping is performed before disposal." },
+          { risk: "Moderate-Low", text: "Secure data erasure with NCSC-approved methods is mandatory." },
+          { risk: "Low", text: "Secure data erasure and physical destruction with audited processes are enforced." },
+        ],
+      },
+    ];
+
+    const PolicyBuilder = () => {
+      const [selections, setSelections] = useState({});
+      const [showPolicy, setShowPolicy] = useState(false);
+
+      const handleSelect = (sectionName, optionText) => {
+        setSelections((prev) => ({ ...prev, [sectionName]: optionText }));
+      };
+
+      const generatePolicy = () => {
+        setShowPolicy(true);
+      };
+
+      return (
+        <div className="max-w-5xl mx-auto p-6">
+          <h1 className="text-3xl font-bold text-center mb-8 text-gray-800">Endpoint Security Policy Builder (NCSC Guidance)</h1>
+          {policySections.map((section) => (
+            <div key={section.name} className="mb-8 bg-white p-6 rounded-lg shadow-md">
+              <h2 className="text-2xl font-semibold mb-2 text-gray-700">{section.name}</h2>
+              <p className="text-gray-600 mb-4">{section.explanation}</p>
+              <div className="space-y-4">
+                {section.options.map((option) => (
+                  <label key={option.risk} className="flex items-start space-x-3">
+                    <input
+                      type="radio"
+                      name={section.name}
+                      value={option.text}
+                      checked={selections[section.name] === option.text}
+                      onChange={() => handleSelect(section.name, option.text)}
+                      className="mt-1"
+                    />
+                    <div>
+                      <span className="font-medium text-gray-600">{option.risk} Risk Appetite:</span>
+                      <p className="text-gray-600">{option.text}</p>
+                    </div>
+                  </label>
+                ))}
+              </div>
+            </div>
+          ))}
+          <button
+            onClick={generatePolicy}
+            className="w-full bg-blue-600 text-white py-3 rounded-lg hover:bg-blue-700 transition disabled:bg-gray-400"
+            disabled={Object.keys(selections).length !== policySections.length}
+          >
+            Generate Policy
+          </button>
+          {showPolicy && (
+            <div className="mt-8 bg-white p-6 rounded-lg shadow-md">
+              <h2 className="text-2xl font-bold mb-4 text-gray-800">Generated Endpoint Security Policy</h2>
+              {policySections.map((section) => (
+                <div key={section.name} className="mb-6">
+                  <h3 className="text-xl font-semibold text-gray-700">{section.name}</h3>
+                  <p className="text-gray-600 italic mb-2">{section.explanation}</p>
+                  <p className="text-gray-600">{selections[section.name] || "No policy selected."}</p>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      );
+    };
+
+    ReactDOM.render(<PolicyBuilder />, document.getElementById("root"));
+  </script>
+</body>
+</html>
