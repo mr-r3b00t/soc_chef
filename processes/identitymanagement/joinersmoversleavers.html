@@ -1,0 +1,683 @@
+<script type="text/javascript">
+        var gk_isXlsx = false;
+        var gk_xlsxFileLookup = {};
+        var gk_fileData = {};
+        function loadFileData(filename) {
+        if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
+            try {
+                var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
+                var firstSheetName = workbook.SheetNames[0];
+                var worksheet = workbook.Sheets[firstSheetName];
+
+                // Convert sheet to JSON to filter blank rows
+                var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
+                // Filter out blank rows (rows where all cells are empty, null, or undefined)
+                var filteredData = jsonData.filter(row =>
+                    row.some(cell => cell !== '' && cell !== null && cell !== undefined)
+                );
+
+                // Convert filtered JSON back to CSV
+                var csv = XLSX.utils.aoa_to_sheet(filteredData); // Create a new sheet from filtered array of arrays
+                csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
+                return csv;
+            } catch (e) {
+                console.error(e);
+                return "";
+            }
+        }
+        return gk_fileData[filename] || "";
+        }
+        </script><!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Joiners, Movers, and Leavers (JML) Playbook</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            line-height: 1.6;
+            margin: 40px;
+            max-width: 800px;
+            margin-left: auto;
+            margin-right: auto;
+            color: #333;
+        }
+        h1 {
+            font-size: 2.2em;
+            text-align: center;
+            color: #2c3e50;
+            margin-bottom: 20px;
+        }
+        h2 {
+            font-size: 1.8em;
+            color: #34495e;
+            margin-top: 30px;
+            border-bottom: 2px solid #ecf0f1;
+            padding-bottom: 5px;
+        }
+        h3 {
+            font-size: 1.4em;
+            color: #3c5a76;
+            margin-top: 20px;
+        }
+        p {
+            margin: 10px 0;
+        }
+        ul {
+            list-style-type: none;
+            padding-left: 20px;
+        }
+        ul li {
+            margin: 8px 0;
+            display: block;
+        }
+        input[type="checkbox"] {
+            margin-right: 10px;
+        }
+        code {
+            font-family: 'Consolas', monospace;
+            background-color: #f5f6fa;
+            padding: 2px 4px;
+            border-radius: 3px;
+        }
+        .section {
+            margin-bottom: 20px;
+        }
+        .note {
+            background-color: #e8f4f8;
+            padding: 15px;
+            border-left: 4px solid #3498db;
+            margin: 20px 0;
+            border-radius: 5px;
+        }
+        #log-section {
+            margin-top: 40px;
+            padding: 20px;
+            background-color: #f9f9f9;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        #log-section h2 {
+            margin-top: 0;
+        }
+        #log-list {
+            max-height: 200px;
+            overflow-y: auto;
+            margin-bottom: 10px;
+        }
+        #log-list p {
+            margin: 5px 0;
+            font-size: 0.9em;
+        }
+        .button-container {
+            display: flex;
+            gap: 10px;
+        }
+        button {
+            padding: 10px 20px;
+            background-color: #3498db;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1em;
+        }
+        button:hover {
+            background-color: #2980b9;
+        }
+        #clear-state-button {
+            background-color: #e74c3c;
+        }
+        #clear-state-button:hover {
+            background-color: #c0392b;
+        }
+        .input-group {
+            margin-bottom: 15px;
+        }
+        .input-group label {
+            display: inline-block;
+            width: 120px;
+            font-weight: bold;
+        }
+        .input-group input, .input-group textarea {
+            padding: 5px;
+            width: 200px;
+            border: 1px solid #ddd;
+            border-radius: 3px;
+            vertical-align: top;
+        }
+        .input-group textarea {
+            width: 300px;
+            height: 60px;
+            resize: vertical;
+        }
+        #timeline-error {
+            color: #e74c3c;
+            font-size: 0.9em;
+            margin-top: 5px;
+            display: none;
+        }
+        .footer {
+            text-align: center;
+            margin-top: 40px;
+            font-size: 0.9em;
+            color: #7f8c8d;
+        }
+        #jump-to-log {
+            display: block;
+            margin: 20px auto;
+            text-align: center;
+        }
+        #user-info-section {
+            padding: 20px;
+            background-color: #f9f9f9;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+        .copy-button {
+            padding: 5px 10px;
+            font-size: 0.9em;
+            margin-left: 10px;
+        }
+        .copy-button.copied {
+            background-color: #2ecc71;
+        }
+        .copy-button.copied:hover {
+            background-color: #27ae60;
+        }
+        .email-template {
+            background-color: #f9f9f9;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-family: 'Consolas', monospace;
+            font-size: 0.9em;
+            line-height: 1.5;
+            white-space: pre-wrap;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <h1>Joiners, Movers, and Leavers (JML) Playbook</h1>
+    <button id="jump-to-log">Jump to Action Log</button>
+
+    <div id="user-info-section">
+        <h2>User Information</h2>
+        <div class="input-group">
+            <label for="user-name">Name:</label>
+            <input type="text" id="user-name" placeholder="Enter your name">
+        </div>
+        <div class="input-group">
+            <label for="user-title">Title:</label>
+            <input type="text" id="user-title" placeholder="Enter your title">
+        </div>
+        <div class="input-group">
+            <label for="user-role">Role:</label>
+            <input type="text" id="user-role" placeholder="Enter your role">
+        </div>
+        <div class="input-group">
+            <label for="user-org">Organisation:</label>
+            <input type="text" id="user-org" placeholder="Enter your organisation">
+        </div>
+    </div>
+
+    <div class="section">
+        <h2>Executive Summary</h2>
+        <p>This playbook provides a structured process for managing the Joiners, Movers, and Leavers (JML) lifecycle for employees and third-party contractors, including Bring Your Own Device (BYOD) scenarios. It guides HR, IT, and security teams through onboarding, role transitions, offboarding, contractor management, BYOD compliance, and post-process review. The process ensures secure access provisioning, timely updates, and complete deprovisioning while maintaining compliance and protecting organizational assets.</p>
+    </div>
+
+    <div class="section">
+        <h2>JML Checklist</h2>
+        <p>The following checklist summarizes key actions for managing joiners, movers, leavers, and contractors.</p>
+        <ul>
+            <li><input type="checkbox" id="onboarding" data-label="Onboarding">Onboarding
+                <ul>
+                    <li><input type="checkbox" id="onboarding-verify" data-label="Verify identity">Verify identity and contract.</li>
+                    <li><input type="checkbox" id="onboarding-provision" data-label="Provision access">Provision accounts and access.</li>
+                    <li><input type="checkbox" id="onboarding-train" data-label="Provide training">Provide security training.</li>
+                </ul>
+            </li>
+            <li><input type="checkbox" id="movers" data-label="Role Changes">Role Changes
+                <ul>
+                    <li><input type="checkbox" id="movers-review" data-label="Review role">Review new role requirements.</li>
+                    <li><input type="checkbox" id="movers-update" data-label="Update access">Update access permissions.</li>
+                    <li><input type="checkbox" id="movers-notify" data-label="Notify stakeholders">Notify relevant stakeholders.</li>
+                </ul>
+            </li>
+            <li><input type="checkbox" id="offboarding" data-label="Offboarding">Offboarding
+                <ul>
+                    <li><input type="checkbox" id="offboarding-revoke" data-label="Revoke access">Revoke all access.</li>
+                    <li><input type="checkbox" id="offboarding-return" data-label="Recover assets">Recover company assets.</li>
+                    <li><input type="checkbox" id="offboarding-exit" data-label="Conduct exit">Conduct exit interview.</li>
+                </ul>
+            </li>
+            <li><input type="checkbox" id="contractors" data-label="Contractor Management">Contractor Management
+                <ul>
+                    <li><input type="checkbox" id="contractors-agreement" data-label="Verify agreement">Verify contractor agreement.</li>
+                    <li><input type="checkbox" id="contractors-access" data-label="Provision access">Provision temporary access.</li>
+                    <li><input type="checkbox" id="contractors-monitor" data-label="Monitor access">Monitor contractor activity.</li>
+                </ul>
+            </li>
+            <li><input type="checkbox" id="byod" data-label="BYOD Compliance">BYOD Compliance
+                <ul>
+                    <li><input type="checkbox" id="byod-policy" data-label="Enforce policy">Enforce BYOD policy.</li>
+                    <li><input type="checkbox" id="byod-secure" data-label="Secure device">Secure BYOD devices.</li>
+                    <li><input type="checkbox" id="byod-remove" data-label="Remove data">Remove data on departure.</li>
+                </ul>
+            </li>
+            <li><input type="checkbox" id="post-process" data-label="Post-Process Review">Post-Process Review
+                <ul>
+                    <li><input type="checkbox" id="post-process-audit" data-label="Audit process">Audit JML process.</li>
+                    <li><input type="checkbox" id="post-process-update" data-label="Update policies">Update JML policies.</li>
+                    <li><input type="checkbox" id="post-process-document" data-label="Document lessons">Document lessons learned.</li>
+                </ul>
+            </li>
+        </ul>
+    </div>
+
+    <div class="section">
+        <h2>1. Onboarding</h2>
+        <p>Securely onboard new employees and contractors, ensuring proper access and compliance.</p>
+
+        <h3>Verify Identity and Contract</h3>
+        <ul>
+            <li>Confirm the individual’s identity using official documentation (e.g., ID, work authorization).</li>
+            <li>For contractors, verify the contract details (e.g., duration, scope of work).</li>
+            <li>Log verification details in the HR or IAM system.</li>
+        </ul>
+
+        <h3>Provision Accounts and Access</h3>
+        <ul>
+            <li>Create accounts in the IAM system based on role requirements (e.g., email, application access).</li>
+            <li>For contractors, assign temporary, least-privilege access aligned with contract terms.</li>
+            <li>Ensure BYOD users sign agreements and register devices before granting access.</li>
+        </ul>
+
+        <h3>Provide Security Training</h3>
+        <ul>
+            <li>Conduct training on security policies, including BYOD rules (e.g., MDM enrollment, data handling).</li>
+            <li>Issue credentials and security guidelines (e.g., password policies, acceptable use).</li>
+            <li>Document training completion for audit purposes.</li>
+        </ul>
+    </div>
+
+    <div class="section">
+        <h2>2. Role Changes</h2>
+        <p>Manage transitions for employees and contractors moving to new roles or projects.</p>
+
+        <h3>Review New Role Requirements</h3>
+        <ul>
+            <li>Obtain details of the new role or project from HR or the project manager.</li>
+            <li>For contractors, confirm if the role change extends or modifies the contract.</li>
+            <li>Identify required access (e.g., new systems, elevated permissions).</li>
+        </ul>
+
+        <h3>Update Access Permissions</h3>
+        <ul>
+            <li>Modify IAM settings to grant new access and revoke unneeded permissions.</li>
+            <li>Ensure BYOD devices comply with updated role requirements (e.g., additional apps).</li>
+            <li>Verify changes align with least-privilege principles.</li>
+        </ul>
+
+        <h3>Notify Relevant Stakeholders</h3>
+        <ul>
+            <li>Inform managers, IT, and security teams of the role change.</li>
+            <li>For contractors, send a confirmation email to the client or third-party contact. Example:
+                <div class="email-template" id="email-template">
+Subject: Confirmation of Access Update for [Contractor Name]
+
+Dear [Client Contact],
+
+We have updated access permissions for [Contractor Name] effective [date], reflecting their new role/project ([role/project name]). The updates include:
+
+- New Access: [e.g., access to system X, project Y]
+- Revoked Access: [e.g., previous system Z]
+- BYOD Status: [e.g., device compliance verified]
+
+Please confirm these changes meet your expectations or provide feedback by [response deadline]. Contact us for any further details.
+
+Best regards,
+[Your Name]
+[Your Organization]
+[Contact Information]
+                </div>
+                <button id="copy-email-template" class="copy-button">Copy to Clipboard</button>
+            </li>
+            <li>Log the notification and retain a copy for records.</li>
+        </ul>
+    </div>
+
+    <div class="section">
+        <h2>3. Offboarding</h2>
+        <p>Securely offboard employees and contractors to prevent unauthorized access.</p>
+
+        <h3>Revoke All Access</h3>
+        <ul>
+            <li>Disable accounts in the IAM system for employees and contractors.</li>
+            <li>Remove access to systems, applications, and physical resources.</li>
+            <li>Confirm revocation within 24 hours of departure.</li>
+        </ul>
+
+        <h3>Recover Company Assets</h3>
+        <ul>
+            <li>Collect company-issued devices, badges, or keys.</li>
+            <li>For BYOD users, ensure company data is wiped from personal devices (e.g., via MDM).</li>
+            <li>Document asset recovery in the asset management system.</li>
+        </ul>
+
+        <h3>Conduct Exit Interview</h3>
+        <ul>
+            <li>Review confidentiality obligations with the departing individual.</li>
+            <li>For contractors, confirm contract closure and data handling responsibilities.</li>
+            <li>Log the interview completion and any issues raised.</li>
+        </ul>
+    </div>
+
+    <div class="section">
+        <h2>4. Contractor Management</h2>
+        <p>Manage third-party contractors to ensure secure and temporary access.</p>
+
+        <h3>Verify Contractor Agreement</h3>
+        <ul>
+            <li>Review the contractor’s agreement for duration, scope, and access needs.</li>
+            <li>Confirm agreement aligns with organizational policies (e.g., NDA, security clauses).</li>
+        </ul>
+
+        <h3>Provision Temporary Access</h3>
+        <ul>
+            <li>Create time-bound accounts with least-privilege access in the IAM system.</li>
+            <li>Assign access based on project needs (e.g., specific systems, data).</li>
+            <li>Log access details and expiration dates.</li>
+        </ul>
+
+        <h3>Monitor Contractor Activity</h3>
+        <ul>
+            <li>Use security monitoring tools to track contractor access and usage.</li>
+            <li>Review logs for anomalies (e.g., unauthorized access attempts).</li>
+            <li>Escalate any issues to the contractor’s point of contact promptly.</li>
+        </ul>
+    </div>
+
+    <div class="section">
+        <h2>5. BYOD Compliance</h2>
+        <p>Ensure personal devices used by employees and contractors meet security standards.</p>
+
+        <h3>Enforce BYOD Policy</h3>
+        <ul>
+            <li>Require all BYOD users to sign the BYOD policy agreement.</li>
+            <li>Specify requirements (e.g., encryption, updated OS, approved apps).</li>
+        </ul>
+
+        <h3>Secure BYOD Devices</h3>
+        <ul>
+            <li>Enroll devices in a Mobile Device Management (MDM) solution for monitoring.</li>
+            <li>Install endpoint protection (e.g., antivirus, remote wipe capability).</li>
+            <li>Verify compliance before granting access to company resources.</li>
+        </ul>
+
+        <h3>Remove Data on Departure</h3>
+        <ul>
+            <li>Use MDM to wipe company data from BYOD devices upon offboarding.</li>
+            <li>Confirm data removal with the user and document completion.</li>
+            <li>Retain logs of data removal for audit purposes.</li>
+        </ul>
+    </div>
+
+    <div class="section">
+        <h2>6. Post-Process Review</h2>
+        <p>Evaluate and improve the JML process for efficiency and security.</p>
+
+        <h3>Audit JML Process</h3>
+        <ul>
+            <li>Review logs and records for compliance with JML policies.</li>
+            <li>Verify all access provisioning and revocations were completed correctly.</li>
+            <li>Check BYOD compliance and contractor access logs for issues.</li>
+        </ul>
+
+        <h3>Update JML Policies</h3>
+        <ul>
+            <li>Revise policies based on audit findings (e.g., stricter BYOD rules).</li>
+            <li>Share updates with HR, IT, and security teams for alignment.</li>
+        </ul>
+
+        <h3>Document Lessons Learned</h3>
+        <ul>
+            <li>Hold a review meeting to discuss process successes and gaps.</li>
+            <li>Document improvements for future JML cycles.</li>
+            <li>Archive lessons learned in a central repository.</li>
+        </ul>
+    </div>
+
+    <div class="section">
+        <h2>Additional Notes</h2>
+        <div class="note">
+            <ul>
+                <li><strong>Preserve Evidence:</strong> Maintain records of JML actions for audits and compliance.</li>
+                <li><strong>Leverage Automation:</strong> Use IAM and MDM tools to automate provisioning and monitoring.</li>
+                <li><strong>Engage Stakeholders:</strong> Coordinate with HR, IT, and vendors for smooth execution.</li>
+                <li><strong>Continuous Monitoring:</strong> Regularly check access and BYOD compliance to prevent leaks.</li>
+                <li><strong>Contractor Focus:</strong> Ensure temporary access and BYOD policies are strictly enforced.</li>
+            </ul>
+        </div>
+        <p>This playbook aligns with best practices for secure JML management, ensuring compliance and protection for employees and contractors.</p>
+    </div>
+
+    <div id="log-section">
+        <h2>Action Log</h2>
+        <div class="input-group">
+            <label for="timeline-alt-name">Alternative Name:</label>
+            <input type="text" id="timeline-alt-name" placeholder="Enter alternative name (optional)">
+        </div>
+        <div class="input-group">
+            <label for="timeline-activity">Timeline Entry:</label>
+            <textarea id="timeline-activity" placeholder="Enter activity description"></textarea>
+            <button id="add-timeline" style="margin-left: 10px;">Add Timeline Entry</button>
+        </div>
+        <p id="timeline-error">Please enter a name (either in User Information or Alternative Name) to add a timeline entry.</p>
+        <div id="log-list"></div>
+        <div class="button-container">
+            <button id="export-log">Export Log</button>
+            <button id="clear-state-button">Clear State</button>
+        </div>
+    </div>
+
+    <div class="footer">
+        <p>© Xservus Limited</p>
+    </div>
+
+    <script>
+        // Initialize log array
+        let logEntries = [];
+
+        // Load user info from local storage
+        function loadUserInfo() {
+            document.getElementById('user-name').value = localStorage.getItem('jmlChecklistUserName') || '';
+            document.getElementById('user-title').value = localStorage.getItem('jmlChecklistUserTitle') || '';
+            document.getElementById('user-role').value = localStorage.getItem('jmlChecklistUserRole') || '';
+            document.getElementById('user-org').value = localStorage.getItem('jmlChecklistUserOrg') || '';
+            document.getElementById('timeline-alt-name').value = localStorage.getItem('jmlChecklistTimelineAltName') || '';
+        }
+
+        // Save user info to local storage
+        function saveUserInfo() {
+            localStorage.setItem('jmlChecklistUserName', document.getElementById('user-name').value);
+            localStorage.setItem('jmlChecklistUserTitle', document.getElementById('user-title').value);
+            localStorage.setItem('jmlChecklistUserRole', document.getElementById('user-role').value);
+            localStorage.setItem('jmlChecklistUserOrg', document.getElementById('user-org').value);
+            localStorage.setItem('jmlChecklistTimelineAltName', document.getElementById('timeline-alt-name').value);
+        }
+
+        // Load checkbox states from local storage
+        function loadCheckboxStates() {
+            const checkboxes = document.querySelectorAll('input[type="checkbox"]');
+            checkboxes.forEach(checkbox => {
+                const state = localStorage.getItem(checkbox.id);
+                if (state === 'checked') {
+                    checkbox.checked = true;
+                }
+            });
+        }
+
+        // Save checkbox state to local storage
+        function saveCheckboxState(checkbox) {
+            localStorage.setItem(checkbox.id, checkbox.checked ? 'checked' : 'unchecked');
+        }
+
+        // Get user info for log entry
+        function getUserInfo() {
+            const name = document.getElementById('user-name').value || 'Unknown';
+            const title = document.getElementById('user-title').value || 'N/A';
+            const role = document.getElementById('user-role').value || 'N/A';
+            const org = document.getElementById('user-org').value || 'N/A';
+            return { name, title, role, org };
+        }
+
+        // Add checkbox log entry
+        function addCheckboxLogEntry(checkbox, action) {
+            const timestamp = new Date().toLocaleString();
+            const { name, title, role, org } = getUserInfo();
+            const label = checkbox.dataset.label;
+            const entry = `[${timestamp}] ${name} (${title}, ${role}, ${org}) - ${label} ${action}`;
+            logEntries.push(entry);
+            updateLogDisplay();
+        }
+
+        // Add timeline log entry
+        function addTimelineLogEntry() {
+            const nameInput = document.getElementById('user-name');
+            const altNameInput = document.getElementById('timeline-alt-name');
+            const activityInput = document.getElementById('timeline-activity');
+            const errorDisplay = document.getElementById('timeline-error');
+
+            if (!nameInput.value.trim() && !altNameInput.value.trim()) {
+                errorDisplay.style.display = 'block';
+                return false;
+            }
+
+            errorDisplay.style.display = 'none';
+            const timestamp = new Date().toLocaleString();
+            const { title, role, org } = getUserInfo();
+            const name = altNameInput.value.trim() || nameInput.value.trim() || 'Unknown';
+            const activity = activityInput.value.trim() || 'No description provided';
+            const entry = `[${timestamp}] ${name} (${title}, ${role}, ${org}) - Timeline Entry: ${activity}`;
+            logEntries.push(entry);
+            updateLogDisplay();
+            activityInput.value = ''; // Clear the textarea
+            altNameInput.value = ''; // Clear the alternative name
+            saveUserInfo();
+            return true;
+        }
+
+        // Update log display
+        function updateLogDisplay() {
+            const logList = document.getElementById('log-list');
+            logList.innerHTML = logEntries.map(entry => `<p>${entry}</p>`).join('');
+            logList.scrollTop = logList.scrollHeight; // Scroll to bottom
+            localStorage.setItem('jmlChecklistLog', JSON.stringify(logEntries));
+        }
+
+        // Export log as text file
+        function exportLog() {
+            const { name, title, role, org } = getUserInfo();
+            const header = `Joiners, Movers, and Leavers Playbook Log\nUser: ${name}\nTitle: ${title}\nRole: ${role}\nOrganisation: ${org}\nGenerated: ${new Date().toLocaleString()}\n\n`;
+            const footer = `\nCreated using the PwnDefend JML Playbook - copyright (c) xservus limited`;
+            const content = header + logEntries.join('\n') + footer;
+            const blob = new Blob([content], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `JML_Log_${new Date().toISOString().replace(/[:.]/g, '-')}.txt`;
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        // Clear checkbox states, user info, timeline entries, and log
+        function clearState() {
+            const checkboxes = document.querySelectorAll('input[type="checkbox"]');
+            checkboxes.forEach(checkbox => {
+                checkbox.checked = false;
+                localStorage.setItem(checkbox.id, 'unchecked');
+            });
+            document.getElementById('user-name').value = '';
+            document.getElementById('user-title').value = '';
+            document.getElementById('user-role').value = '';
+            document.getElementById('user-org').value = '';
+            document.getElementById('timeline-alt-name').value = '';
+            document.getElementById('timeline-activity').value = '';
+            localStorage.removeItem('jmlChecklistUserName');
+            localStorage.removeItem('jmlChecklistUserTitle');
+            localStorage.removeItem('jmlChecklistUserRole');
+            localStorage.removeItem('jmlChecklistUserOrg');
+            localStorage.removeItem('jmlChecklistTimelineAltName');
+            logEntries = [];
+            updateLogDisplay();
+            document.getElementById('timeline-error').style.display = 'none';
+        }
+
+        // Initialize event listeners
+        document.addEventListener('DOMContentLoaded', () => {
+            // Load saved log entries
+            const savedLog = localStorage.getItem('jmlChecklistLog');
+            if (savedLog) {
+                logEntries = JSON.parse(savedLog);
+                updateLogDisplay();
+            }
+
+            // Load user info and checkbox states
+            loadUserInfo();
+            loadCheckboxStates();
+
+            // User info input listeners
+            ['user-name', 'user-title', 'user-role', 'user-org', 'timeline-alt-name'].forEach(id => {
+                document.getElementById(id).addEventListener('input', saveUserInfo);
+            });
+
+            // Checkbox event listeners
+            const checkboxes = document.querySelectorAll('input[type="checkbox"]');
+            checkboxes.forEach(checkbox => {
+                checkbox.addEventListener('change', () => {
+                    saveCheckboxState(checkbox);
+                    addCheckboxLogEntry(checkbox, checkbox.checked ? 'checked' : 'unchecked');
+                });
+            });
+
+            // Timeline entry button
+            document.getElementById('add-timeline').addEventListener('click', () => {
+                if (addTimelineLogEntry()) {
+                    localStorage.setItem('jmlChecklistLog', JSON.stringify(logEntries));
+                }
+            });
+
+            // Export log button
+            document.getElementById('export-log').addEventListener('click', exportLog);
+
+            // Clear state button
+            document.getElementById('clear-state-button').addEventListener('click', clearState);
+
+            // Jump to Action Log button
+            document.getElementById('jump-to-log').addEventListener('click', () => {
+                document.getElementById('log-section').scrollIntoView({ behavior: 'smooth' });
+            });
+
+            // Copy to Clipboard button for email template
+            const copyButton = document.getElementById('copy-email-template');
+            if (copyButton) {
+                copyButton.addEventListener('click', () => {
+                    const queryText = document.getElementById('email-template').textContent;
+                    navigator.clipboard.writeText(queryText).then(() => {
+                        copyButton.textContent = 'Copied!';
+                        copyButton.classList.add('copied');
+                        setTimeout(() => {
+                            copyButton.textContent = 'Copy to Clipboard';
+                            copyButton.classList.remove('copied');
+                        }, 2000);
+                    });
+                });
+            }
+        });
+    </script>
+</body>
+</html>
