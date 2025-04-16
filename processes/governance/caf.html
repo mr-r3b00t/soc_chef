@@ -1,0 +1,689 @@
+<script type="text/javascript">
+        var gk_isXlsx = false;
+        var gk_xlsxFileLookup = {};
+        var gk_fileData = {};
+        function loadFileData(filename) {
+        if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
+            try {
+                var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
+                var firstSheetName = workbook.SheetNames[0];
+                var worksheet = workbook.Sheets[firstSheetName];
+
+                // Convert sheet to JSON to filter blank rows
+                var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
+                // Filter out blank rows (rows where all cells are empty, null, or undefined)
+                var filteredData = jsonData.filter(row =>
+                    row.some(cell => cell !== '' && cell !== null && cell !== undefined)
+                );
+
+                // Convert filtered JSON back to CSV
+                var csv = XLSX.utils.aoa_to_sheet(filteredData); // Create a new sheet from filtered array of arrays
+                csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
+                return csv;
+            } catch (e) {
+                console.error(e);
+                return "";
+            }
+        }
+        return gk_fileData[filename] || "";
+        }
+        </script><!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Enterprise Cybersecurity Posture Assessment Playbook</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            line-height: 1.6;
+            margin: 40px;
+            max-width: 800px;
+            margin-left: auto;
+            margin-right: auto;
+            color: #333;
+        }
+        h1 {
+            font-size: 2.2em;
+            text-align: center;
+            color: #2c3e50;
+            margin-bottom: 20px;
+        }
+        h2 {
+            font-size: 1.8em;
+            color: #34495e;
+            margin-top: 30px;
+            border-bottom: 2px solid #ecf0f1;
+            padding-bottom: 5px;
+        }
+        h3 {
+            font-size: 1.4em;
+            color: #3c5a76;
+            margin-top: 20px;
+        }
+        p {
+            margin: 10px 0;
+        }
+        ul {
+            list-style-type: none;
+            padding-left: 20px;
+        }
+        ul li {
+            margin: 8px 0;
+            display: block;
+        }
+        input[type="checkbox"] {
+            margin-right: 10px;
+        }
+        code {
+            font-family: 'Consolas', monospace;
+            background-color: #f5f6fa;
+            padding: 2px 4px;
+            border-radius: 3px;
+        }
+        .section {
+            margin-bottom: 20px;
+        }
+        .note {
+            background-color: #e8f4f8;
+            padding: 15px;
+            border-left: 4px solid #3498db;
+            margin: 20px 0;
+            border-radius: 5px;
+        }
+        #log-section {
+            margin-top: 40px;
+            padding: 20px;
+            background-color: #f9f9f9;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        #log-section h2 {
+            margin-top: 0;
+        }
+        #log-list {
+            max-height: 200px;
+            overflow-y: auto;
+            margin-bottom: 10px;
+        }
+        #log-list p {
+            margin: 5px 0;
+            font-size: 0.9em;
+        }
+        .button-container {
+            display: flex;
+            gap: 10px;
+        }
+        button {
+            padding: 10px 20px;
+            background-color: #3498db;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1em;
+        }
+        button:hover {
+            background-color: #2980b9;
+        }
+        #clear-state-button {
+            background-color: #e74c3c;
+        }
+        #clear-state-button:hover {
+            background-color: #c0392b;
+        }
+        .input-group {
+            margin-bottom: 15px;
+        }
+        .input-group label {
+            display: inline-block;
+            width: 120px;
+            font-weight: bold;
+        }
+        .input-group input, .input-group textarea {
+            padding: 5px;
+            width: 200px;
+            border: 1px solid #ddd;
+            border-radius: 3px;
+            vertical-align: top;
+        }
+        .input-group textarea {
+            width: 300px;
+            height: 60px;
+            resize: vertical;
+        }
+        #timeline-error {
+            color: #e74c3c;
+            font-size: 0.9em;
+            margin-top: 5px;
+            display: none;
+        }
+        .footer {
+            text-align: center;
+            margin-top: 40px;
+            font-size: 0.9em;
+            color: #7f8c8d;
+        }
+        #jump-to-log {
+            display: block;
+            margin: 20px auto;
+            text-align: center;
+        }
+        #user-info-section {
+            padding: 20px;
+            background-color: #f9f9f9;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+        .copy-button {
+            padding: 5px 10px;
+            font-size: 0.9em;
+            margin-left: 10px;
+        }
+        .copy-button.copied {
+            background-color: #2ecc71;
+        }
+        .copy-button.copied:hover {
+            background-color: #27ae60;
+        }
+        .email-template {
+            background-color: #f9f9f9;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-family: 'Consolas', monospace;
+            font-size: 0.9em;
+            line-height: 1.5;
+            white-space: pre-wrap;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <h1>Enterprise Cybersecurity Posture Assessment Playbook</h1>
+    <button id="jump-to-log">Jump to Action Log</button>
+
+    <div id="user-info-section">
+        <h2>User Information</h2>
+        <div class="input-group">
+            <label for="user-name">Name:</label>
+            <input type="text" id="user-name" placeholder="Enter your name">
+        </div>
+        <div class="input-group">
+            <label for="user-title">Title:</label>
+            <input type="text" id="user-title" placeholder="Enter your title">
+        </div>
+        <div class="input-group">
+            <label for="user-role">Role:</label>
+            <input type="text" id="user-role" placeholder="Enter your role">
+        </div>
+        <div class="input-group">
+            <label for="user-org">Organisation:</label>
+            <input type="text" id="user-org" placeholder="Enter your organisation">
+        </div>
+    </div>
+
+    <div class="section">
+        <h2>Executive Summary</h2>
+        <p>This playbook provides a structured process for assessing an enterprise’s cybersecurity posture in alignment with the NCSC Cyber Assessment Framework (CAF) 3.2. It guides security teams through preparation, risk management, protection, detection, incident minimization, and post-assessment review, ensuring compliance with CAF objectives (A: Managing Security Risk, B: Protecting Against Cyber Attack, C: Detecting Cyber Security Events, D: Minimising the Impact of Cyber Security Incidents). The process evaluates governance, controls, monitoring, and resilience to identify gaps and drive improvements, protecting critical systems and data.</p>
+    </div>
+
+    <div class="section">
+        <h2>Assessment Checklist</h2>
+        <p>The following checklist summarizes key actions for conducting a cybersecurity posture assessment per NCSC CAF 3.2.</p>
+        <ul>
+            <li><input type="checkbox" id="preparation" data-label="Preparation">Preparation
+                <ul>
+                    <li><input type="checkbox" id="preparation-scope" data-label="Define scope">Define assessment scope.</li>
+                    <li><input type="checkbox" id="preparation-team" data-label="Assemble team">Assemble assessment team.</li>
+                    <li><input type="checkbox" id="preparation-plan" data-label="Develop plan">Develop assessment plan.</li>
+                </ul>
+            </li>
+            <li><input type="checkbox" id="risk-management" data-label="Risk Management Assessment">Risk Management Assessment
+                <ul>
+                    <li><input type="checkbox" id="risk-governance" data-label="Review governance">Review security governance.</li>
+                    <li><input type="checkbox" id="risk-assets" data-label="Identify assets">Identify critical assets.</li>
+                    <li><input type="checkbox" id="risk-assessment" data-label="Assess risks">Assess cyber risks.</li>
+                </ul>
+            </li>
+            <li><input type="checkbox" id="protection" data-label="Protection Assessment">Protection Assessment
+                <ul>
+                    <li><input type="checkbox" id="protection-controls" data-label="Evaluate controls">Evaluate protective controls.</li>
+                    <li><input type="checkbox" id="protection-access" data-label="Assess access">Assess access controls.</li>
+                    <li><input type="checkbox" id="protection-training" data-label="Review training">Review staff training.</li>
+                </ul>
+            </li>
+            <li><input type="checkbox" id="detection" data-label="Detection Assessment">Detection Assessment
+                <ul>
+                    <li><input type="checkbox" id="detection-monitoring" data-label="Assess monitoring">Assess monitoring systems.</li>
+                    <li><input type="checkbox" id="detection-logs" data-label="Review logs">Review log collection.</li>
+                    <li><input type="checkbox" id="detection-alerts" data-label="Test alerts">Test detection alerts.</li>
+                </ul>
+            </li>
+            <li><input type="checkbox" id="incident-minimization" data-label="Incident Minimization Assessment">Incident Minimization Assessment
+                <ul>
+                    <li><input type="checkbox" id="incident-plan" data-label="Review plan">Review incident response plan.</li>
+                    <li><input type="checkbox" id="incident-backups" data-label="Assess backups">Assess backup processes.</li>
+                    <li><input type="checkbox" id="incident-recovery" data-label="Test recovery">Test recovery procedures.</li>
+                </ul>
+            </li>
+            <li><input type="checkbox" id="post-assessment" data-label="Post-Assessment Review">Post-Assessment Review
+                <ul>
+                    <li><input type="checkbox" id="post-report" data-label="Compile report">Compile assessment report.</li>
+                    <li><input type="checkbox" id="post-plan" data-label="Develop plan">Develop improvement plan.</li>
+                    <li><input type="checkbox" id="post-monitor" data-label="Monitor progress">Monitor improvement progress.</li>
+                </ul>
+            </li>
+        </ul>
+    </div>
+
+    <div class="section">
+        <h2>1. Preparation</h2>
+        <p>Prepare the organization for a comprehensive cybersecurity posture assessment aligned with NCSC CAF 3.2.</p>
+
+        <h3>Define Assessment Scope</h3>
+        <ul>
+            <li>Identify critical systems, networks, and services to assess (CAF A1: Governance).</li>
+            <li>Include third-party dependencies and supply chain elements (CAF A4: Supply Chain).</li>
+            <li>Document scope boundaries (e.g., specific departments, data types).</li>
+        </ul>
+
+        <h3>Assemble Assessment Team</h3>
+        <ul>
+            <li>Engage stakeholders from IT, security, compliance, and leadership (CAF A1: Governance).</li>
+            <li>Assign roles (e.g., lead assessor, data analyst, report writer).</li>
+            <li>Ensure team understands CAF 3.2 objectives and outcomes.</li>
+        </ul>
+
+        <h3>Develop Assessment Plan</h3>
+        <ul>
+            <li>Create a timeline for assessing CAF objectives (A, B, C, D).</li>
+            <li>Define methodologies (e.g., interviews, audits, technical scans).</li>
+            <li>Obtain leadership approval for the plan and resources.</li>
+        </ul>
+    </div>
+
+    <div class="section">
+        <h2>2. Risk Management Assessment</h2>
+        <p>Assess governance, asset management, and risk processes per CAF Objective A: Managing Security Risk.</p>
+
+        <h3>Review Security Governance</h3>
+        <ul>
+            <li>Evaluate security policies, roles, and responsibilities (CAF A1: Governance).</li>
+            <li>Check if a senior accountable officer oversees cybersecurity.</li>
+            <li>Document gaps in governance structure or accountability.</li>
+        </ul>
+
+        <h3>Identify Critical Assets</h3>
+        <ul>
+            <li>Inventory assets supporting critical services (CAF A2: Asset Management).</li>
+            <li>Include systems, data, and third-party services (CAF A4: Supply Chain).</li>
+            <li>Verify asset criticality and ownership are documented.</li>
+        </ul>
+
+        <h3>Assess Cyber Risks</h3>
+        <ul>
+            <li>Conduct a risk assessment aligned with CAF A3: Risk Management.</li>
+            <li>Identify threats, vulnerabilities, and impacts to critical assets.</li>
+            <li>Evaluate risk treatment plans and mitigation measures.</li>
+            <li>Notify third parties if their systems are involved in risks. Example:
+                <div class="email-template" id="email-template">
+Subject: Request for Information Regarding Cybersecurity Assessment
+
+Dear [Third-Party Contact],
+
+We are conducting a cybersecurity posture assessment aligned with NCSC CAF 3.2. Our review has identified your system ([domain.com or service]) as part of our supply chain.
+
+To assist our assessment, please provide details on:
+- Security controls protecting [system/service]
+- Incident response processes
+- Recent audit or compliance results
+
+Please respond by [deadline] or contact us for clarification. This information will support our compliance and security efforts.
+
+Best regards,
+[Your Name]
+[Your Organization]
+[Contact Information]
+                </div>
+                <button id="copy-email-template" class="copy-button">Copy to Clipboard</button>
+            </li>
+            <li>Log notifications and retain copies for records.</li>
+        </ul>
+    </div>
+
+    <div class="section">
+        <h2>3. Protection Assessment</h2>
+        <p>Evaluate protective measures per CAF Objective B: Protecting Against Cyber Attack.</p>
+
+        <h3>Evaluate Protective Controls</h3>
+        <ul>
+            <li>Assess firewalls, endpoint protection, and encryption (CAF B1: Service Protection).</li>
+            <li>Verify patch management processes (CAF B4: Vulnerability Management).</li>
+            <li>Document gaps in technical controls or configurations.</li>
+        </ul>
+
+        <h3>Assess Access Controls</h3>
+        <ul>
+            <li>Review IAM policies, MFA, and least-privilege enforcement (CAF B2: Identity and Access Management).</li>
+            <li>Check for unauthorized accounts or excessive permissions.</li>
+            <li>Evaluate third-party access controls (CAF A4: Supply Chain).</li>
+        </ul>
+
+        <h3>Review Staff Training</h3>
+        <ul>
+            <li>Assess cybersecurity awareness programs (CAF B5: Staff Awareness).</li>
+            <li>Verify training frequency and coverage for all staff, including contractors.</li>
+            <li>Document gaps in training content or participation.</li>
+        </ul>
+    </div>
+
+    <div class="section">
+        <h2>4. Detection Assessment</h2>
+        <p>Evaluate detection capabilities per CAF Objective C: Detecting Cyber Security Events.</p>
+
+        <h3>Assess Monitoring Systems</h3>
+        <ul>
+            <li>Review SIEM, IDS/IPS, and endpoint detection tools (CAF C1: Security Monitoring).</li>
+            <li>Verify monitoring covers critical assets and third-party systems.</li>
+            <li>Document gaps in monitoring coverage or tool integration.</li>
+        </ul>
+
+        <h3>Review Log Collection</h3>
+        <ul>
+            <li>Check log collection for systems, applications, and network devices (CAF C1: Security Monitoring).</li>
+            <li>Ensure logs are retained for sufficient duration per policy.</li>
+            <li>Identify missing or incomplete log sources.</li>
+        </ul>
+
+        <h3>Test Detection Alerts</h3>
+        <ul>
+            <li>Simulate events to test alert generation and response (CAF C2: Proactive Detection).</li>
+            <li>Verify alerts are prioritized and escalated appropriately.</li>
+            <li>Document false positives or detection delays.</li>
+        </ul>
+    </div>
+
+    <div class="section">
+        <h2>5. Incident Minimization Assessment</h2>
+        <p>Assess resilience and recovery per CAF Objective D: Minimising the Impact of Cyber Security Incidents.</p>
+
+        <h3>Review Incident Response Plan</h3>
+        <ul>
+            <li>Evaluate the incident response plan for clarity and coverage (CAF D1: Response Planning).</li>
+            <li>Verify roles, communication protocols, and escalation paths.</li>
+            <li>Check third-party response coordination (CAF A4: Supply Chain).</li>
+        </ul>
+
+        <h3>Assess Backup Processes</h3>
+        <ul>
+            <li>Review backup frequency, storage, and encryption (CAF D2: Recovery Planning).</li>
+            <li>Verify backups cover critical systems and data.</li>
+            <li>Document gaps in backup scope or testing.</li>
+        </ul>
+
+        <h3>Test Recovery Procedures</h3>
+        <ul>
+            <li>Conduct tabletop exercises or simulations (CAF D2: Recovery Planning).</li>
+            <li>Measure recovery time and data integrity post-recovery.</li>
+            <li>Identify weaknesses in recovery processes or documentation.</li>
+        </ul>
+    </div>
+
+    <div class="section">
+        <h2>6. Post-Assessment Review</h2>
+        <p>Document findings, prioritize improvements, and monitor progress.</p>
+
+        <h3>Compile Assessment Report</h3>
+        <ul>
+            <li>Summarize findings across CAF objectives (A, B, C, D).</li>
+            <li>Highlight strengths, gaps, and risks with evidence (e.g., logs, interviews).</li>
+            <li>Distribute the report to leadership and stakeholders.</li>
+        </ul>
+
+        <h3>Develop Improvement Plan</h3>
+        <ul>
+            <li>Prioritize remediation actions based on risk severity (CAF A3: Risk Management).</li>
+            <li>Assign owners and deadlines for each action.</li>
+            <li>Align improvements with CAF outcomes and business priorities.</li>
+        </ul>
+
+        <h3>Monitor Improvement Progress</h3>
+        <ul>
+            <li>Track remediation tasks using a project management tool.</li>
+            <li>Conduct follow-up assessments to verify improvements (CAF A1: Governance).</li>
+            <li>Document progress and update stakeholders regularly.</li>
+        </ul>
+    </div>
+
+    <div class="section">
+        <h2>Additional Notes</h2>
+        <div class="note">
+            <ul>
+                <li><strong>Preserve Evidence:</strong> Retain assessment data for audits and compliance verification.</li>
+                <li><strong>Leverage Automation:</strong> Use security tools to streamline data collection and analysis.</li>
+                <li><strong>Engage Stakeholders:</strong> Involve leadership and third parties to ensure buy-in.</li>
+                <li><strong>Continuous Improvement:</strong> Regularly reassess to maintain CAF alignment.</li>
+                <li><strong>CAF Focus:</strong> Prioritize outcomes critical to your organization’s services.</li>
+            </ul>
+        </div>
+        <p>This playbook aligns with NCSC CAF 3.2, ensuring a robust assessment of enterprise cybersecurity posture.</p>
+    </div>
+
+    <div id="log-section">
+        <h2>Action Log</h2>
+        <div class="input-group">
+            <label for="timeline-alt-name">Alternative Name:</label>
+            <input type="text" id="timeline-alt-name" placeholder="Enter alternative name (optional)">
+        </div>
+        <div class="input-group">
+            <label for="timeline-activity">Timeline Entry:</label>
+            <textarea id="timeline-activity" placeholder="Enter activity description"></textarea>
+            <button id="add-timeline" style="margin-left: 10px;">Add Timeline Entry</button>
+        </div>
+        <p id="timeline-error">Please enter a name (either in User Information or Alternative Name) to add a timeline entry.</p>
+        <div id="log-list"></div>
+        <div class="button-container">
+            <button id="export-log">Export Log</button>
+            <button id="clear-state-button">Clear State</button>
+        </div>
+    </div>
+
+    <div class="footer">
+        <p>© Xservus Limited</p>
+    </div>
+
+    <script>
+        // Initialize log array
+        let logEntries = [];
+
+        // Load user info from local storage
+        function loadUserInfo() {
+            document.getElementById('user-name').value = localStorage.getItem('cyberAssessmentChecklistUserName') || '';
+            document.getElementById('user-title').value = localStorage.getItem('cyberAssessmentChecklistUserTitle') || '';
+            document.getElementById('user-role').value = localStorage.getItem('cyberAssessmentChecklistUserRole') || '';
+            document.getElementById('user-org').value = localStorage.getItem('cyberAssessmentChecklistUserOrg') || '';
+            document.getElementById('timeline-alt-name').value = localStorage.getItem('cyberAssessmentChecklistTimelineAltName') || '';
+        }
+
+        // Save user info to local storage
+        function saveUserInfo() {
+            localStorage.setItem('cyberAssessmentChecklistUserName', document.getElementById('user-name').value);
+            localStorage.setItem('cyberAssessmentChecklistUserTitle', document.getElementById('user-title').value);
+            localStorage.setItem('cyberAssessmentChecklistUserRole', document.getElementById('user-role').value);
+            localStorage.setItem('cyberAssessmentChecklistUserOrg', document.getElementById('user-org').value);
+            localStorage.setItem('cyberAssessmentChecklistTimelineAltName', document.getElementById('timeline-alt-name').value);
+        }
+
+        // Load checkbox states from local storage
+        function loadCheckboxStates() {
+            const checkboxes = document.querySelectorAll('input[type="checkbox"]');
+            checkboxes.forEach(checkbox => {
+                const state = localStorage.getItem(checkbox.id);
+                if (state === 'checked') {
+                    checkbox.checked = true;
+                }
+            });
+        }
+
+        // Save checkbox state to local storage
+        function saveCheckboxState(checkbox) {
+            localStorage.setItem(checkbox.id, checkbox.checked ? 'checked' : 'unchecked');
+        }
+
+        // Get user info for log entry
+        function getUserInfo() {
+            const name = document.getElementById('user-name').value || 'Unknown';
+            const title = document.getElementById('user-title').value || 'N/A';
+            const role = document.getElementById('user-role').value || 'N/A';
+            const org = document.getElementById('user-org').value || 'N/A';
+            return { name, title, role, org };
+        }
+
+        // Add checkbox log entry
+        function addCheckboxLogEntry(checkbox, action) {
+            const timestamp = new Date().toLocaleString();
+            const { name, title, role, org } = getUserInfo();
+            const label = checkbox.dataset.label;
+            const entry = `[${timestamp}] ${name} (${title}, ${role}, ${org}) - ${label} ${action}`;
+            logEntries.push(entry);
+            updateLogDisplay();
+        }
+
+        // Add timeline log entry
+        function addTimelineLogEntry() {
+            const nameInput = document.getElementById('user-name');
+            const altNameInput = document.getElementById('timeline-alt-name');
+            const activityInput = document.getElementById('timeline-activity');
+            const errorDisplay = document.getElementById('timeline-error');
+
+            if (!nameInput.value.trim() && !altNameInput.value.trim()) {
+                errorDisplay.style.display = 'block';
+                return false;
+            }
+
+            errorDisplay.style.display = 'none';
+            const timestamp = new Date().toLocaleString();
+            const { title, role, org } = getUserInfo();
+            const name = altNameInput.value.trim() || nameInput.value.trim() || 'Unknown';
+            const activity = activityInput.value.trim() || 'No description provided';
+            const entry = `[${timestamp}] ${name} (${title}, ${role}, ${org}) - Timeline Entry: ${activity}`;
+            logEntries.push(entry);
+            updateLogDisplay();
+            activityInput.value = ''; // Clear the textarea
+            altNameInput.value = ''; // Clear the alternative name
+            saveUserInfo();
+            return true;
+        }
+
+        // Update log display
+        function updateLogDisplay() {
+            const logList = document.getElementById('log-list');
+            logList.innerHTML = logEntries.map(entry => `<p>${entry}</p>`).join('');
+            logList.scrollTop = logList.scrollHeight; // Scroll to bottom
+            localStorage.setItem('cyberAssessmentChecklistLog', JSON.stringify(logEntries));
+        }
+
+        // Export log as text file
+        function exportLog() {
+            const { name, title, role, org } = getUserInfo();
+            const header = `Cybersecurity Posture Assessment Playbook Log\nUser: ${name}\nTitle: ${title}\nRole: ${role}\nOrganisation: ${org}\nGenerated: ${new Date().toLocaleString()}\n\n`;
+            const footer = `\nCreated using the PwnDefend Cybersecurity Assessment Playbook - copyright (c) xservus limited`;
+            const content = header + logEntries.join('\n') + footer;
+            const blob = new Blob([content], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `Cyber_Assessment_Log_${new Date().toISOString().replace(/[:.]/g, '-')}.txt`;
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        // Clear checkbox states, user info, timeline entries, and log
+        function clearState() {
+            const checkboxes = document.querySelectorAll('input[type="checkbox"]');
+            checkboxes.forEach(checkbox => {
+                checkbox.checked = false;
+                localStorage.setItem(checkbox.id, 'unchecked');
+            });
+            document.getElementById('user-name').value = '';
+            document.getElementById('user-title').value = '';
+            document.getElementById('user-role').value = '';
+            document.getElementById('user-org').value = '';
+            document.getElementById('timeline-alt-name').value = '';
+            document.getElementById('timeline-activity').value = '';
+            localStorage.removeItem('cyberAssessmentChecklistUserName');
+            localStorage.removeItem('cyberAssessmentChecklistUserTitle');
+            localStorage.removeItem('cyberAssessmentChecklistUserRole');
+            localStorage.removeItem('cyberAssessmentChecklistUserOrg');
+            localStorage.removeItem('cyberAssessmentChecklistTimelineAltName');
+            logEntries = [];
+            updateLogDisplay();
+            document.getElementById('timeline-error').style.display = 'none';
+        }
+
+        // Initialize event listeners
+        document.addEventListener('DOMContentLoaded', () => {
+            // Load saved log entries
+            const savedLog = localStorage.getItem('cyberAssessmentChecklistLog');
+            if (savedLog) {
+                logEntries = JSON.parse(savedLog);
+                updateLogDisplay();
+            }
+
+            // Load user info and checkbox states
+            loadUserInfo();
+            loadCheckboxStates();
+
+            // User info input listeners
+            ['user-name', 'user-title', 'user-role', 'user-org', 'timeline-alt-name'].forEach(id => {
+                document.getElementById(id).addEventListener('input', saveUserInfo);
+            });
+
+            // Checkbox event listeners
+            const checkboxes = document.querySelectorAll('input[type="checkbox"]');
+            checkboxes.forEach(checkbox => {
+                checkbox.addEventListener('change', () => {
+                    saveCheckboxState(checkbox);
+                    addCheckboxLogEntry(checkbox, checkbox.checked ? 'checked' : 'unchecked');
+                });
+            });
+
+            // Timeline entry button
+            document.getElementById('add-timeline').addEventListener('click', () => {
+                if (addTimelineLogEntry()) {
+                    localStorage.setItem('cyberAssessmentChecklistLog', JSON.stringify(logEntries));
+                }
+            });
+
+            // Export log button
+            document.getElementById('export-log').addEventListener('click', exportLog);
+
+            // Clear state button
+            document.getElementById('clear-state-button').addEventListener('click', clearState);
+
+            // Jump to Action Log button
+            document.getElementById('jump-to-log').addEventListener('click', () => {
+                document.getElementById('log-section').scrollIntoView({ behavior: 'smooth' });
+            });
+
+            // Copy to Clipboard button for email template
+            const copyButton = document.getElementById('copy-email-template');
+            if (copyButton) {
+                copyButton.addEventListener('click', () => {
+                    const queryText = document.getElementById('email-template').textContent;
+                    navigator.clipboard.writeText(queryText).then(() => {
+                        copyButton.textContent = 'Copied!';
+                        copyButton.classList.add('copied');
+                        setTimeout(() => {
+                            copyButton.textContent = 'Copy to Clipboard';
+                            copyButton.classList.remove('copied');
+                        }, 2000);
+                    });
+                });
+            }
+        });
+    </script>
+</body>
+</html>
