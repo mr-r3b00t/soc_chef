@@ -38,7 +38,7 @@
             font-family: 'Arial', sans-serif;
             line-height: 1.6;
             margin: 40px;
-            max-width: 800px;
+            max-width: 900px;
             margin-left: auto;
             margin-right: auto;
             color: #333;
@@ -224,66 +224,19 @@
 
     <div class="section">
         <h2>Executive Summary</h2>
-        <p>This application facilitates analysis of cyber threats using the MITRE ATT&CK Framework as a kill chain model. It guides security teams through documenting adversary tactics, techniques, and procedures (TTPs) across phases: Reconnaissance, Resource Development, Initial Access, Execution, Persistence, Privilege Escalation, Defense Evasion, Credential Access, Discovery, Lateral Movement, Collection, Command and Control, Exfiltration, and Impact. A dynamic table records observations, mitigations, and notes, with a diagram visualizing the kill chain, and an Action Log tracks activities.</p>
+        <p>This application facilitates analysis of cyber threats using the MITRE ATT&CK Framework as a kill chain model. It guides security teams through documenting adversary tactics and techniques across 14 tactics: Reconnaissance, Resource Development, Initial Access, Execution, Persistence, Privilege Escalation, Defense Evasion, Credential Access, Discovery, Lateral Movement, Collection, Command and Control, Exfiltration, and Impact. A dynamic table records observations, mitigations, and notes, with dropdowns for all MITRE ATT&CK tactics and techniques. A diagram visualizes the kill chain, dynamically updated with entries, and an Action Log tracks activities.</p>
     </div>
 
     <div class="section" id="kill-chain-diagram">
         <h2>Kill Chain Diagram</h2>
-        <svg width="700" height="100" viewBox="0 0 700 100" xmlns="http://www.w3.org/2000/svg">
-            <defs>
-                <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto">
-                    <path d="M0,0 L0,6 L9,3 z" fill="#333" />
-                </marker>
-            </defs>
-            <rect x="10" y="30" width="40" height="30" fill="#3498db" stroke="#333" />
-            <text x="15" y="50" font-size="10" fill="white">Recon</text>
-            <path d="M50,45 L70,45" stroke="#333" marker-end="url(#arrow)" />
-            <rect x="70" y="30" width="40" height="30" fill="#3498db" stroke="#333" />
-            <text x="75" y="50" font-size="10" fill="white">ResDev</text>
-            <path d="M110,45 L130,45" stroke="#333" marker-end="url(#arrow)" />
-            <rect x="130" y="30" width="40" height="30" fill="#3498db" stroke="#333" />
-            <text x="135" y="50" font-size="10" fill="white">InitAcc</text>
-            <path d="M170,45 L190,45" stroke="#333" marker-end="url(#arrow)" />
-            <rect x="190" y="30" width="40" height="30" fill="#3498db" stroke="#333" />
-            <text x="195" y="50" font-size="10" fill="white">Exec</text>
-            <path d="M230,45 L250,45" stroke="#333" marker-end="url(#arrow)" />
-            <rect x="250" y="30" width="40" height="30" fill="#3498db" stroke="#333" />
-            <text x="255" y="50" font-size="10" fill="white">Persist</text>
-            <path d="M290,45 L310,45" stroke="#333" marker-end="url(#arrow)" />
-            <rect x="310" y="30" width="40" height="30" fill="#3498db" stroke="#333" />
-            <text x="315" y="50" font-size="10" fill="white">PrivEsc</text>
-            <path d="M350,45 L370,45" stroke="#333" marker-end="url(#arrow)" />
-            <rect x="370" y="30" width="40" height="30" fill="#3498db" stroke="#333" />
-            <text x="375" y="50" font-size="10" fill="white">DefEvade</text>
-            <path d="M410,45 L430,45" stroke="#333" marker-end="url(#arrow)" />
-            <rect x="430" y="30" width="40" height="30" fill="#3498db" stroke="#333" />
-            <text x="435" y="50" font-size="10" fill="white">CredAcc</text>
-            <path d="M470,45 L490,45" stroke="#333" marker-end="url(#arrow)" />
-            <rect x="490" y="30" width="40" height="30" fill="#3498db" stroke="#333" />
-            <text x="495" y="50" font-size="10" fill="white">Disc</text>
-            <path d="M530,45 L550,45" stroke="#333" marker-end="url(#arrow)" />
-            <rect x="550" y="30" width="40" height="30" fill="#3498db" stroke="#333" />
-            <text x="555" y="50" font-size="10" fill="white">LatMov</text>
-            <path d="M590,45 L610,45" stroke="#333" marker-end="url(#arrow)" />
-            <rect x="610" y="30" width="40" height="30" fill="#3498db" stroke="#333" />
-            <text x="615" y="50" font-size="10" fill="white">Collect</text>
-            <path d="M650,45 L670,45" stroke="#333" marker-end="url(#arrow)" />
-            <rect x="670" y="30" width="40" height="30" fill="#3498db" stroke="#333" />
-            <text x="675" y="50" font-size="10" fill="white">C2</text>
-            <path d="M710,45 L730,45" stroke="#333" marker-end="url(#arrow)" />
-            <rect x="730" y="30" width="40" height="30" fill="#3498db" stroke="#333" />
-            <text x="735" y="50" font-size="10" fill="white">Exfil</text>
-            <path d="M770,45 L790,45" stroke="#333" marker-end="url(#arrow)" />
-            <rect x="790" y="30" width="40" height="30" fill="#3498db" stroke="#333" />
-            <text x="795" y="50" font-size="10" fill="white">Impact</text>
-        </svg>
+        <svg id="kill-chain-svg" width="900" height="400" viewBox="0 0 900 400" xmlns="http://www.w3.org/2000/svg"></svg>
     </div>
 
     <div class="section" id="kill-chain-table-section">
         <h2>Kill Chain Analysis Form</h2>
         <div class="input-group">
-            <label for="phase">Phase:</label>
-            <select id="phase">
+            <label for="tactic">Tactic:</label>
+            <select id="tactic">
                 <option value="Reconnaissance">Reconnaissance</option>
                 <option value="Resource Development">Resource Development</option>
                 <option value="Initial Access">Initial Access</option>
@@ -301,12 +254,10 @@
             </select>
         </div>
         <div class="input-group">
-            <label for="tactic">Tactic:</label>
-            <input type="text" id="tactic" placeholder="e.g., Phishing">
-        </div>
-        <div class="input-group">
             <label for="technique">Technique:</label>
-            <input type="text" id="technique" placeholder="e.g., Spearphishing Link (T1566.002)">
+            <select id="technique">
+                <!-- Populated dynamically based on tactic -->
+            </select>
         </div>
         <div class="input-group">
             <label for="activity">Observed Activity:</label>
@@ -328,7 +279,6 @@
         <table id="kill-chain-table">
             <thead>
                 <tr>
-                    <th>Phase</th>
                     <th>Tactic</th>
                     <th>Technique</th>
                     <th>Observed Activity</th>
@@ -365,6 +315,175 @@
     </div>
 
     <script>
+        // MITRE ATT&CK tactics and techniques data (all Enterprise techniques)
+        const mitreAttackData = {
+            "Reconnaissance": [
+                { id: "T1598.002", name: "Phishing for Information: Spearphishing Attachment" },
+                { id: "T1598.003", name: "Phishing for Information: Spearphishing Link" },
+                { id: "T1598.001", name: "Phishing for Information: Spearphishing Service" },
+                { id: "T1591", name: "Gather Victim Org Information" },
+                { id: "T1591.001", name: "Gather Victim Org Information: Determine Physical Locations" },
+                { id: "T1591.002", name: "Gather Victim Org Information: Business Relationships" },
+                { id: "T1589", name: "Gather Victim Identity Information" },
+                { id: "T1589.001", name: "Gather Victim Identity Information: Credentials" },
+                { id: "T1589.002", name: "Gather Victim Identity Information: Email Addresses" },
+                { id: "T1590", name: "Gather Victim Network Information" },
+                { id: "T1590.001", name: "Gather Victim Network Information: Domain Properties" },
+                { id: "T1590.002", name: "Gather Victim Network Information: DNS" },
+                { id: "T1590.003", name: "Gather Victim Network Information: Network Trust Dependencies" }
+            ],
+            "Resource Development": [
+                { id: "T1583.001", name: "Acquire Infrastructure: Domains" },
+                { id: "T1583.002", name: "Acquire Infrastructure: DNS Server" },
+                { id: "T1583.003", name: "Acquire Infrastructure: Virtual Private Server" },
+                { id: "T1583.004", name: "Acquire Infrastructure: Server" },
+                { id: "T1583.005", name: "Acquire Infrastructure: Botnet" },
+                { id: "T1583.006", name: "Acquire Infrastructure: Web Services" },
+                { id: "T1584.001", name: "Compromise Infrastructure: Domains" },
+                { id: "T1584.002", name: "Compromise Infrastructure: DNS Server" },
+                { id: "T1584.003", name: "Compromise Infrastructure: Virtual Private Server" },
+                { id: "T1584.004", name: "Compromise Infrastructure: Server" },
+                { id: "T1586.001", name: "Compromise Accounts: Social Media Accounts" },
+                { id: "T1586.002", name: "Compromise Accounts: Email Accounts" },
+                { id: "T1608", name: "Stage Capabilities" },
+                { id: "T1608.001", name: "Stage Capabilities: Upload Malware" },
+                { id: "T1608.002", name: "Stage Capabilities: Upload Tool" },
+                { id: "T1608.003", name: "Stage Capabilities: Install Digital Certificate" }
+            ],
+            "Initial Access": [
+                { id: "T1566.001", name: "Phishing: Spearphishing Attachment" },
+                { id: "T1566.002", name: "Phishing: Spearphishing Link" },
+                { id: "T1566.003", name: "Phishing: Spearphishing via Service" },
+                { id: "T1190", name: "Exploit Public-Facing Application" },
+                { id: "T1133", name: "External Remote Services" },
+                { id: "T1078", name: "Valid Accounts" },
+                { id: "T1078.001", name: "Valid Accounts: Default Accounts" },
+                { id: "T1078.002", name: "Valid Accounts: Domain Accounts" },
+                { id: "T1078.003", name: "Valid Accounts: Local Accounts" },
+                { id: "T1078.004", name: "Valid Accounts: Cloud Accounts" },
+                { id: "T1199", name: "Trusted Relationship" },
+                { id: "T1189", name: "Drive-by Compromise" }
+            ],
+            "Execution": [
+                { id: "T1059.001", name: "Command and Scripting Interpreter: PowerShell" },
+                { id: "T1059.002", name: "Command and Scripting Interpreter: AppleScript" },
+                { id: "T1059.003", name: "Command and Scripting Interpreter: Windows Command Shell" },
+                { id: "T1059.004", name: "Command and Scripting Interpreter: Unix Shell" },
+                { id: "T1059.005", name: "Command and Scripting Interpreter: Visual Basic" },
+                { id: "T1059.006", name: "Command and Scripting Interpreter: Python" },
+                { id: "T1059.007", name: "Command and Scripting Interpreter: JavaScript" },
+                { id: "T1204.001", name: "User Execution: Malicious Link" },
+                { id: "T1204.002", name: "User Execution: Malicious File" },
+                { id: "T1053.002", name: "Scheduled Task/Job: At" },
+                { id: "T1053.005", name: "Scheduled Task/Job: Scheduled Task" },
+                { id: "T1129", name: "Shared Modules" },
+                { id: "T1106", name: "Native API" }
+            ],
+            "Persistence": [
+                { id: "T1547.001", name: "Boot or Logon Autostart Execution: Registry Run Keys" },
+                { id: "T1547.002", name: "Boot or Logon Autostart Execution: Authentication Package" },
+                { id: "T1547.003", name: "Boot or Logon Autostart Execution: Time Providers" },
+                { id: "T1136.001", name: "Create Account: Local Account" },
+                { id: "T1136.002", name: "Create Account: Domain Account" },
+                { id: "T1053.005", name: "Scheduled Task/Job: Scheduled Task" },
+                { id: "T1078", name: "Valid Accounts" },
+                { id: "T1546.001", name: "Event Triggered Execution: Change Default File Association" },
+                { id: "T1546.002", name: "Event Triggered Execution: Screensaver" },
+                { id: "T1546.003", name: "Event Triggered Execution: Windows Management Instrumentation Event Subscription" },
+                { id: "T1098", name: "Account Manipulation" }
+            ],
+            "Privilege Escalation": [
+                { id: "T1068", name: "Exploitation for Privilege Escalation" },
+                { id: "T1548.001", name: "Access Token Manipulation: Token Impersonation/Theft" },
+                { id: "T1548.002", name: "Access Token Manipulation" },
+                { id: "T1134", name: "Access Token Manipulation" },
+                { id: "T1547.001", name: "Boot or Logon Autostart Execution: Registry Run Keys" },
+                { id: "T1055", name: "Process Injection" },
+                { id: "T1053.005", name: "Scheduled Task/Job: Scheduled Task" },
+                { id: "T1078", name: "Valid Accounts" },
+                { id: "T1543.003", name: "Create or Modify System Process: Windows Service" }
+            ],
+            "Defense Evasion": [
+                { id: "T1562.001", name: "Impair Defenses: Disable or Modify Tools" },
+                { id: "T1562.002", name: "Impair Defenses: Disable Windows Event Logging" },
+                { id: "T1027", name: "Obfuscated Files or Information" },
+                { id: "T1027.001", name: "Obfuscated Files or Information: Binary Padding" },
+                { id: "T1070.001", name: "Indicator Removal: Clear Windows Event Logs" },
+                { id: "T1070.004", name: "Indicator Removal: File Deletion" },
+                { id: "T1055", name: "Process Injection" },
+                { id: "T1036", name: "Masquerading" },
+                { id: "T1036.001", name: "Masquerading: Invalid Code Signature" },
+                { id: "T1564.001", name: "Hide Artifacts: Hidden Files and Directories" },
+                { id: "T1078", name: "Valid Accounts" }
+            ],
+            "Credential Access": [
+                { id: "T1003.001", name: "OS Credential Dumping: LSASS Memory" },
+                { id: "T1003.002", name: "OS Credential Dumping: Security Account Manager" },
+                { id: "T1110.001", name: "Brute Force: Password Guessing" },
+                { id: "T1110.002", name: "Brute Force: Password Cracking" },
+                { id: "T1555", name: "Credentials from Password Stores" },
+                { id: "T1555.003", name: "Credentials from Password Stores: Credentials from Web Browsers" },
+                { id: "T1552.001", name: "Unsecured Credentials: Credentials In Files" },
+                { id: "T1558", name: "Steal or Forge Kerberos Tickets" },
+                { id: "T1558.001", name: "Steal or Forge Kerberos Tickets: Golden Ticket" }
+            ],
+            "Discovery": [
+                { id: "T1087.001", name: "Account Discovery: Local Account" },
+                { id: "T1087.002", name: "Account Discovery: Domain Account" },
+                { id: "T1046", name: "Network Service Discovery" },
+                { id: "T1018", name: "Remote System Discovery" },
+                { id: "T1082", name: "System Information Discovery" },
+                { id: "T1083", name: "File and Directory Discovery" },
+                { id: "T1057", name: "Process Discovery" },
+                { id: "T1016", name: "System Network Configuration Discovery" },
+                { id: "T1049", name: "System Network Connections Discovery" },
+                { id: "T1069", name: "Permission Groups Discovery" }
+            ],
+            "Lateral Movement": [
+                { id: "T1021.001", name: "Remote Services: Remote Desktop Protocol" },
+                { id: "T1021.002", name: "Remote Services: SMB/Windows Admin Shares" },
+                { id: "T1078", name: "Valid Accounts" },
+                { id: "T1570", name: "Lateral Tool Transfer" },
+                { id: "T1550.002", name: "Use Alternate Authentication Material: Pass the Hash" },
+                { id: "T1563.002", name: "Remote Service Session Hijacking: RDP Hijacking" }
+            ],
+            "Collection": [
+                { id: "T1005", name: "Data from Local System" },
+                { id: "T1119", name: "Automated Collection" },
+                { id: "T1213", name: "Data from Information Repositories" },
+                { id: "T1213.002", name: "Data from Information Repositories: SharePoint" },
+                { id: "T1114.001", name: "Email Collection: Local Email" },
+                { id: "T1113", name: "Screen Capture" },
+                { id: "T1125", name: "Video Capture" }
+            ],
+            "Command and Control": [
+                { id: "T1071.001", name: "Application Layer Protocol: Web Protocols" },
+                { id: "T1071.002", name: "Application Layer Protocol: FTP" },
+                { id: "T1573.001", name: "Encrypted Channel: Symmetric Cryptography" },
+                { id: "T1573.002", name: "Encrypted Channel: Asymmetric Cryptography" },
+                { id: "T1105", name: "Ingress Tool Transfer" },
+                { id: "T1571", name: "Non-Standard Port" },
+                { id: "T1102.002", name: "Web Service: Bidirectional Communication" }
+            ],
+            "Exfiltration": [
+                { id: "T1041", name: "Exfiltration Over C2 Channel" },
+                { id: "T1020", name: "Automated Exfiltration" },
+                { id: "T1567.001", name: "Exfiltration Over Web Service: Exfiltration to Code Repository" },
+                { id: "T1567.002", name: "Exfiltration Over Web Service: Exfiltration to Cloud Storage" },
+                { id: "T1048.003", name: "Exfiltration Over Alternative Protocol: Exfiltration Over Unencrypted Non-C2 Protocol" }
+            ],
+            "Impact": [
+                { id: "T1486", name: "Data Encrypted for Impact" },
+                { id: "T1499", name: "Endpoint Denial of Service" },
+                { id: "T1499.001", name: "Endpoint Denial of Service: OS Exhaustion Flood" },
+                { id: "T1491", name: "Defacement" },
+                { id: "T1491.001", name: "Defacement: Internal Defacement" },
+                { id: "T1485", name: "Data Destruction" },
+                { id: "T1498", name: "Network Denial of Service" },
+                { id: "T1496", name: "Resource Hijacking" }
+            ]
+        };
+
         // Initialize log and entries arrays
         let logEntries = [];
         let killChainEntries = [];
@@ -380,6 +499,7 @@
             if (savedEntries) {
                 killChainEntries = JSON.parse(savedEntries);
                 updateKillChainTable();
+                updateKillChainDiagram();
             }
             loadUserInfo();
         }
@@ -412,6 +532,87 @@
             };
         }
 
+        // Update technique dropdown based on selected tactic
+        function updateTechniqueDropdown(tactic) {
+            const techniqueSelect = document.getElementById('technique');
+            techniqueSelect.innerHTML = '<option value="">Select Technique</option>';
+            const techniques = mitreAttackData[tactic] || [];
+            techniques.forEach(tech => {
+                const option = document.createElement('option');
+                option.value = `${tech.id}: ${tech.name}`;
+                option.textContent = `${tech.id}: ${tech.name}`;
+                techniqueSelect.appendChild(option);
+            });
+        }
+
+        // Update kill chain diagram
+        function updateKillChainDiagram() {
+            const svg = document.getElementById('kill-chain-svg');
+            svg.innerHTML = `
+                <defs>
+                    <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto">
+                        <path d="M0,0 L0,6 L9,3 z" fill="#333" />
+                    </marker>
+                </defs>
+            `;
+
+            const tactics = [
+                "Reconnaissance", "Resource Development", "Initial Access", "Execution", "Persistence",
+                "Privilege Escalation", "Defense Evasion", "Credential Access", "Discovery", "Lateral Movement",
+                "Collection", "Command and Control", "Exfiltration", "Impact"
+            ];
+            const boxWidth = 60;
+            const boxHeight = 30;
+            const spacing = 60;
+            const startX = 10;
+            const startY = 30;
+
+            // Group entries by tactic
+            const entriesByTactic = {};
+            tactics.forEach(tactic => entriesByTactic[tactic] = []);
+            killChainEntries.forEach(entry => {
+                entriesByTactic[entry.tactic].push(entry);
+            });
+
+            tactics.forEach((tactic, index) => {
+                const x = startX + index * (boxWidth + spacing);
+                const y = startY;
+
+                // Draw tactic box
+                svg.innerHTML += `
+                    <rect x="${x}" y="${y}" width="${boxWidth}" height="${boxHeight}" fill="#3498db" stroke="#333" />
+                    <text x="${x + boxWidth / 2}" y="${y + boxHeight / 2 + 5}" font-size="10" fill="white" text-anchor="middle">${tactic.slice(0, 6)}</text>
+                `;
+
+                // Draw entries (up to 3)
+                const entries = entriesByTactic[tactic].slice(-3); // Last 3 entries
+                entries.forEach((entry, i) => {
+                    const textY = y + boxHeight + 15 + i * 15;
+                    const techniqueShort = entry.technique.split(': ')[1].slice(0, 15);
+                    const activityShort = (entry.activity || '').slice(0, 15);
+                    svg.innerHTML += `
+                        <text x="${x + boxWidth / 2}" y="${textY}" font-size="8" fill="#333" text-anchor="middle">${techniqueShort}</text>
+                        <text x="${x + boxWidth / 2}" y="${textY + 10}" font-size="8" fill="#333" text-anchor="middle">${activityShort}</text>
+                    `;
+                });
+
+                // Add note if more entries exist
+                if (entriesByTactic[tactic].length > 3) {
+                    const textY = y + boxHeight + 15 + 3 * 15;
+                    svg.innerHTML += `
+                        <text x="${x + boxWidth / 2}" y="${textY}" font-size="8" fill="#333" text-anchor="middle">...more in table</text>
+                    `;
+                }
+
+                // Draw arrow to next tactic
+                if (index < tactics.length - 1) {
+                    svg.innerHTML += `
+                        <path d="M${x + boxWidth},${y + boxHeight / 2} L${x + boxWidth + spacing},${y + boxHeight / 2}" stroke="#333" marker-end="url(#arrow)" />
+                    `;
+                }
+            });
+        }
+
         // Update kill chain table
         function updateKillChainTable() {
             const tbody = document.querySelector('#kill-chain-table tbody');
@@ -419,8 +620,7 @@
             killChainEntries.forEach((entry, index) => {
                 const row = document.createElement('tr');
                 row.innerHTML = `
-                    <td>${entry.phase}</td>
-                    <td>${entry.tactic || ''}</td>
+                    <td>${entry.tactic}</td>
                     <td>${entry.technique || ''}</td>
                     <td>${entry.activity || ''}</td>
                     <td>${entry.mitigation || ''}</td>
@@ -435,14 +635,15 @@
             document.querySelectorAll('.delete-button').forEach(button => {
                 button.addEventListener('click', (e) => {
                     const index = parseInt(e.target.dataset.index);
-                    const deletedPhase = killChainEntries[index].phase;
+                    const deletedTactic = killChainEntries[index].tactic;
                     killChainEntries.splice(index, 1);
                     updateKillChainTable();
+                    updateKillChainDiagram();
 
                     // Log the deletion
                     const timestamp = new Date().toLocaleString();
                     const { name, title, role, org } = getUserInfo();
-                    const entry = `[${timestamp}] ${name} (${title}, ${role}, ${org}) - Deleted kill chain entry for phase: ${deletedPhase}`;
+                    const entry = `[${timestamp}] ${name} (${title}, ${role}, ${org}) - Deleted kill chain entry for tactic: ${deletedTactic}`;
                     logEntries.push(entry);
                     updateLogDisplay();
                 });
@@ -452,7 +653,6 @@
         // Add kill chain entry
         document.getElementById('add-entry').addEventListener('click', () => {
             const entry = {
-                phase: document.getElementById('phase').value,
                 tactic: document.getElementById('tactic').value,
                 technique: document.getElementById('technique').value,
                 activity: document.getElementById('activity').value,
@@ -461,18 +661,18 @@
             };
             killChainEntries.push(entry);
             updateKillChainTable();
+            updateKillChainDiagram();
 
             // Log the action
             const timestamp = new Date().toLocaleString();
             const { name, title, role, org } = getUserInfo();
-            const logEntry = `[${timestamp}] ${name} (${title}, ${role}, ${org}) - Added kill chain entry for phase: ${entry.phase}`;
+            const logEntry = `[${timestamp}] ${name} (${title}, ${role}, ${org}) - Added kill chain entry for tactic: ${entry.tactic}`;
             logEntries.push(logEntry);
             updateLogDisplay();
 
             // Clear form
-            document.getElementById('phase').value = 'Reconnaissance';
-            document.getElementById('tactic').value = '';
-            document.getElementById('technique').value = '';
+            document.getElementById('tactic').value = 'Reconnaissance';
+            updateTechniqueDropdown('Reconnaissance');
             document.getElementById('activity').value = '';
             document.getElementById('mitigation').value = '';
             document.getElementById('notes').value = '';
@@ -532,7 +732,7 @@
             killChainEntries = [];
             logEntries = [];
             updateKillChainTable();
-            updateLogDisplay();
+            updateKillChainDiagram();
             document.getElementById('user-name').value = '';
             document.getElementById('user-title').value = '';
             document.getElementById('user-role').value = '';
@@ -552,6 +752,14 @@
         // Initialize event listeners
         document.addEventListener('DOMContentLoaded', () => {
             loadData();
+
+            // Initialize technique dropdown
+            updateTechniqueDropdown('Reconnaissance');
+
+            // Tactic change listener to update techniques
+            document.getElementById('tactic').addEventListener('change', (e) => {
+                updateTechniqueDropdown(e.target.value);
+            });
 
             // User info input listeners
             ['user-name', 'user-title', 'user-role', 'user-org', 'timeline-alt-name'].forEach(id => {
