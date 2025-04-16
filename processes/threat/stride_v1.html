@@ -1,0 +1,772 @@
+<script type="text/javascript">
+        var gk_isXlsx = false;
+        var gk_xlsxFileLookup = {};
+        var gk_fileData = {};
+        function loadFileData(filename) {
+        if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
+            try {
+                var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
+                var firstSheetName = workbook.SheetNames[0];
+                var worksheet = workbook.Sheets[firstSheetName];
+
+                // Convert sheet to JSON to filter blank rows
+                var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
+                // Filter out blank rows (rows where all cells are empty, null, or undefined)
+                var filteredData = jsonData.filter(row =>
+                    row.some(cell => cell !== '' && cell !== null && cell !== undefined)
+                );
+
+                // Convert filtered JSON back to CSV
+                var csv = XLSX.utils.aoa_to_sheet(filteredData); // Create a new sheet from filtered array of arrays
+                csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
+                return csv;
+            } catch (e) {
+                console.error(e);
+                return "";
+            }
+        }
+        return gk_fileData[filename] || "";
+        }
+        </script><!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>STRIDE Threat Modeling Application</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            line-height: 1.6;
+            margin: 40px;
+            max-width: 800px;
+            margin-left: auto;
+            margin-right: auto;
+            color: #333;
+        }
+        h1 {
+            font-size: 2.2em;
+            text-align: center;
+            color: #2c3e50;
+            margin-bottom: 20px;
+        }
+        h2 {
+            font-size: 1.8em;
+            color: #34495e;
+            margin-top: 30px;
+            border-bottom: 2px solid #ecf0f1;
+            padding-bottom: 5px;
+        }
+        h3 {
+            font-size: 1.4em;
+            color: #3c5a76;
+            margin-top: 20px;
+        }
+        p {
+            margin: 10px 0;
+        }
+        .section {
+            margin-bottom: 20px;
+        }
+        #user-info-section, #log-section {
+            padding: 20px;
+            background-color: #f9f9f9;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+        .input-group {
+            margin-bottom: 15px;
+        }
+        .input-group label {
+            display: inline-block;
+            width: 150px;
+            font-weight: bold;
+        }
+        .input-group input, .input-group textarea, .input-group select {
+            padding: 5px;
+            width: 300px;
+            border: 1px solid #ddd;
+            border-radius: 3px;
+            vertical-align: top;
+        }
+        .input-group textarea {
+            height: 60px;
+            resize: vertical;
+        }
+        #threat-table-section {
+            margin-top: 20px;
+        }
+        #threat-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+        #threat-table th, #threat-table td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+            font-size: 0.9em;
+        }
+        #threat-table th {
+            background-color: #f2f2f2;
+            font-weight: bold;
+        }
+        #threat-table tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+        #threat-table .delete-button {
+            padding: 5px 10px;
+            background-color: #e74c3c;
+            color: white;
+            border: none;
+            border-radius: 3px;
+            cursor: pointer;
+            font-size: 0.8em;
+        }
+        #threat-table .delete-button:hover {
+            background-color: #c0392b;
+        }
+        #timeline-error {
+            color: #e74c3c;
+            font-size: 0.9em;
+            margin-top: 5px;
+            display: none;
+        }
+        .button-container {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+            align-items: center;
+        }
+        button {
+            padding: 10px 20px;
+            background-color: #3498db;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1em;
+        }
+        button:hover {
+            background-color: #2980b9;
+        }
+        #clear-state-button {
+            background-color: #e74c3c;
+        }
+        #clear-state-button:hover {
+            background-color: #c0392b;
+        }
+        #export-excel-button, #import-excel-button {
+            background-color: #2ecc71;
+        }
+        #export-excel-button:hover, #import-excel-button:hover {
+            background-color: #27ae60;
+        }
+        #import-file {
+            padding: 5px;
+        }
+        #jump-to-log {
+            display: block;
+            margin: 20px auto;
+            text-align: center;
+        }
+        .copy-button {
+            padding: 5px 10px;
+            font-size: 0.9em;
+            margin-left: 10px;
+        }
+        .copy-button.copied {
+            background-color: #2ecc71;
+        }
+        .copy-button.copied:hover {
+            background-color: #27ae60;
+        }
+        .email-template {
+            background-color: #f9f9f9;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-family: 'Consolas', monospace;
+            font-size: 0.9em;
+            line-height: 1.5;
+            white-space: pre-wrap;
+            margin: 10px 0;
+        }
+        .footer {
+            text-align: center;
+            margin-top: 40px;
+            font-size: 0.9em;
+            color: #7f8c8d;
+        }
+    </style>
+</head>
+<body>
+    <h1>STRIDE Threat Modeling Application</h1>
+    <button id="jump-to-log">Jump to Action Log</button>
+
+    <div id="user-info-section">
+        <h2>User Information</h2>
+        <div class="input-group">
+            <label for="user-name">Name:</label>
+            <input type="text" id="user-name" placeholder="Enter your name">
+        </div>
+        <div class="input-group">
+            <label for="user-title">Title:</label>
+            <input type="text" id="user-title" placeholder="Enter your title">
+        </div>
+        <div class="input-group">
+            <label for="user-role">Role:</label>
+            <input type="text" id="user-role" placeholder="Enter your role">
+        </div>
+        <div class="input-group">
+            <label for="user-org">Organisation:</label>
+            <input type="text" id="user-org" placeholder="Enter your organisation">
+        </div>
+    </div>
+
+    <div class="section">
+        <h2>Executive Summary</h2>
+        <p>This application facilitates threat modeling using the STRIDE framework (Spoofing, Tampering, Repudiation, Information Disclosure, Denial of Service, Elevation of Privilege). It helps security teams identify critical assets, define threats, assess impacts, propose mitigations, and document findings. Results are stored in a dynamic threat table, importable and exportable to Excel, with an Action Log to track activities, ensuring a structured approach to securing systems.</p>
+    </div>
+
+    <div class="section">
+        <h2>1. Preparation</h2>
+        <p>Prepare the organization for a comprehensive threat modeling process.</p>
+        <ul>
+            <li>Define the scope (e.g., application, network, cloud services).</li>
+            <li>Assemble a team including developers, architects, and security experts.</li>
+            <li>Understand STRIDE categories: Spoofing, Tampering, Repudiation, Information Disclosure, Denial of Service, Elevation of Privilege.</li>
+            <li>Prepare tools for documentation (this app’s threat table will store results).</li>
+        </ul>
+    </div>
+
+    <div class="section">
+        <h2>2. Asset Identification</h2>
+        <p>Identify critical assets to be protected.</p>
+        <ul>
+            <li>List systems, components, data, or processes (e.g., user database, API endpoints).</li>
+            <li>Document asset details in the form below.</li>
+        </ul>
+    </div>
+
+    <div class="section">
+        <h2>3. Threat Identification (STRIDE)</h2>
+        <p>Identify threats using the STRIDE model.</p>
+        <ul>
+            <li><strong>Spoofing</strong>: Impersonating a user or system (e.g., fake login).</li>
+            <li><strong>Tampering</strong>: Unauthorized data modification (e.g., altering database records).</li>
+            <li><strong>Repudiation</strong>: Denying actions without proof (e.g., unlogged transactions).</li>
+            <li><strong>Information Disclosure</strong>: Exposing sensitive data (e.g., unencrypted emails).</li>
+            <li><strong>Denial of Service</strong>: Disrupting availability (e.g., DDoS attacks).</li>
+            <li><strong>Elevation of Privilege</strong>: Gaining unauthorized access (e.g., exploiting vulnerabilities).</li>
+            <li>Specify threats and attack vectors in the form below.</li>
+        </ul>
+    </div>
+
+    <div class="section">
+        <h2>4. Impact Analysis</h2>
+        <p>Analyze the potential impact of each threat.</p>
+        <ul>
+            <li>Assign <strong>Impact</strong> (Low/Medium/High) based on harm to confidentiality, integrity, or availability.</li>
+            <li>Describe potential consequences in the form below.</li>
+        </ul>
+    </div>
+
+    <div class="section">
+        <h2>5. Mitigation Planning</h2>
+        <p>Define mitigations to address each threat.</p>
+        <ul>
+            <li>Identify existing controls (e.g., authentication, logging).</li>
+            <li>Propose new mitigations (e.g., encryption, rate limiting).</li>
+            <li>Specify implementation plans (e.g., owner, timeline).</li>
+            <li>Document mitigations in the form below.</li>
+        </ul>
+        <h3>Notify Stakeholders</h3>
+        <ul>
+            <li>Coordinate with relevant parties for mitigation implementation.</li>
+            <li>Use a professional tone and log communications. Example:
+                <div class="email-template" id="email-template">
+Subject: Threat Modeling Coordination Request
+
+Dear [Stakeholder Contact],
+
+We are conducting a STRIDE-based threat modeling exercise and have identified a threat to [asset/component], categorized as [STRIDE category, e.g., Spoofing]. The potential impact includes [brief impact description, e.g., unauthorized access].
+
+Proposed mitigations include:
+- [e.g., Implement multi-factor authentication]
+- [e.g., Enhance logging mechanisms]
+
+Please confirm these actions or suggest alternatives by [deadline]. Contact us for further details.
+
+Best regards,
+[Your Name]
+[Your Organization]
+[Contact Information]
+                </div>
+                <button id="copy-email-template" class="copy-button">Copy to Clipboard</button>
+            </li>
+            <li>Log notifications in the Action Log below.</li>
+        </ul>
+    </div>
+
+    <div class="section" id="threat-table-section">
+        <h2>Threat Modeling Form</h2>
+        <div class="input-group">
+            <label for="asset">Asset:</label>
+            <input type="text" id="asset" placeholder="e.g., User Database">
+        </div>
+        <div class="input-group">
+            <label for="stride-category">STRIDE Category:</label>
+            <select id="stride-category">
+                <option value="Spoofing">Spoofing</option>
+                <option value="Tampering">Tampering</option>
+                <option value="Repudiation">Repudiation</option>
+                <option value="Information Disclosure">Information Disclosure</option>
+                <option value="Denial of Service">Denial of Service</option>
+                <option value="Elevation of Privilege">Elevation of Privilege</option>
+            </select>
+        </div>
+        <div class="input-group">
+            <label for="threat-description">Threat Description:</label>
+            <textarea id="threat-description" placeholder="e.g., Unauthorized user impersonation via stolen credentials"></textarea>
+        </div>
+        <div class="input-group">
+            <label for="attack-vector">Attack Vector:</label>
+            <input type="text" id="attack-vector" placeholder="e.g., Phishing attack">
+        </div>
+        <div class="input-group">
+            <label for="impact">Impact:</label>
+            <select id="impact">
+                <option value="Low">Low</option>
+                <option value="Medium">Medium</option>
+                <option value="High">High</option>
+            </select>
+        </div>
+        <div class="input-group">
+            <label for="impact-description">Impact Description:</label>
+            <textarea id="impact-description" placeholder="e.g., Loss of user trust, financial damage"></textarea>
+        </div>
+        <div class="input-group">
+            <label for="mitigation">Mitigation:</label>
+            <textarea id="mitigation" placeholder="e.g., Implement MFA, user training"></textarea>
+        </div>
+        <div class="input-group">
+            <label for="notes">Notes:</label>
+            <textarea id="notes" placeholder="e.g., Requires further review by dev team"></textarea>
+        </div>
+        <div class="button-container">
+            <button id="add-threat">Add Threat to Table</button>
+            <button id="export-excel-button">Export to Excel</button>
+            <input type="file" id="import-file" accept=".xlsx" style="margin-right: 10px;">
+            <button id="import-excel-button">Import from Excel</button>
+        </div>
+
+        <h3>Threat Table</h3>
+        <table id="threat-table">
+            <thead>
+                <tr>
+                    <th>Asset</th>
+                    <th>STRIDE Category</th>
+                    <th>Threat Description</th>
+                    <th>Attack Vector</th>
+                    <th>Impact</th>
+                    <th>Impact Description</th>
+                    <th>Mitigation</th>
+                    <th>Notes</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
+
+    <div id="log-section">
+        <h2>Action Log</h2>
+        <div class="input-group">
+            <label for="timeline-alt-name">Alternative Name:</label>
+            <input type="text" id="timeline-alt-name" placeholder="Enter alternative name (optional)">
+        </div>
+        <div class="input-group">
+            <label for="timeline-activity">Timeline Entry:</label>
+            <textarea id="timeline-activity" placeholder="Enter activity description"></textarea>
+            <button id="add-timeline" style="margin-left: 10px;">Add Timeline Entry</button>
+        </div>
+        <p id="timeline-error">Please enter a name and activity description.</p>
+        <div id="log-list"></div>
+        <div class="button-container">
+            <button id="export-log">Export Log</button>
+            <button id="clear-state-button">Clear State</button>
+        </div>
+    </div>
+
+    <div class="footer">
+        <p>© Xservus Limited</p>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <script>
+        // Initialize log and threat arrays
+        let logEntries = [];
+        let threats = [];
+
+        // Load user info from local storage
+        function loadUserInfo() {
+            document.getElementById('user-name').value = localStorage.getItem('threatModelingUserName') || '';
+            document.getElementById('user-title').value = localStorage.getItem('threatModelingUserTitle') || '';
+            document.getElementById('user-role').value = localStorage.getItem('threatModelingUserRole') || '';
+            document.getElementById('user-org').value = localStorage.getItem('threatModelingUserOrg') || '';
+            document.getElementById('timeline-alt-name').value = localStorage.getItem('threatModelingTimelineAltName') || '';
+        }
+
+        // Load data from local storage
+        function loadData() {
+            try {
+                const savedLog = localStorage.getItem('threatModelingLog');
+                if (savedLog) {
+                    logEntries = JSON.parse(savedLog);
+                    updateLogDisplay();
+                }
+                const savedThreats = localStorage.getItem('threatModelingThreats');
+                if (savedThreats) {
+                    threats = JSON.parse(savedThreats);
+                    updateThreatTable();
+                }
+                loadUserInfo();
+            } catch (e) {
+                console.error('Error loading data from localStorage:', e);
+            }
+        }
+
+        // Save user info to local storage
+        function saveUserInfo() {
+            localStorage.setItem('threatModelingUserName', document.getElementById('user-name').value.trim());
+            localStorage.setItem('threatModelingUserTitle', document.getElementById('user-title').value.trim());
+            localStorage.setItem('threatModelingUserRole', document.getElementById('user-role').value.trim());
+            localStorage.setItem('threatModelingUserOrg', document.getElementById('user-org').value.trim());
+            localStorage.setItem('threatModelingTimelineAltName', document.getElementById('timeline-alt-name').value.trim());
+        }
+
+        // Update threat table
+        function updateThreatTable() {
+            const tbody = document.querySelector('#threat-table tbody');
+            tbody.innerHTML = '';
+            threats.forEach((threat, index) => {
+                const row = document.createElement('tr');
+                const fields = [
+                    threat.asset || '',
+                    threat.strideCategory || '',
+                    threat.threatDescription || '',
+                    threat.attackVector || '',
+                    threat.impact || '',
+                    threat.impactDescription || '',
+                    threat.mitigation || '',
+                    threat.notes || ''
+                ];
+                fields.forEach(field => {
+                    const td = document.createElement('td');
+                    td.textContent = field;
+                    row.appendChild(td);
+                });
+                const actionTd = document.createElement('td');
+                const deleteButton = document.createElement('button');
+                deleteButton.className = 'delete-button';
+                deleteButton.dataset.index = index;
+                deleteButton.textContent = 'Delete';
+                actionTd.appendChild(deleteButton);
+                row.appendChild(actionTd);
+                tbody.appendChild(row);
+            });
+            localStorage.setItem('threatModelingThreats', JSON.stringify(threats));
+
+            // Use event delegation for delete buttons
+            tbody.onclick = (e) => {
+                if (e.target.classList.contains('delete-button')) {
+                    const index = parseInt(e.target.dataset.index);
+                    const deletedAsset = threats[index].asset;
+                    threats.splice(index, 1);
+                    updateThreatTable();
+                    const timestamp = new Date().toLocaleString();
+                    const { name, title, role, org } = getUserInfo();
+                    const entry = `[${timestamp}] ${name} (${title}, ${role}, ${org}) - Deleted threat for asset: ${deletedAsset}`;
+                    logEntries.push(entry);
+                    updateLogDisplay();
+                }
+            };
+        }
+
+        // Add threat to table
+        document.getElementById('add-threat').addEventListener('click', () => {
+            const requiredFields = ['asset', 'threat-description', 'attack-vector', 'impact-description'];
+            const missingFields = requiredFields.filter(id => !document.getElementById(id).value.trim());
+            if (missingFields.length > 0) {
+                alert(`Please fill in the following fields: ${missingFields.join(', ')}`);
+                return;
+            }
+            const threat = {
+                asset: document.getElementById('asset').value.trim(),
+                strideCategory: document.getElementById('stride-category').value,
+                threatDescription: document.getElementById('threat-description').value.trim(),
+                attackVector: document.getElementById('attack-vector').value.trim(),
+                impact: document.getElementById('impact').value,
+                impactDescription: document.getElementById('impact-description').value.trim(),
+                mitigation: document.getElementById('mitigation').value.trim(),
+                notes: document.getElementById('notes').value.trim()
+            };
+            threats.push(threat);
+            updateThreatTable();
+            const timestamp = new Date().toLocaleString();
+            const { name, title, role, org } = getUserInfo();
+            const entry = `[${timestamp}] ${name} (${title}, ${role}, ${org}) - Added threat for asset: ${threat.asset}`;
+            logEntries.push(entry);
+            updateLogDisplay();
+            document.getElementById('asset').value = '';
+            document.getElementById('stride-category').value = 'Spoofing';
+            document.getElementById('threat-description').value = '';
+            document.getElementById('attack-vector').value = '';
+            document.getElementById('impact').value = 'Low';
+            document.getElementById('impact-description').value = '';
+            document.getElementById('mitigation').value = '';
+            document.getElementById('notes').value = '';
+        });
+
+        // Import threat table from Excel
+        document.getElementById('import-excel-button').addEventListener('click', () => {
+            const fileInput = document.getElementById('import-file');
+            const file = fileInput.files[0];
+            if (!file) {
+                alert('Please select an Excel file to import.');
+                return;
+            }
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const data = new Uint8Array(e.target.result);
+                const workbook = XLSX.read(data, { type: 'array' });
+                const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+                const jsonData = XLSX.utils.sheet_to_json(firstSheet);
+                let importedCount = 0;
+                const validCategories = ['Spoofing', 'Tampering', 'Repudiation', 'Information Disclosure', 'Denial of Service', 'Elevation of Privilege'];
+                const validImpacts = ['Low', 'Medium', 'High'];
+                jsonData.forEach(row => {
+                    if (row['Asset'] && row['STRIDE Category'] && row['Threat Description'] && row['Attack Vector'] && row['Impact Description']) {
+                        const strideCategory = validCategories.includes(row['STRIDE Category']) ? row['STRIDE Category'] : 'Spoofing';
+                        const impact = validImpacts.includes(row['Impact']) ? row['Impact'] : 'Low';
+                        const threat = {
+                            asset: String(row['Asset'] || ''),
+                            strideCategory,
+                            threatDescription: String(row['Threat Description'] || ''),
+                            attackVector: String(row['Attack Vector'] || ''),
+                            impact,
+                            impactDescription: String(row['Impact Description'] || ''),
+                            mitigation: String(row['Mitigation'] || ''),
+                            notes: String(row['Notes'] || '')
+                        };
+                        threats.push(threat);
+                        importedCount++;
+                    } else {
+                        console.warn('Skipped invalid row:', row);
+                    }
+                });
+                updateThreatTable();
+                const timestamp = new Date().toLocaleString();
+                const { name, title, role, org } = getUserInfo();
+                const entry = `[${timestamp}] ${name} (${title}, ${role}, ${org}) - Imported ${importedCount} threats from Excel`;
+                logEntries.push(entry);
+                updateLogDisplay();
+                fileInput.value = '';
+            };
+            reader.readAsArrayBuffer(file);
+        });
+
+        // Export threat table to Excel
+        document.getElementById('export-excel-button').addEventListener('click', () => {
+            const worksheetData = threats.map(threat => ({
+                Asset: String(threat.asset || ''),
+                'STRIDE Category': String(threat.strideCategory || ''),
+                'Threat Description': String(threat.threatDescription || ''),
+                'Attack Vector': String(threat.attackVector || ''),
+                Impact: String(threat.impact || ''),
+                'Impact Description': String(threat.impactDescription || ''),
+                Mitigation: String(threat.mitigation || ''),
+                Notes: String(threat.notes || '')
+            }));
+            const worksheet = XLSX.utils.json_to_sheet(worksheetData);
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, worksheet, 'Threats');
+            const excelBuffer = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' });
+            const blob = new Blob([excelBuffer], { type: 'application/octet-stream' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `Threat_Model_${new Date().toISOString().replace(/[:.]/g, '-')}.xlsx`;
+            a.click();
+            URL.revokeObjectURL(url);
+            const timestamp = new Date().toLocaleString();
+            const { name, title, role, org } = getUserInfo();
+            const entry = `[${timestamp}] ${name} (${title}, ${role}, ${org}) - Exported threat table to Excel`;
+            logEntries.push(entry);
+            updateLogDisplay();
+        });
+
+        // Get user info for log entry
+        function getUserInfo() {
+            return {
+                name: document.getElementById('user-name').value.trim() || 'Unknown',
+                title: document.getElementById('user-title').value.trim() || 'N/A',
+                role: document.getElementById('user-role').value.trim() || 'N/A',
+                org: document.getElementById('user-org').value.trim() || 'N/A'
+            };
+        }
+
+        // Add timeline log entry
+        function addTimelineLogEntry() {
+            const nameInput = document.getElementById('user-name');
+            const altNameInput = document.getElementById('timeline-alt-name');
+            const activityInput = document.getElementById('timeline-activity');
+            const errorDisplay = document.getElementById('timeline-error');
+            if (!nameInput.value.trim() && !altNameInput.value.trim()) {
+                errorDisplay.textContent = 'Please enter a name (either in User Information or Alternative Name).';
+                errorDisplay.style.display = 'block';
+                return false;
+            }
+            if (!activityInput.value.trim()) {
+                errorDisplay.textContent = 'Please enter an activity description.';
+                errorDisplay.style.display = 'block';
+                return false;
+            }
+            errorDisplay.style.display = 'none';
+            const timestamp = new Date().toLocaleString();
+            const { title, role, org } = getUserInfo();
+            const name = altNameInput.value.trim() || nameInput.value.trim() || 'Unknown';
+            const activity = activityInput.value.trim();
+            const entry = `[${timestamp}] ${name} (${title}, ${role}, ${org}) - Timeline Entry: ${activity}`;
+            logEntries.push(entry);
+            updateLogDisplay();
+            activityInput.value = '';
+            altNameInput.value = '';
+            saveUserInfo();
+            return true;
+        }
+
+        // Update log display
+        function updateLogDisplay() {
+            const logList = document.getElementById('log-list');
+            logList.innerHTML = '';
+            logEntries.forEach(entry => {
+                const p = document.createElement('p');
+                p.textContent = entry;
+                logList.appendChild(p);
+            });
+            logList.scrollTop = logList.scrollHeight;
+            localStorage.setItem('threatModelingLog', JSON.stringify(logEntries));
+        }
+
+        // Export log as text file
+        function exportLog() {
+            const { name, title, role, org } = getUserInfo();
+            const header = `Threat Modeling Log\nUser: ${name}\nTitle: ${title}\nRole: ${role}\nOrganisation: ${org}\nGenerated: ${new Date().toLocaleString()}\n\n`;
+            const footer = `\nCreated using the STRIDE Threat Modeling App - copyright (c) xservus limited`;
+            const content = header + logEntries.join('\n') + footer;
+            const blob = new Blob([content], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `Threat_Modeling_Log_${new Date().toISOString().replace(/[:.]/g, '-')}.txt`;
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        // Clear state
+        function clearState() {
+            if (!confirm('Are you sure you want to clear all data? This action cannot be undone.')) {
+                return;
+            }
+            threats = [];
+            logEntries = [];
+            updateThreatTable();
+            updateLogDisplay();
+            document.getElementById('user-name').value = '';
+            document.getElementById('user-title').value = '';
+            document.getElementById('user-role').value = '';
+            document.getElementById('user-org').value = '';
+            document.getElementById('timeline-alt-name').value = '';
+            document.getElementById('timeline-activity').value = '';
+            localStorage.removeItem('threatModelingUserName');
+            localStorage.removeItem('threatModelingUserTitle');
+            localStorage.removeItem('threatModelingUserRole');
+            localStorage.removeItem('threatModelingUserOrg');
+            localStorage.removeItem('threatModelingTimelineAltName');
+            localStorage.removeItem('threatModelingLog');
+            localStorage.removeItem('threatModelingThreats');
+            document.getElementById('timeline-error').style.display = 'none';
+            document.getElementById('import-file').value = '';
+        }
+
+        // Initialize event listeners
+        document.addEventListener('DOMContentLoaded', () => {
+            loadData();
+
+            // User info input listeners
+            ['user-name', 'user-title', 'user-role', 'user-org', 'timeline-alt-name'].forEach(id => {
+                document.getElementById(id).addEventListener('input', saveUserInfo);
+            });
+
+            // Timeline entry button
+            document.getElementById('add-timeline').addEventListener('click', () => {
+                if (addTimelineLogEntry()) {
+                    localStorage.setItem('threatModelingLog', JSON.stringify(logEntries));
+                }
+            });
+
+            // Export log button
+            document.getElementById('export-log').addEventListener('click', exportLog);
+
+            // Clear state button
+            document.getElementById('clear-state-button').addEventListener('click', clearState);
+
+            // Jump to Action Log button
+            document.getElementById('jump-to-log').addEventListener('click', () => {
+                document.getElementById('log-section').scrollIntoView({ behavior: 'smooth' });
+            });
+
+            // Copy to Clipboard button for email template
+            const copyButton = document.getElementById('copy-email-template');
+            if (copyButton) {
+                copyButton.addEventListener('click', () => {
+                    const queryText = document.getElementById('email-template').textContent;
+                    if (navigator.clipboard) {
+                        navigator.clipboard.writeText(queryText).then(() => {
+                            copyButton.textContent = 'Copied!';
+                            copyButton.classList.add('copied');
+                            setTimeout(() => {
+                                copyButton.textContent = 'Copy to Clipboard';
+                                copyButton.classList.remove('copied');
+                            }, 2000);
+                        }).catch(err => {
+                            console.error('Clipboard copy failed:', err);
+                            alert('Failed to copy to clipboard. Please copy manually.');
+                        });
+                    } else {
+                        const textarea = document.createElement('textarea');
+                        textarea.value = queryText;
+                        document.body.appendChild(textarea);
+                        textarea.select();
+                        try {
+                            document.execCommand('copy');
+                            copyButton.textContent = 'Copied!';
+                            copyButton.classList.add('copied');
+                            setTimeout(() => {
+                                copyButton.textContent = 'Copy to Clipboard';
+                                copyButton.classList.remove('copied');
+                            }, 2000);
+                        } catch (err) {
+                            console.error('Clipboard copy failed:', err);
+                            alert('Failed to copy to clipboard. Please copy manually.');
+                        }
+                        document.body.removeChild(textarea);
+                    }
+                });
+            }
+        });
+    </script>
+</body>
+</html>
