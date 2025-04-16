@@ -41,6 +41,31 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <!-- SheetJS for Excel export -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script type="text/javascript">
+        var gk_isXlsx = false;
+        var gk_xlsxFileLookup = {};
+        var gk_fileData = {};
+        function loadFileData(filename) {
+            if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
+                try {
+                    var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
+                    var firstSheetName = workbook.SheetNames[0];
+                    var worksheet = workbook.Sheets[firstSheetName];
+                    var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
+                    var filteredData = jsonData.filter(row =>
+                        row.some(cell => cell !== '' && cell !== null && cell !== undefined)
+                    );
+                    var csv = XLSX.utils.aoa_to_sheet(filteredData);
+                    csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
+                    return csv;
+                } catch (e) {
+                    console.error('Error loading file data:', e);
+                    return "";
+                }
+            }
+            return gk_fileData[filename] || "";
+        }
+    </script>
     <style>
         body { margin: 0; overflow: hidden; background: #111827; }
         #canvas-container {
@@ -102,45 +127,17 @@
             font-size: 14px;
             font-family: sans-serif;
         }
-        #model-data h2 { color: white; } /* Ensure Current Model text is white */
+        #model-data h2 { color: white; }
     </style>
 </head>
 <body>
-    <script type="text/javascript">
-        var gk_isXlsx = false;
-        var gk_xlsxFileLookup = {};
-        var gk_fileData = {};
-        function loadFileData(filename) {
-            if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
-                try {
-                    var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
-                    var firstSheetName = workbook.SheetNames[0];
-                    var worksheet = workbook.Sheets[firstSheetName];
-                    var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
-                    var filteredData = jsonData.filter(row =>
-                        row.some(cell => cell !== '' && cell !== null && cell !== undefined)
-                    );
-                    var csv = XLSX.utils.aoa_to_sheet(filteredData);
-                    csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
-                    return csv;
-                } catch (e) {
-                    console.error(e);
-                    return "";
-                }
-            }
-            return gk_fileData[filename] || "";
-        }
-    </script>
     <div id="canvas-container">
         <svg id="diamond-svg" width="600" height="600" viewBox="0 0 600 600">
-            <!-- Diamond shape -->
             <polygon points="300,100 150,300 300,500 450,300" fill="none" stroke="white" stroke-width="3"/>
-            <!-- Fixed labels -->
             <text x="300" y="80" text-anchor="middle" class="diamond-label">Adversary</text>
             <text x="130" y="310" text-anchor="end" class="diamond-label">Infrastructure</text>
             <text x="470" y="310" text-anchor="start" class="diamond-label">Capability</text>
             <text x="300" y="540" text-anchor="middle" class="diamond-label">Victim</text>
-            <!-- Sub-labels will be added dynamically -->
         </svg>
     </div>
     <button id="toggle-sidebar" class="button-hidden">></button>
@@ -188,7 +185,10 @@
             let currentLine = '';
             const canvas = document.createElement('canvas');
             const ctx = canvas.getContext('2d');
-            if (!ctx) return [text];
+            if (!ctx) {
+                console.warn('Canvas context unavailable, returning original text');
+                return [text];
+            }
             ctx.font = `${fontSize}px sans-serif`;
             words.forEach(word => {
                 const testLine = currentLine ? `${currentLine} ${word}` : word;
@@ -205,7 +205,7 @@
         }
 
         function validateInput(name) {
-            if (name.trim().length === 0) {
+            if (!name.trim()) {
                 alert('Name cannot be empty.');
                 return false;
             }
@@ -219,6 +219,10 @@
         function updateModelList() {
             console.log('Updating model list:', modelData);
             const list = document.getElementById('model-list');
+            if (!list) {
+                console.error('Model list element not found');
+                return;
+            }
             list.innerHTML = '';
             Object.keys(modelData).forEach(type => {
                 modelData[type].forEach((item, index) => {
@@ -240,9 +244,17 @@
         }
 
         function addAdversary() {
-            const name = document.getElementById('adversary-name').value.trim() || `Adversary-${modelData.adversarys.length + 1}`;
-            if (!validateInput(name) || modelData.adversarys.length >= 5) return;
-            if (!modelData.adversarys) modelData.adversarys = [];
+            const input = document.getElementById('adversary-name');
+            if (!input) {
+                console.error('Adversary name input not found');
+                return;
+            }
+            const name = input.value.trim() || `Adversary-${modelData.adversarys.length + 1}`;
+            if (!validateInput(name)) return;
+            if (modelData.adversarys.length >= 5) {
+                alert('Maximum of 5 adversarys reached.');
+                return;
+            }
             modelData.adversarys.push({ name });
             console.log('Added adversary:', name);
             updateDiagram();
@@ -251,9 +263,17 @@
         }
 
         function addInfrastructure() {
-            const name = document.getElementById('infra-name').value.trim() || `Infrastructure-${modelData.infrastructures.length + 1}`;
-            if (!validateInput(name) || modelData.infrastructures.length >= 5) return;
-            if (!modelData.infrastructures) modelData.infrastructures = [];
+            const input = document.getElementById('infra-name');
+            if (!input) {
+                console.error('Infrastructure name input not found');
+                return;
+            }
+            const name = input.value.trim() || `Infrastructure-${modelData.infrastructures.length + 1}`;
+            if (!validateInput(name)) return;
+            if (modelData.infrastructures.length >= 5) {
+                alert('Maximum of 5 infrastructures reached.');
+                return;
+            }
             modelData.infrastructures.push({ name });
             console.log('Added infrastructure:', name);
             updateDiagram();
@@ -262,9 +282,17 @@
         }
 
         function addCapability() {
-            const name = document.getElementById('capability-name').value.trim() || `Capability-${modelData.capabilities.length + 1}`;
-            if (!validateInput(name) || modelData.capabilities.length >= 5) return;
-            if (!modelData.capabilities) modelData.capabilities = [];
+            const input = document.getElementById('capability-name');
+            if (!input) {
+                console.error('Capability name input not found');
+                return;
+            }
+            const name = input.value.trim() || `Capability-${modelData.capabilities.length + 1}`;
+            if (!validateInput(name)) return;
+            if (modelData.capabilities.length >= 5) {
+                alert('Maximum of 5 capabilities reached.');
+                return;
+            }
             modelData.capabilities.push({ name });
             console.log('Added capability:', name);
             updateDiagram();
@@ -273,9 +301,17 @@
         }
 
         function addVictim() {
-            const name = document.getElementById('victim-name').value.trim() || `Victim-${modelData.victims.length + 1}`;
-            if (!validateInput(name) || modelData.victims.length >= 5) return;
-            if (!modelData.victims) modelData.victims = [];
+            const input = document.getElementById('victim-name');
+            if (!input) {
+                console.error('Victim name input not found');
+                return;
+            }
+            const name = input.value.trim() || `Victim-${modelData.victims.length + 1}`;
+            if (!validateInput(name)) return;
+            if (modelData.victims.length >= 5) {
+                alert('Maximum of 5 victims reached.');
+                return;
+            }
             modelData.victims.push({ name });
             console.log('Added victim:', name);
             updateDiagram();
@@ -293,7 +329,8 @@
         }
 
         function clearInputs(prefix) {
-            document.getElementById(`${prefix}-name`).value = '';
+            const input = document.getElementById(`${prefix}-name`);
+            if (input) input.value = '';
         }
 
         function clearModel() {
@@ -308,39 +345,95 @@
 
         function exportToJPG() {
             const svg = document.getElementById('diamond-svg');
+            if (!svg) {
+                console.error('SVG element not found');
+                alert('Failed to export JPG: SVG element missing.');
+                return;
+            }
             console.log('Starting JPG export for diamond-svg');
+
+            // Clone SVG and inline styles
+            const clonedSvg = svg.cloneNode(true);
+            clonedSvg.setAttribute('width', '600');
+            clonedSvg.setAttribute('height', '600');
+
+            // Inline CSS styles for labels
+            const labels = clonedSvg.querySelectorAll('.diamond-label');
+            labels.forEach(label => {
+                label.setAttribute('style', 'fill: white; font-size: 16px; font-weight: bold; filter: drop-shadow(0 0 2px rgba(0, 255, 255, 0.5)); font-family: sans-serif;');
+            });
+            const subLabels = clonedSvg.querySelectorAll('.diamond-sub-label');
+            subLabels.forEach(label => {
+                label.setAttribute('style', 'fill: white; font-size: 14px; font-family: sans-serif;');
+            });
+
+            // Serialize SVG to string
+            const serializer = new XMLSerializer();
+            let svgString = serializer.serializeToString(clonedSvg);
+            svgString = `<?xml version="1.0" standalone="no"?><!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">${svgString}`;
+
+            // Create temporary container
             const tempContainer = document.createElement('div');
             tempContainer.style.width = '600px';
             tempContainer.style.height = '600px';
-            tempContainer.style.backgroundColor = '#ffffff';
             tempContainer.style.position = 'absolute';
             tempContainer.style.top = '-9999px';
             tempContainer.style.left = '-9999px';
-            const clonedSvg = svg.cloneNode(true);
-            tempContainer.appendChild(clonedSvg);
+            tempContainer.style.backgroundColor = '#111827';
             document.body.appendChild(tempContainer);
 
-            html2canvas(tempContainer, {
-                width: 600,
-                height: 600,
-                scale: 2,
-                backgroundColor: '#ffffff',
-                useCORS: true,
-                logging: true
-            }).then(canvas => {
-                console.log('Canvas generated, creating download link');
-                const imgData = canvas.toDataURL('image/jpeg', 0.9);
-                const link = document.createElement('a');
-                link.href = imgData;
-                link.download = 'diamond_model.jpg';
-                link.click();
-                console.log('JPG export completed');
+            // Create temporary canvas
+            const tempCanvas = document.createElement('canvas');
+            tempCanvas.width = 600;
+            tempCanvas.height = 600;
+            tempContainer.appendChild(tempCanvas);
+            const ctx = tempCanvas.getContext('2d');
+
+            // Create image from SVG
+            const img = new Image();
+            img.src = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svgString)));
+
+            img.onload = () => {
+                try {
+                    // Draw SVG image to temporary canvas
+                    ctx.fillStyle = '#111827';
+                    ctx.fillRect(0, 0, 600, 600);
+                    ctx.drawImage(img, 0, 0, 600, 600);
+
+                    // Use html2canvas to render the container
+                    html2canvas(tempContainer, {
+                        width: 600,
+                        height: 600,
+                        scale: 2,
+                        backgroundColor: null,
+                        useCORS: true,
+                        logging: true
+                    }).then(canvas => {
+                        console.log('Canvas generated, creating download link');
+                        const imgData = canvas.toDataURL('image/jpeg', 0.9);
+                        const link = document.createElement('a');
+                        link.href = imgData;
+                        link.download = 'diamond_model.jpg';
+                        link.click();
+                        console.log('JPG export completed');
+                        document.body.removeChild(tempContainer);
+                    }).catch(e => {
+                        console.error('Error in html2canvas:', e);
+                        alert('Failed to export JPG. Check console for details.');
+                        document.body.removeChild(tempContainer);
+                    });
+                } catch (e) {
+                    console.error('Error rendering canvas:', e);
+                    alert('Failed to render canvas for JPG export. Check console for details.');
+                    document.body.removeChild(tempContainer);
+                }
+            };
+
+            img.onerror = (e) => {
+                console.error('Error loading SVG image:', e);
+                alert('Failed to load SVG for export. Check console for details.');
                 document.body.removeChild(tempContainer);
-            }).catch(e => {
-                console.error('Error exporting JPG:', e);
-                alert('Failed to export JPG. Check console for details.');
-                document.body.removeChild(tempContainer);
-            });
+            };
         }
 
         function exportToExcel() {
@@ -374,12 +467,17 @@
                 XLSX.writeFile(workbook, 'diamond_model.xlsx');
             } catch (e) {
                 console.error('Error exporting Excel:', e);
+                alert('Failed to export Excel. Check console for details.');
             }
         }
 
         function updateDiagram() {
             console.log('Updating diagram with modelData:', modelData);
             const svg = document.getElementById('diamond-svg');
+            if (!svg) {
+                console.error('SVG element not found');
+                return;
+            }
             const subLabels = svg.querySelectorAll('.diamond-sub-label');
             subLabels.forEach(label => label.remove());
 
@@ -389,7 +487,7 @@
                         console.log('Adding adversary sub-label:', item.name);
                         const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
                         text.setAttribute('x', '300');
-                        text.setAttribute('y', 50 - 30 * i); // Position above Adversary label
+                        text.setAttribute('y', 50 - 30 * i);
                         text.setAttribute('text-anchor', 'middle');
                         text.setAttribute('class', 'diamond-sub-label');
                         const lines = wrapText(item.name, 100, 14) || [''];
@@ -484,6 +582,10 @@
             console.log('Toggling sidebar, current state:', sidebarVisible);
             const sidebar = document.getElementById('sidebar');
             const toggleButton = document.getElementById('toggle-sidebar');
+            if (!sidebar || !toggleButton) {
+                console.error('Sidebar or toggle button not found');
+                return;
+            }
             sidebarVisible = !sidebarVisible;
             sidebar.classList.toggle('sidebar-hidden');
             toggleButton.classList.toggle('button-hidden');
@@ -494,6 +596,10 @@
             console.log('Page loaded, initializing sidebar');
             const sidebar = document.getElementById('sidebar');
             const toggleButton = document.getElementById('toggle-sidebar');
+            if (!sidebar || !toggleButton) {
+                console.error('Sidebar or toggle button not found during initialization');
+                return;
+            }
             setTimeout(() => {
                 sidebarVisible = true;
                 sidebar.classList.remove('sidebar-hidden');
