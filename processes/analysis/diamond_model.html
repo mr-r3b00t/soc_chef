@@ -1,0 +1,239 @@
+<script type="text/javascript">
+        var gk_isXlsx = false;
+        var gk_xlsxFileLookup = {};
+        var gk_fileData = {};
+        function loadFileData(filename) {
+        if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
+            try {
+                var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
+                var firstSheetName = workbook.SheetNames[0];
+                var worksheet = workbook.Sheets[firstSheetName];
+
+                // Convert sheet to JSON to filter blank rows
+                var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
+                // Filter out blank rows (rows where all cells are empty, null, or undefined)
+                var filteredData = jsonData.filter(row =>
+                    row.some(cell => cell !== '' && cell !== null && cell !== undefined)
+                );
+
+                // Convert filtered JSON back to CSV
+                var csv = XLSX.utils.aoa_to_sheet(filteredData); // Create a new sheet from filtered array of arrays
+                csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
+                return csv;
+            } catch (e) {
+                console.error(e);
+                return "";
+            }
+        }
+        return gk_fileData[filename] || "";
+        }
+        </script><!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DIAMOND Model Cyber Threat Intelligence</title>
+    <!-- Favicon to suppress favicon.ico error -->
+    <link rel="icon" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAACYSURBVDhPtY7BDYAwDAM7BPa97yHUC6hmoIzgYvT7J1BRUM7wO3wBB2ABW4Al7ABh6gVUgDXsAF3qBVSANewAXeoFVIA17ABd6gVUgDXsAF3qBVSANewAXeoFVIA17ABd6gVUgDXsAF3qBVSANewAXeoFVIA17ABd6gVUgDXsAF3qBVSANewAXeoFVIA17ABd6gVUgDXsAF3qBVSANewA3eoFVP6mO94AAAAASUVORK5CYII=">
+    <!-- Tailwind CSS CDN (Note: For production, install Tailwind as a PostCSS plugin or use Tailwind CLI: https://tailwindcss.com/docs/installation) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { margin: 0; overflow: hidden; background: #111827; }
+        #canvas-container { position: absolute; top: 0; left: 0; width: calc(100% - 400px); height: 100%; display: flex; justify-content: center; align-items: center; }
+        #sidebar { position: absolute; top: 0; right: 0; width: 400px; height: 100%; background: rgba(17, 24, 39, 0.95); color: white; transition: transform 0.3s ease; }
+        #sidebar.hidden { transform: translateX(400px); }
+        #toggle-sidebar { position: absolute; top: 10px; right: 410px; z-index: 20; }
+        .diamond-label { fill: white; font-size: 16px; font-weight: bold; text-shadow: 0 0 5px rgba(0, 255, 255, 0.5); }
+        .diamond-sub-label { fill: white; font-size: 14px; }
+    </style>
+</head>
+<body>
+    <div id="canvas-container">
+        <svg id="diamond-svg" width="600" height="600" viewBox="0 0 600 600">
+            <!-- Diamond shape -->
+            <polygon points="300,100 150,300 300,500 450,300" fill="none" stroke="white" stroke-width="3"/>
+            <!-- Fixed labels -->
+            <text x="300" y="80" text-anchor="middle" class="diamond-label">Adversary</text>
+            <text x="130" y="310" text-anchor="end" class="diamond-label">Infrastructure</text>
+            <text x="470" y="310" text-anchor="start" class="diamond-label">Capability</text>
+            <text x="300" y="540" text-anchor="middle" class="diamond-label">Victim</text>
+            <!-- Sub-labels will be added dynamically -->
+        </svg>
+    </div>
+    <button id="toggle-sidebar" class="bg-cyan-500 hover:bg-cyan-600 text-white p-2 rounded">Toggle Sidebar</button>
+    <div id="sidebar" class="p-6 overflow-y-auto">
+        <h1 class="text-2xl font-bold mb-6 text-cyan-400">DIAMOND Model Builder</h1>
+        <div id="forms">
+            <div class="mb-6">
+                <h2 class="text-lg font-semibold mb-2">Adversary</h2>
+                <input id="adversary-name" type="text" placeholder="Name" class="w-full p-2 mb-2 bg-gray-700 rounded text-white" maxlength="50">
+                <textarea id="adversary-desc" placeholder="Description" class="w-full p-2 bg-gray-700 rounded text-white" maxlength="200"></textarea>
+                <button onclick="addAdversary()" class="mt-2 w-full bg-cyan-500 hover:bg-cyan-600 text-white p-2 rounded">Add Adversary</button>
+            </div>
+            <div class="mb-6">
+                <h2 class="text-lg font-semibold mb-2">Infrastructure</h2>
+                <input id="infra-name" type="text" placeholder="Name" class="w-full p-2 mb-2 bg-gray-700 rounded text-white" maxlength="50">
+                <textarea id="infra-desc" placeholder="Description" class="w-full p-2 bg-gray-700 rounded text-white" maxlength="200"></textarea>
+                <button onclick="addInfrastructure()" class="mt-2 w-full bg-cyan-500 hover:bg-cyan-600 text-white p-2 rounded">Add Infrastructure</button>
+            </div>
+            <div class="mb-6">
+                <h2 class="text-lg font-semibold mb-2">Capability</h2>
+                <input id="capability-name" type="text" placeholder="Name" class="w-full p-2 mb-2 bg-gray-700 rounded text-white" maxlength="50">
+                <textarea id="capability-desc" placeholder="Description" class="w-full p-2 bg-gray-700 rounded text-white" maxlength="200"></textarea>
+                <button onclick="addCapability()" class="mt-2 w-full bg-cyan-500 hover:bg-cyan-600 text-white p-2 rounded">Add Capability</button>
+            </div>
+            <div class="mb-6">
+                <h2 class="text-lg font-semibold mb-2">Victim</h2>
+                <input id="victim-name" type="text" placeholder="Name" class="w-full p-2 mb-2 bg-gray-700 rounded text-white" maxlength="50">
+                <textarea id="victim-desc" placeholder="Description" class="w-full p-2 bg-gray-700 rounded text-white" maxlength="200"></textarea>
+                <button onclick="addVictim()" class="mt-2 w-full bg-cyan-500 hover:bg-cyan-600 text-white p-2 rounded">Add Victim</button>
+            </div>
+        </div>
+        <div id="model-data" class="mt-6">
+            <h2 class="text-lg font-semibold mb-2">Current Model</h2>
+            <button onclick="clearModel()" class="mb-4 w-full bg-red-500 hover:bg-red-600 text-white p-2 rounded">Clear Model</button>
+            <ul id="model-list" class="space-y-2"></ul>
+        </div>
+    </div>
+
+    <script>
+        const modelData = { adversaries: [], infrastructures: [], capabilities: [], victims: [] };
+        let sidebarVisible = true;
+
+        function validateInput(name, desc) {
+            return name.trim().length > 0 && name.length <= 50 && desc.length <= 200;
+        }
+
+        function addAdversary() {
+            const name = document.getElementById('adversary-name').value.trim() || `Adversary-${modelData.adversaries.length + 1}`;
+            const desc = document.getElementById('adversary-desc').value.trim();
+            if (!validateInput(name, desc) || modelData.adversaries.length >= 5) return;
+            modelData.adversaries.push({ name, desc });
+            updateDiagram();
+            updateModelList();
+            clearInputs('adversary');
+        }
+
+        function addInfrastructure() {
+            const name = document.getElementById('infra-name').value.trim() || `Infrastructure-${modelData.infrastructures.length + 1}`;
+            const desc = document.getElementById('infra-desc').value.trim();
+            if (!validateInput(name, desc) || modelData.infrastructures.length >= 5) return;
+            modelData.infrastructures.push({ name, desc });
+            updateDiagram();
+            updateModelList();
+            clearInputs('infra');
+        }
+
+        function addCapability() {
+            const name = document.getElementById('capability-name').value.trim() || `Capability-${modelData.capabilities.length + 1}`;
+            const desc = document.getElementById('capability-desc').value.trim();
+            if (!validateInput(name, desc) || modelData.capabilities.length >= 5) return;
+            modelData.capabilities.push({ name, desc });
+            updateDiagram();
+            updateModelList();
+            clearInputs('capability');
+        }
+
+        function addVictim() {
+            const name = document.getElementById('victim-name').value.trim() || `Victim-${modelData.victims.length + 1}`;
+            const desc = document.getElementById('victim-desc').value.trim();
+            if (!validateInput(name, desc) || modelData.victims.length >= 5) return;
+            modelData.victims.push({ name, desc });
+            updateDiagram();
+            updateModelList();
+            clearInputs('victim');
+        }
+
+        function clearInputs(prefix) {
+            document.getElementById(`${prefix}-name`).value = '';
+            document.getElementById(`${prefix}-desc`).value = '';
+        }
+
+        function clearModel() {
+            modelData.adversaries = [];
+            modelData.infrastructures = [];
+            modelData.capabilities = [];
+            modelData.victims = [];
+            updateDiagram();
+            updateModelList();
+        }
+
+        function updateDiagram() {
+            const svg = document.getElementById('diamond-svg');
+            // Remove existing sub-labels
+            const subLabels = svg.querySelectorAll('.diamond-sub-label');
+            subLabels.forEach(label => label.remove());
+
+            // Add adversary sub-labels (above)
+            modelData.adversaries.forEach((item, i) => {
+                const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                text.setAttribute('x', '300');
+                text.setAttribute('y', 60 - 20 * i);
+                text.setAttribute('text-anchor', 'middle');
+                text.setAttribute('class', 'diamond-sub-label');
+                text.textContent = item.name;
+                svg.appendChild(text);
+            });
+
+            // Add infrastructure sub-labels (left)
+            modelData.infrastructures.forEach((item, i) => {
+                const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                text.setAttribute('x', '110');
+                text.setAttribute('y', 330 + 20 * i);
+                text.setAttribute('text-anchor', 'end');
+                text.setAttribute('class', 'diamond-sub-label');
+                text.textContent = item.name;
+                svg.appendChild(text);
+            });
+
+            // Add capability sub-labels (right)
+            modelData.capabilities.forEach((item, i) => {
+                const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                text.setAttribute('x', '490');
+                text.setAttribute('y', 330 + 20 * i);
+                text.setAttribute('text-anchor', 'start');
+                text.setAttribute('class', 'diamond-sub-label');
+                text.textContent = item.name;
+                svg.appendChild(text);
+            });
+
+            // Add victim sub-labels (below)
+            modelData.victims.forEach((item, i) => {
+                const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                text.setAttribute('x', '300');
+                text.setAttribute('y', 560 + 20 * i);
+                text.setAttribute('text-anchor', 'middle');
+                text.setAttribute('class', 'diamond-sub-label');
+                text.textContent = item.name;
+                svg.appendChild(text);
+            });
+        }
+
+        function updateModelList() {
+            const list = document.getElementById('model-list');
+            list.innerHTML = '';
+            Object.keys(modelData).forEach(type => {
+                modelData[type].forEach(item => {
+                    const li = document.createElement('li');
+                    li.className = 'p-2 bg-gray-800 rounded';
+                    const title = document.createElement('strong');
+                    title.textContent = `${type.charAt(0).toUpperCase() + type.slice(1, -1)}: `;
+                    const name = document.createTextNode(item.name);
+                    const br = document.createElement('br');
+                    const desc = document.createTextNode(item.desc);
+                    li.append(title, name, br, desc);
+                    list.appendChild(li);
+                });
+            });
+        }
+
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            sidebarVisible = !sidebarVisible;
+            sidebar.classList.toggle('hidden', !sidebarVisible);
+        }
+
+        document.getElementById('toggle-sidebar').addEventListener('click', toggleSidebar);
+    </script>
+</body>
+</html>
