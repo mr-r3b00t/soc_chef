@@ -15,6 +15,9 @@ Reactive Orgs that either do not have Policies, Processes and Procedures or ones
 
 🔐 [CAF Assessment - very experimental](https://mr-r3b00t.github.io/soc_chef/processes/governance/caf.html)
 
+🔐 [Risk Assessment - v1](https://mr-r3b00t.github.io/soc_chef/processes/risk/risk_assessment_v1.html)
+
+
 
 Copyright (c) Xservus Limited
 Created by mRr3b00t
