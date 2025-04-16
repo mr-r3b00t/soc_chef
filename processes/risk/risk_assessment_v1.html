@@ -114,6 +114,18 @@
         #risk-table tr:nth-child(even) {
             background-color: #f9f9f9;
         }
+        #risk-table .delete-button {
+            padding: 5px 10px;
+            background-color: #e74c3c;
+            color: white;
+            border: none;
+            border-radius: 3px;
+            cursor: pointer;
+            font-size: 0.8em;
+        }
+        #risk-table .delete-button:hover {
+            background-color: #c0392b;
+        }
         #timeline-error {
             color: #e74c3c;
             font-size: 0.9em;
@@ -210,7 +222,7 @@
 
     <div class="section">
         <h2>Executive Summary</h2>
-        <p>This application guides enterprises through a structured risk assessment, treatment, and residual risk evaluation process. It enables security teams to identify critical assets, assess threats and attack vectors, define risks, implement controls/mitigations, and evaluate residual risks. Results are recorded in a dynamic risk table, exportable to Excel, with an Action Log to track activities, ensuring a comprehensive approach to managing cybersecurity risks.</p>
+        <p>This application guides enterprises through a structured risk assessment, treatment, and residual risk evaluation process. It enables security teams to identify critical assets, assess threats and attack vectors, define risks, implement controls/mitigations, and evaluate residual risks. Results are recorded in a dynamic risk table, exportable to Excel, with options to delete individual risks and an Action Log to track activities, ensuring a comprehensive approach to managing cybersecurity risks.</p>
     </div>
 
     <div class="section">
@@ -374,6 +386,7 @@ Best regards,
                     <th>Residual Impact</th>
                     <th>Residual Risk Level</th>
                     <th>Notes</th>
+                    <th>Action</th>
                 </tr>
             </thead>
             <tbody></tbody>
@@ -454,7 +467,7 @@ Best regards,
         function updateRiskTable() {
             const tbody = document.querySelector('#risk-table tbody');
             tbody.innerHTML = '';
-            risks.forEach(risk => {
+            risks.forEach((risk, index) => {
                 const row = document.createElement('tr');
                 row.innerHTML = `
                     <td>${risk.asset}</td>
@@ -469,10 +482,28 @@ Best regards,
                     <td>${risk.residualImpact}</td>
                     <td>${risk.residualRiskLevel}</td>
                     <td>${risk.notes}</td>
+                    <td><button class="delete-button" data-index="${index}">Delete</button></td>
                 `;
                 tbody.appendChild(row);
             });
             localStorage.setItem('riskAssessmentRisks', JSON.stringify(risks));
+
+            // Attach delete event listeners
+            document.querySelectorAll('.delete-button').forEach(button => {
+                button.addEventListener('click', (e) => {
+                    const index = parseInt(e.target.dataset.index);
+                    const deletedAsset = risks[index].asset;
+                    risks.splice(index, 1);
+                    updateRiskTable();
+
+                    // Log the deletion
+                    const timestamp = new Date().toLocaleString();
+                    const { name, title, role, org } = getUserInfo();
+                    const entry = `[${timestamp}] ${name} (${title}, ${role}, ${org}) - Deleted risk for asset: ${deletedAsset}`;
+                    logEntries.push(entry);
+                    updateLogDisplay();
+                });
+            });
         }
 
         // Add risk to table
