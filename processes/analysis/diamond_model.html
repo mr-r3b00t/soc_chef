@@ -40,9 +40,42 @@
     <style>
         body { margin: 0; overflow: hidden; background: #111827; }
         #canvas-container { position: absolute; top: 0; left: 0; width: calc(100% - 400px); height: 100%; display: flex; justify-content: center; align-items: center; }
-        #sidebar { position: absolute; top: 0; right: 0; width: 400px; height: 100%; background: rgba(17, 24, 39, 0.95); color: white; transition: transform 0.3s ease; }
-        #sidebar.hidden { transform: translateX(400px); }
-        #toggle-sidebar { position: absolute; top: 10px; right: 410px; z-index: 20; }
+        #sidebar {
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 400px;
+            height: 100%;
+            background: linear-gradient(to bottom, #1f2937, #111827);
+            opacity: 0.95;
+            border-radius: 10px 0 0 10px;
+            box-shadow: -5px 0 10px rgba(0, 0, 0, 0.5);
+            z-index: 20;
+            transition: right 0.3s ease-in-out;
+        }
+        #sidebar h2 { color: white; }
+        #toggle-sidebar {
+            position: absolute;
+            top: 10px;
+            right: 400px;
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(to right, #06b6d4, #3b82f6);
+            color: white;
+            font-size: 24px;
+            font-weight: bold;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 30;
+            transition: right 0.3s ease-in-out, box-shadow 0.3s ease-in-out;
+        }
+        #toggle-sidebar:hover {
+            box-shadow: 0 0 15px rgba(0, 255, 255, 0.5);
+        }
+        .sidebar-hidden { right: -400px !important; }
+        .button-hidden { right: 0 !important; }
         .diamond-label { fill: white; font-size: 16px; font-weight: bold; text-shadow: 0 0 5px rgba(0, 255, 255, 0.5); }
         .diamond-sub-label { fill: white; font-size: 14px; }
     </style>
@@ -60,37 +93,37 @@
             <!-- Sub-labels will be added dynamically -->
         </svg>
     </div>
-    <button id="toggle-sidebar" class="bg-cyan-500 hover:bg-cyan-600 text-white p-2 rounded">Toggle Sidebar</button>
-    <div id="sidebar" class="p-6 overflow-y-auto">
+    <button id="toggle-sidebar" class="button-hidden">></button>
+    <div id="sidebar" class="p-6 overflow-y-auto sidebar-hidden">
         <h1 class="text-2xl font-bold mb-6 text-cyan-400">DIAMOND Model Builder</h1>
         <div id="forms">
             <div class="mb-6">
-                <h2 class="text-lg font-semibold mb-2">Adversary</h2>
+                <h2 class="text-lg font-semibold mb-2 text-white">Adversary</h2>
                 <input id="adversary-name" type="text" placeholder="Name" class="w-full p-2 mb-2 bg-gray-700 rounded text-white" maxlength="50">
                 <textarea id="adversary-desc" placeholder="Description" class="w-full p-2 bg-gray-700 rounded text-white" maxlength="200"></textarea>
                 <button onclick="addAdversary()" class="mt-2 w-full bg-cyan-500 hover:bg-cyan-600 text-white p-2 rounded">Add Adversary</button>
             </div>
             <div class="mb-6">
-                <h2 class="text-lg font-semibold mb-2">Infrastructure</h2>
+                <h2 class="text-lg font-semibold mb-2 text-white">Infrastructure</h2>
                 <input id="infra-name" type="text" placeholder="Name" class="w-full p-2 mb-2 bg-gray-700 rounded text-white" maxlength="50">
                 <textarea id="infra-desc" placeholder="Description" class="w-full p-2 bg-gray-700 rounded text-white" maxlength="200"></textarea>
                 <button onclick="addInfrastructure()" class="mt-2 w-full bg-cyan-500 hover:bg-cyan-600 text-white p-2 rounded">Add Infrastructure</button>
             </div>
             <div class="mb-6">
-                <h2 class="text-lg font-semibold mb-2">Capability</h2>
+                <h2 class="text-lg font-semibold mb-2 text-white">Capability</h2>
                 <input id="capability-name" type="text" placeholder="Name" class="w-full p-2 mb-2 bg-gray-700 rounded text-white" maxlength="50">
                 <textarea id="capability-desc" placeholder="Description" class="w-full p-2 bg-gray-700 rounded text-white" maxlength="200"></textarea>
                 <button onclick="addCapability()" class="mt-2 w-full bg-cyan-500 hover:bg-cyan-600 text-white p-2 rounded">Add Capability</button>
             </div>
             <div class="mb-6">
-                <h2 class="text-lg font-semibold mb-2">Victim</h2>
+                <h2 class="text-lg font-semibold mb-2 text-white">Victim</h2>
                 <input id="victim-name" type="text" placeholder="Name" class="w-full p-2 mb-2 bg-gray-700 rounded text-white" maxlength="50">
                 <textarea id="victim-desc" placeholder="Description" class="w-full p-2 bg-gray-700 rounded text-white" maxlength="200"></textarea>
                 <button onclick="addVictim()" class="mt-2 w-full bg-cyan-500 hover:bg-cyan-600 text-white p-2 rounded">Add Victim</button>
             </div>
         </div>
         <div id="model-data" class="mt-6">
-            <h2 class="text-lg font-semibold mb-2">Current Model</h2>
+            <h2 class="text-lg font-semibold mb-2 text-white">Current Model</h2>
             <button onclick="clearModel()" class="mb-4 w-full bg-red-500 hover:bg-red-600 text-white p-2 rounded">Clear Model</button>
             <ul id="model-list" class="space-y-2"></ul>
         </div>
@@ -98,7 +131,7 @@
 
     <script>
         const modelData = { adversaries: [], infrastructures: [], capabilities: [], victims: [] };
-        let sidebarVisible = true;
+        let sidebarVisible = false;
 
         function validateInput(name, desc) {
             return name.trim().length > 0 && name.length <= 50 && desc.length <= 200;
@@ -241,9 +274,24 @@
 
         function toggleSidebar() {
             const sidebar = document.getElementById('sidebar');
+            const toggleButton = document.getElementById('toggle-sidebar');
             sidebarVisible = !sidebarVisible;
-            sidebar.classList.toggle('hidden', !sidebarVisible);
+            sidebar.classList.toggle('sidebar-hidden');
+            toggleButton.classList.toggle('button-hidden');
+            toggleButton.innerHTML = sidebarVisible ? '>' : '<';
         }
+
+        // Slide in sidebar and button on load
+        window.addEventListener('load', () => {
+            const sidebar = document.getElementById('sidebar');
+            const toggleButton = document.getElementById('toggle-sidebar');
+            setTimeout(() => {
+                sidebarVisible = true;
+                sidebar.classList.remove('sidebar-hidden');
+                toggleButton.classList.remove('button-hidden');
+                toggleButton.innerHTML = '>';
+            }, 500);
+        });
 
         document.getElementById('toggle-sidebar').addEventListener('click', toggleSidebar);
     </script>
