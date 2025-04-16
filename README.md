@@ -19,6 +19,8 @@ Reactive Orgs that either do not have Policies, Processes and Procedures or ones
 
 🔐 [Threat Model - STRIDE](https://mr-r3b00t.github.io/soc_chef/processes/threat/stride_v1.html)
 
+🔐 [Threat Model - PASTA](https://mr-r3b00t.github.io/soc_chef/processes/threat/pasta_v1.html)
+
 
 Copyright (c) Xservus Limited
 Created by mRr3b00t
