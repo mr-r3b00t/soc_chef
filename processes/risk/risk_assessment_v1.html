@@ -136,6 +136,7 @@
             display: flex;
             gap: 10px;
             margin-top: 10px;
+            align-items: center;
         }
         button {
             padding: 10px 20px;
@@ -155,11 +156,14 @@
         #clear-state-button:hover {
             background-color: #c0392b;
         }
-        #export-excel-button {
+        #export-excel-button, #import-excel-button {
             background-color: #2ecc71;
         }
-        #export-excel-button:hover {
+        #export-excel-button:hover, #import-excel-button:hover {
             background-color: #27ae60;
+        }
+        #import-file {
+            padding: 5px;
         }
         #jump-to-log {
             display: block;
@@ -175,7 +179,7 @@
             background-color: #2ecc71;
         }
         .copy-button.copied:hover {
-            background-color: #27ae60;
+            aiming-color: #27ae60;
         }
         .email-template {
             background-color: #f9f9f9;
@@ -222,7 +226,7 @@
 
     <div class="section">
         <h2>Executive Summary</h2>
-        <p>This application guides enterprises through a structured risk assessment, treatment, and residual risk evaluation process. It enables security teams to identify critical assets, assess threats and attack vectors, define risks, implement controls/mitigations, and evaluate residual risks. Results are recorded in a dynamic risk table, exportable to Excel, with options to delete individual risks and an Action Log to track activities, ensuring a comprehensive approach to managing cybersecurity risks.</p>
+        <p>This application guides enterprises through a structured risk assessment, treatment, and residual risk evaluation process. It enables security teams to identify critical assets, assess threats and attack vectors, define risks, implement controls/mitigations, and evaluate residual risks. Results are recorded in a dynamic risk table, importable and exportable to Excel with options to delete individual risks, and an Action Log tracks activities, ensuring a comprehensive approach to managing cybersecurity risks.</p>
     </div>
 
     <div class="section">
@@ -368,6 +372,8 @@ Best regards,
         <div class="button-container">
             <button id="add-risk">Add Risk to Table</button>
             <button id="export-excel-button">Export to Excel</button>
+            <input type="file" id="import-file" accept=".xlsx" style="margin-right: 10px;">
+            <button id="import-excel-button">Import from Excel</button>
         </div>
 
         <h3>Risk Table</h3>
@@ -404,7 +410,7 @@ Best regards,
             <textarea id="timeline-activity" placeholder="Enter activity description"></textarea>
             <button id="add-timeline" style="margin-left: 10px;">Add Timeline Entry</button>
         </div>
-        <p id="timeline-error">Please enter a name (either in User Information or Alternative Name) to add a timeline entry.</p>
+        <p id="timeline-error">Please enter a name and activity description.</p>
         <div id="log-list"></div>
         <div class="button-container">
             <button id="export-log">Export Log</button>
@@ -422,21 +428,6 @@ Best regards,
         let logEntries = [];
         let risks = [];
 
-        // Load data from local storage
-        function loadData() {
-            const savedLog = localStorage.getItem('riskAssessmentLog');
-            if (savedLog) {
-                logEntries = JSON.parse(savedLog);
-                updateLogDisplay();
-            }
-            const savedRisks = localStorage.getItem('riskAssessmentRisks');
-            if (savedRisks) {
-                risks = JSON.parse(savedRisks);
-                updateRiskTable();
-            }
-            loadUserInfo();
-        }
-
         // Load user info from local storage
         function loadUserInfo() {
             document.getElementById('user-name').value = localStorage.getItem('riskAssessmentUserName') || '';
@@ -446,17 +437,42 @@ Best regards,
             document.getElementById('timeline-alt-name').value = localStorage.getItem('riskAssessmentTimelineAltName') || '';
         }
 
+        // Load data from local storage
+        function loadData() {
+            try {
+                const savedLog = localStorage.getItem('riskAssessmentLog');
+                if (savedLog) {
+                    logEntries = JSON.parse(savedLog);
+                    updateLogDisplay();
+                }
+                const savedRisks = localStorage.getItem('riskAssessmentRisks');
+                if (savedRisks) {
+                    risks = JSON.parse(savedRisks);
+                    updateRiskTable();
+                }
+                loadUserInfo();
+            } catch (e) {
+                console.error('Error loading data from localStorage:', e);
+            }
+        }
+
         // Save user info to local storage
         function saveUserInfo() {
-            localStorage.setItem('riskAssessmentUserName', document.getElementById('user-name').value);
-            localStorage.setItem('riskAssessmentUserTitle', document.getElementById('user-title').value);
-            localStorage.setItem('riskAssessmentUserRole', document.getElementById('user-role').value);
-            localStorage.setItem('riskAssessmentUserOrg', document.getElementById('user-org').value);
-            localStorage.setItem('riskAssessmentTimelineAltName', document.getElementById('timeline-alt-name').value);
+            localStorage.setItem('riskAssessmentUserName', document.getElementById('user-name').value.trim());
+            localStorage.setItem('riskAssessmentUserTitle', document.getElementById('user-title').value.trim());
+            localStorage.setItem('riskAssessmentUserRole', document.getElementById('user-role').value.trim());
+            localStorage.setItem('riskAssessmentUserOrg', document.getElementById('user-org').value.trim());
+            localStorage.setItem('riskAssessmentTimelineAltName', document.getElementById('timeline-alt-name').value.trim());
         }
 
         // Calculate risk level
         function calculateRiskLevel(likelihood, impact) {
+            const validLikelihoods = ['Low', 'Medium', 'High'];
+            const validImpacts = ['Minor', 'Moderate', 'Severe'];
+            if (!validLikelihoods.includes(likelihood) || !validImpacts.includes(impact)) {
+                console.warn(`Invalid likelihood (${likelihood}) or impact (${impact}); defaulting to Medium`);
+                return 'Medium';
+            }
             if (likelihood === 'High' && impact === 'Severe') return 'High';
             if ((likelihood === 'High' && impact === 'Moderate') || (likelihood === 'Medium' && impact === 'Severe')) return 'High';
             if (likelihood === 'Low' && impact === 'Minor') return 'Low';
@@ -469,70 +485,81 @@ Best regards,
             tbody.innerHTML = '';
             risks.forEach((risk, index) => {
                 const row = document.createElement('tr');
-                row.innerHTML = `
-                    <td>${risk.asset}</td>
-                    <td>${risk.threat}</td>
-                    <td>${risk.vector}</td>
-                    <td>${risk.riskDescription}</td>
-                    <td>${risk.likelihood}</td>
-                    <td>${risk.impact}</td>
-                    <td>${risk.riskLevel}</td>
-                    <td>${risk.control}</td>
-                    <td>${risk.residualLikelihood}</td>
-                    <td>${risk.residualImpact}</td>
-                    <td>${risk.residualRiskLevel}</td>
-                    <td>${risk.notes}</td>
-                    <td><button class="delete-button" data-index="${index}">Delete</button></td>
-                `;
+                const fields = [
+                    risk.asset || '',
+                    risk.threat || '',
+                    risk.vector || '',
+                    risk.riskDescription || '',
+                    risk.likelihood || '',
+                    risk.impact || '',
+                    risk.riskLevel || '',
+                    risk.control || '',
+                    risk.residualLikelihood || '',
+                    risk.residualImpact || '',
+                    risk.residualRiskLevel || '',
+                    risk.notes || ''
+                ];
+                fields.forEach(field => {
+                    const td = document.createElement('td');
+                    td.textContent = field;
+                    row.appendChild(td);
+                });
+                const actionTd = document.createElement('td');
+                const deleteButton = document.createElement('button');
+                deleteButton.className = 'delete-button';
+                deleteButton.dataset.index = index;
+                deleteButton.textContent = 'Delete';
+                actionTd.appendChild(deleteButton);
+                row.appendChild(actionTd);
                 tbody.appendChild(row);
             });
             localStorage.setItem('riskAssessmentRisks', JSON.stringify(risks));
 
-            // Attach delete event listeners
-            document.querySelectorAll('.delete-button').forEach(button => {
-                button.addEventListener('click', (e) => {
+            // Use event delegation for delete buttons
+            tbody.onclick = (e) => {
+                if (e.target.classList.contains('delete-button')) {
                     const index = parseInt(e.target.dataset.index);
                     const deletedAsset = risks[index].asset;
                     risks.splice(index, 1);
                     updateRiskTable();
-
-                    // Log the deletion
                     const timestamp = new Date().toLocaleString();
                     const { name, title, role, org } = getUserInfo();
                     const entry = `[${timestamp}] ${name} (${title}, ${role}, ${org}) - Deleted risk for asset: ${deletedAsset}`;
                     logEntries.push(entry);
                     updateLogDisplay();
-                });
-            });
+                }
+            };
         }
 
         // Add risk to table
         document.getElementById('add-risk').addEventListener('click', () => {
+            const requiredFields = ['asset', 'threat', 'vector', 'risk-description'];
+            const missingFields = requiredFields.filter(id => !document.getElementById(id).value.trim());
+            if (missingFields.length > 0) {
+                alert(`Please fill in the following fields: ${missingFields.join(', ')}`);
+                return;
+            }
             const risk = {
-                asset: document.getElementById('asset').value,
-                threat: document.getElementById('threat').value,
-                vector: document.getElementById('vector').value,
-                riskDescription: document.getElementById('risk-description').value,
+                asset: document.getElementById('asset').value.trim(),
+                threat: document.getElementById('threat').value.trim(),
+                vector: document.getElementById('vector').value.trim(),
+                riskDescription: document.getElementById('risk-description').value.trim(),
                 likelihood: document.getElementById('likelihood').value,
                 impact: document.getElementById('impact').value,
-                control: document.getElementById('control').value,
+                control: document.getElementById('control').value.trim(),
                 residualLikelihood: document.getElementById('residual-likelihood').value,
                 residualImpact: document.getElementById('residual-impact').value,
-                notes: document.getElementById('notes').value
+                notes: document.getElementById('notes').value.trim()
             };
             risk.riskLevel = calculateRiskLevel(risk.likelihood, risk.impact);
             risk.residualRiskLevel = calculateRiskLevel(risk.residualLikelihood, risk.residualImpact);
             risks.push(risk);
             updateRiskTable();
-
-            // Log the action
             const timestamp = new Date().toLocaleString();
             const { name, title, role, org } = getUserInfo();
             const entry = `[${timestamp}] ${name} (${title}, ${role}, ${org}) - Added risk for asset: ${risk.asset}`;
             logEntries.push(entry);
             updateLogDisplay();
-
-            // Clear form
             document.getElementById('asset').value = '';
             document.getElementById('threat').value = '';
             document.getElementById('vector').value = '';
@@ -545,21 +572,75 @@ Best regards,
             document.getElementById('notes').value = '';
         });
 
+        // Import risk table from Excel
+        document.getElementById('import-excel-button').addEventListener('click', () => {
+            const fileInput = document.getElementById('import-file');
+            const file = fileInput.files[0];
+            if (!file) {
+                alert('Please select an Excel file to import.');
+                return;
+            }
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const data = new Uint8Array(e.target.result);
+                const workbook = XLSX.read(data, { type: 'array' });
+                const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+                const jsonData = XLSX.utils.sheet_to_json(firstSheet);
+                let importedCount = 0;
+                const validLikelihoods = ['Low', 'Medium', 'High'];
+                const validImpacts = ['Minor', 'Moderate', 'Severe'];
+                jsonData.forEach(row => {
+                    if (row['Asset'] && row['Threat'] && row['Attack Vector'] && row['Risk Description']) {
+                        const likelihood = validLikelihoods.includes(row['Likelihood']) ? row['Likelihood'] : 'Low';
+                        const impact = validImpacts.includes(row['Impact']) ? row['Impact'] : 'Minor';
+                        const residualLikelihood = validLikelihoods.includes(row['Residual Likelihood']) ? row['Residual Likelihood'] : 'Low';
+                        const residualImpact = validImpacts.includes(row['Residual Impact']) ? row['Residual Impact'] : 'Minor';
+                        const risk = {
+                            asset: String(row['Asset'] || ''),
+                            threat: String(row['Threat'] || ''),
+                            vector: String(row['Attack Vector'] || ''),
+                            riskDescription: String(row['Risk Description'] || ''),
+                            likelihood,
+                            impact,
+                            riskLevel: row['Risk Level'] || calculateRiskLevel(likelihood, impact),
+                            control: String(row['Control/Mitigation'] || ''),
+                            residualLikelihood,
+                            residualImpact,
+                            residualRiskLevel: row['Residual Risk Level'] || calculateRiskLevel(residualLikelihood, residualImpact),
+                            notes: String(row['Notes'] || '')
+                        };
+                        risks.push(risk);
+                        importedCount++;
+                    } else {
+                        console.warn('Skipped invalid row:', row);
+                    }
+                });
+                updateRiskTable();
+                const timestamp = new Date().toLocaleString();
+                const { name, title, role, org } = getUserInfo();
+                const entry = `[${timestamp}] ${name} (${title}, ${role}, ${org}) - Imported ${importedCount} risks from Excel`;
+                logEntries.push(entry);
+                updateLogDisplay();
+                fileInput.value = '';
+            };
+            reader.readAsArrayBuffer(file);
+        });
+
         // Export risk table to Excel
         document.getElementById('export-excel-button').addEventListener('click', () => {
             const worksheetData = risks.map(risk => ({
-                Asset: risk.asset,
-                Threat: risk.threat,
-                'Attack Vector': risk.vector,
-                'Risk Description': risk.riskDescription,
-                Likelihood: risk.likelihood,
-                Impact: risk.impact,
-                'Risk Level': risk.riskLevel,
-                'Control/Mitigation': risk.control,
-                'Residual Likelihood': risk.residualLikelihood,
-                'Residual Impact': risk.residualImpact,
-                'Residual Risk Level': risk.residualRiskLevel,
-                Notes: risk.notes
+                Asset: String(risk.asset || ''),
+                Threat: String(risk.threat || ''),
+                'Attack Vector': String(risk.vector || ''),
+                'Risk Description': String(risk.riskDescription || ''),
+                Likelihood: String(risk.likelihood || ''),
+                Impact: String(risk.impact || ''),
+                'Risk Level': String(risk.riskLevel || ''),
+                'Control/Mitigation': String(risk.control || ''),
+                'Residual Likelihood': String(risk.residualLikelihood || ''),
+                'Residual Impact': String(risk.residualImpact || ''),
+                'Residual Risk Level': String(risk.residualRiskLevel || ''),
+                Notes: String(risk.notes || '')
             }));
             const worksheet = XLSX.utils.json_to_sheet(worksheetData);
             const workbook = XLSX.utils.book_new();
@@ -572,8 +653,6 @@ Best regards,
             a.download = `Risk_Assessment_${new Date().toISOString().replace(/[:.]/g, '-')}.xlsx`;
             a.click();
             URL.revokeObjectURL(url);
-
-            // Log the action
             const timestamp = new Date().toLocaleString();
             const { name, title, role, org } = getUserInfo();
             const entry = `[${timestamp}] ${name} (${title}, ${role}, ${org}) - Exported risk table to Excel`;
@@ -584,10 +663,10 @@ Best regards,
         // Get user info for log entry
         function getUserInfo() {
             return {
-                name: document.getElementById('user-name').value || 'Unknown',
-                title: document.getElementById('user-title').value || 'N/A',
-                role: document.getElementById('user-role').value || 'N/A',
-                org: document.getElementById('user-org').value || 'N/A'
+                name: document.getElementById('user-name').value.trim() || 'Unknown',
+                title: document.getElementById('user-title').value.trim() || 'N/A',
+                role: document.getElementById('user-role').value.trim() || 'N/A',
+                org: document.getElementById('user-org').value.trim() || 'N/A'
             };
         }
 
@@ -597,17 +676,21 @@ Best regards,
             const altNameInput = document.getElementById('timeline-alt-name');
             const activityInput = document.getElementById('timeline-activity');
             const errorDisplay = document.getElementById('timeline-error');
-
             if (!nameInput.value.trim() && !altNameInput.value.trim()) {
+                errorDisplay.textContent = 'Please enter a name (either in User Information or Alternative Name).';
                 errorDisplay.style.display = 'block';
                 return false;
             }
-
+            if (!activityInput.value.trim()) {
+                errorDisplay.textContent = 'Please enter an activity description.';
+                errorDisplay.style.display = 'block';
+                return false;
+            }
             errorDisplay.style.display = 'none';
             const timestamp = new Date().toLocaleString();
             const { title, role, org } = getUserInfo();
             const name = altNameInput.value.trim() || nameInput.value.trim() || 'Unknown';
-            const activity = activityInput.value.trim() || 'No description provided';
+            const activity = activityInput.value.trim();
             const entry = `[${timestamp}] ${name} (${title}, ${role}, ${org}) - Timeline Entry: ${activity}`;
             logEntries.push(entry);
             updateLogDisplay();
@@ -620,7 +703,12 @@ Best regards,
         // Update log display
         function updateLogDisplay() {
             const logList = document.getElementById('log-list');
-            logList.innerHTML = logEntries.map(entry => `<p>${entry}</p>`).join('');
+            logList.innerHTML = '';
+            logEntries.forEach(entry => {
+                const p = document.createElement('p');
+                p.textContent = entry;
+                logList.appendChild(p);
+            });
             logList.scrollTop = logList.scrollHeight;
             localStorage.setItem('riskAssessmentLog', JSON.stringify(logEntries));
         }
@@ -642,6 +730,9 @@ Best regards,
 
         // Clear state
         function clearState() {
+            if (!confirm('Are you sure you want to clear all data? This action cannot be undone.')) {
+                return;
+            }
             risks = [];
             logEntries = [];
             updateRiskTable();
@@ -660,6 +751,7 @@ Best regards,
             localStorage.removeItem('riskAssessmentLog');
             localStorage.removeItem('riskAssessmentRisks');
             document.getElementById('timeline-error').style.display = 'none';
+            document.getElementById('import-file').value = '';
         }
 
         // Initialize event listeners
@@ -694,14 +786,37 @@ Best regards,
             if (copyButton) {
                 copyButton.addEventListener('click', () => {
                     const queryText = document.getElementById('email-template').textContent;
-                    navigator.clipboard.writeText(queryText).then(() => {
-                        copyButton.textContent = 'Copied!';
-                        copyButton.classList.add('copied');
-                        setTimeout(() => {
-                            copyButton.textContent = 'Copy to Clipboard';
-                            copyButton.classList.remove('copied');
-                        }, 2000);
-                    });
+                    if (navigator.clipboard) {
+                        navigator.clipboard.writeText(queryText).then(() => {
+                            copyButton.textContent = 'Copied!';
+                            copyButton.classList.add('copied');
+                            setTimeout(() => {
+                                copyButton.textContent = 'Copy to Clipboard';
+                                copyButton.classList.remove('copied');
+                            }, 2000);
+                        }).catch(err => {
+                            console.error('Clipboard copy failed:', err);
+                            alert('Failed to copy to clipboard. Please copy manually.');
+                        });
+                    } else {
+                        const textarea = document.createElement('textarea');
+                        textarea.value = queryText;
+                        document.body.appendChild(textarea);
+                        textarea.select();
+                        try {
+                            document.execCommand('copy');
+                            copyButton.textContent = 'Copied!';
+                            copyButton.classList.add('copied');
+                            setTimeout(() => {
+                                copyButton.textContent = 'Copy to Clipboard';
+                                copyButton.classList.remove('copied');
+                            }, 2000);
+                        } catch (err) {
+                            console.error('Clipboard copy failed:', err);
+                            alert('Failed to copy to clipboard. Please copy manually.');
+                        }
+                        document.body.removeChild(textarea);
+                    }
                 });
             }
         });
