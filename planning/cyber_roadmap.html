@@ -140,11 +140,10 @@
             right: 20px;
             font-size: 24px;
             cursor: pointer;
-            transition: transform 0.3s;
+            color: #ffd700; /* Gold for lit bulb in light mode */
         }
         body.dark-mode .theme-toggle {
-            transform: rotate(180deg);
-            color: #ffd700; /* Gold color for glowing effect in dark mode */
+            color: #888; /* Gray for unlit bulb in dark mode */
         }
         /* Adjust Gantt chart colors for dark mode */
         body.dark-mode .gantt .bar {
@@ -212,12 +211,17 @@
         // Load theme from localStorage
         if (localStorage.getItem('theme') === 'dark') {
             document.body.classList.add('dark-mode');
+            document.getElementById('theme-toggle').textContent = '🕴';
+        } else {
+            document.getElementById('theme-toggle').textContent = '💡';
         }
 
         // Theme toggle event listener
         document.getElementById('theme-toggle').addEventListener('click', () => {
             document.body.classList.toggle('dark-mode');
-            localStorage.setItem('theme', document.body.classList.contains('dark-mode') ? 'dark' : 'light');
+            const isDarkMode = document.body.classList.contains('dark-mode');
+            document.getElementById('theme-toggle').textContent = isDarkMode ? '🕴' : '💡';
+            localStorage.setItem('theme', isDarkMode ? 'dark' : 'light');
         });
 
         const genericTasks = [
@@ -470,7 +474,7 @@
 
         function handleDelete(e) {
             const id = parseInt(e.target.dataset.id);
-            activities = activities.filter(a => a.id !== id);
+            activities = activities.filter(a => a.id === id);
             activities.forEach(a => {
                 a.predecessors = a.predecessors.filter(pred => pred !== id);
             });
