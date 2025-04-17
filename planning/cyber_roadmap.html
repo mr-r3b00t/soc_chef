@@ -140,10 +140,10 @@
             right: 20px;
             font-size: 24px;
             cursor: pointer;
-            color: #ffd700; /* Gold for lit bulb in light mode */
+            color: #888; /* Gray for unlit bulb in light mode */
         }
         body.dark-mode .theme-toggle {
-            color: #888; /* Gray for unlit bulb in dark mode */
+            color: #ffd700; /* Gold for lit bulb in dark mode */
         }
         /* Adjust Gantt chart colors for dark mode */
         body.dark-mode .gantt .bar {
@@ -165,7 +165,7 @@
     </style>
 </head>
 <body>
-    <div id="theme-toggle" class="theme-toggle">💡</div>
+    <div id="theme-toggle" class="theme-toggle">🕴</div>
     <h1>Security Programme Roadmap Designer</h1>
 
     <div class="activities-section">
@@ -211,16 +211,16 @@
         // Load theme from localStorage
         if (localStorage.getItem('theme') === 'dark') {
             document.body.classList.add('dark-mode');
-            document.getElementById('theme-toggle').textContent = '🕴';
-        } else {
             document.getElementById('theme-toggle').textContent = '💡';
+        } else {
+            document.getElementById('theme-toggle').textContent = '🕴';
         }
 
         // Theme toggle event listener
         document.getElementById('theme-toggle').addEventListener('click', () => {
             document.body.classList.toggle('dark-mode');
             const isDarkMode = document.body.classList.contains('dark-mode');
-            document.getElementById('theme-toggle').textContent = isDarkMode ? '🕴' : '💡';
+            document.getElementById('theme-toggle').textContent = isDarkMode ? '💡' : '🕴';
             localStorage.setItem('theme', isDarkMode ? 'dark' : 'light');
         });
 
@@ -474,7 +474,7 @@
 
         function handleDelete(e) {
             const id = parseInt(e.target.dataset.id);
-            activities = activities.filter(a => a.id === id);
+            activities = activities.filter(a => a.id !== id);
             activities.forEach(a => {
                 a.predecessors = a.predecessors.filter(pred => pred !== id);
             });
