@@ -103,9 +103,12 @@
         .not-achieved { color: red; }
         .partially-achieved { color: orange; }
         .achieved { color: green; }
-        #file-input {
+        #file-input-container {
             margin: 20px auto;
-            display: block;
+            text-align: center;
+        }
+        #file-input {
+            margin-top: 10px;
         }
         #generate-report {
             margin-top: 15px;
@@ -123,14 +126,22 @@
             text-align: center;
             margin-bottom: 20px;
         }
+        .error-message {
+            color: red;
+            text-align: center;
+            margin-bottom: 20px;
+        }
     </style>
 </head>
 <body>
     <h1>Cyber Assessment Framework (CAF) Assessment Tool</h1>
-    <p class="instruction">Upload the CAF data file to begin the assessment. Each subsection will display Indicators of Good Practice (IGPs) to help you determine the compliance level.</p>
-    <input type="file" id="file-input" accept=".html">
+    <p class="instruction">Loading CAF data from URL. If this fails, upload the CAF data file below. Each subsection will display Indicators of Good Practice (IGPs) to help you determine the compliance level.</p>
+    <div id="file-input-container" style="display: none;">
+        <p class="error-message">Failed to load CAF data from URL. Please upload the CAF data file to begin the assessment.</p>
+        <input type="file" id="file-input" accept=".html">
+    </div>
     <div id="caf-content">
-        <p>Please upload the CAF data file to begin the assessment.</p>
+        <p>Loading CAF data...</p>
     </div>
     <div id="action-log">
         <h3>Action Log</h3>
@@ -139,6 +150,7 @@
     </div>
     <script>
         let cafData = [];
+        const CAF_URL = 'https://mr-r3b00t.github.io/soc_chef/resources/caf_3_2.html';
 
         function parseIGPs(cell) {
             const igps = { notAchieved: [], partiallyAchieved: [], achieved: [] };
@@ -284,22 +296,47 @@
             }
         }
 
+        function showFileUpload() {
+            const fileInputContainer = document.getElementById('file-input-container');
+            fileInputContainer.style.display = 'block';
+            const contentDiv = document.getElementById('caf-content');
+            contentDiv.innerHTML = '<p>Please upload the CAF data file to begin the assessment.</p>';
+        }
+
+        function processHTML(htmlContent) {
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(htmlContent, 'text/html');
+            const table = doc.querySelector('table');
+            if (table) {
+                cafData = parseTable(table);
+                generateAssessmentSections(cafData);
+                initializeFromStorage(cafData);
+            } else {
+                showFileUpload();
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            fetch(CAF_URL)
+                .then(response => {
+                    if (!response.ok) throw new Error('Network response was not ok');
+                    return response.text();
+                })
+                .then(htmlContent => {
+                    processHTML(htmlContent);
+                })
+                .catch(error => {
+                    console.error('Error fetching CAF data:', error);
+                    showFileUpload();
+                });
+        });
+
         document.getElementById('file-input').addEventListener('change', function(event) {
             const file = event.target.files[0];
             if (file) {
                 const reader = new FileReader();
                 reader.onload = function(e) {
-                    const htmlContent = e.target.result;
-                    const parser = new DOMParser();
-                    const doc = parser.parseFromString(htmlContent, 'text/html');
-                    const table = doc.querySelector('table');
-                    if (table) {
-                        cafData = parseTable(table);
-                        generateAssessmentSections(cafData);
-                        initializeFromStorage(cafData);
-                    } else {
-                        alert('No table found in the uploaded file.');
-                    }
+                    processHTML(e.target.result);
                 };
                 reader.readAsText(file);
             }
