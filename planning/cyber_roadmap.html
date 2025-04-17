@@ -41,7 +41,7 @@
             margin: 0;
             display: flex;
             flex-direction: column;
-            height: 100vh;
+            min-height: 100vh;
             box-sizing: border-box;
             background-color: #ffffff;
             color: #000000;
@@ -56,19 +56,37 @@
         }
         h2 {
             margin-top: 0;
+            margin-bottom: 0;
+            display: inline-block;
+        }
+        .main-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
         }
         .activities-section, .roadmap-section {
-            max-height: 45vh;
-            overflow-y: auto;
             padding: 10px;
             box-sizing: border-box;
             border: 1px solid #ddd;
-            margin-bottom: 10px;
             background-color: #ffffff;
+            transition: height 0.2s ease;
         }
         body.dark-mode .activities-section, body.dark-mode .roadmap-section {
             border-color: #555;
             background-color: #2a2a2a;
+        }
+        .activities-section.minimized, .roadmap-section.minimized {
+            height: 40px;
+            overflow: hidden;
+        }
+        .activities-section:not(.minimized), .roadmap-section:not(.minimized) {
+            flex: 1;
+            overflow-y: auto;
+        }
+        .both-maximized .activities-section:not(.minimized),
+        .both-maximized .roadmap-section:not(.minimized) {
+            flex: 0 0 50%;
         }
         .buttons-section {
             padding: 10px;
@@ -120,6 +138,32 @@
         #summary {
             font-weight: bold;
             margin-bottom: 10px;
+        }
+        #summary table {
+            width: auto;
+            font-size: 12px;
+            margin: 0;
+            border-collapse: collapse;
+            background-color: #ffffff;
+        }
+        body.dark-mode #summary table {
+            background-color: #2a2a2a;
+        }
+        #summary th, #summary td {
+            padding: 4px 8px;
+            border: 1px solid #ddd;
+            text-align: left;
+            white-space: nowrap;
+        }
+        body.dark-mode #summary th, body.dark-mode #summary td {
+            border-color: #555;
+        }
+        #summary th {
+            background-color: #f0f0f0;
+            font-weight: bold;
+        }
+        body.dark-mode #summary th {
+            background-color: #444;
         }
         select[multiple] {
             height: 100px;
@@ -178,48 +222,73 @@
         #import-tasks {
             display: none;
         }
+        .section-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 5px;
+        }
+        .toggle-btn {
+            font-size: 12px;
+            padding: 3px 8px;
+        }
+        .section-content {
+            transition: all 0.2s ease;
+        }
+        .minimized .section-content {
+            display: none;
+        }
     </style>
 </head>
 <body>
     <div id="theme-toggle" class="theme-toggle">🕴</div>
     <h1>Project Planning Tool</h1>
-
-    <div class="activities-section">
-        <h2>Activities</h2>
-        <table id="activities-table">
-            <thead>
-                <tr>
-                    <th>ID</th>
-                    <th>Name</th>
-                    <th>Phase</th>
-                    <th>Owner</th>
-                    <th>Equipment/Services Cost (£)</th>
-                    <th>Day Rate (£)</th>
-                    <th>Internal</th>
-                    <th>Allow Weekend Work</th>
-                    <th>Effort (days)</th>
-                    <th>Calculated Cost (£)</th>
-                    <th>Desired Start Date</th>
-                    <th>Dependencies</th>
-                    <th>Actions</th>
-                </tr>
-            </thead>
-            <tbody></tbody>
-        </table>
-    </div>
-
-    <div class="buttons-section">
-        <button id="add-activity">Add Activity</button>
-        <button id="clear-all">Clear All Tasks</button>
-        <button id="export-tasks">Export Tasks</button>
-        <label for="import-tasks" class="button-label">Import Tasks</label>
-        <input type="file" id="import-tasks" accept=".json">
-    </div>
-
-    <div class="roadmap-section">
-        <h2>Roadmap</h2>
-        <div id="summary"></div>
-        <div id="gantt"></div>
+    <div class="main-container">
+        <div class="activities-section">
+            <div class="section-header">
+                <h2>Activities</h2>
+                <button id="toggle-activities" class="toggle-btn">Minimize</button>
+            </div>
+            <div id="activities-content" class="section-content">
+                <table id="activities-table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Name</th>
+                            <th>Phase</th>
+                            <th>Owner</th>
+                            <th>Equipment/Services Cost (£)</th>
+                            <th>Day Rate (£)</th>
+                            <th>Internal</th>
+                            <th>Allow Weekend Work</th>
+                            <th>Effort (days)</th>
+                            <th>Calculated Cost (£)</th>
+                            <th>Desired Start Date</th>
+                            <th>Dependencies</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+        <div class="buttons-section">
+            <button id="add-activity">Add Activity</button>
+            <button id="clear-all">Clear All Tasks</button>
+            <button id="export-tasks">Export Tasks</button>
+            <label for="import-tasks" class="button-label">Import Tasks</label>
+            <input type="file" id="import-tasks" accept=".json">
+        </div>
+        <div class="roadmap-section">
+            <div class="section-header">
+                <h2>Roadmap</h2>
+                <button id="toggle-roadmap" class="toggle-btn">Minimize</button>
+            </div>
+            <div id="roadmap-content" class="section-content">
+                <div id="summary"></div>
+                <div id="gantt"></div>
+            </div>
+        </div>
     </div>
 
     <script src="https://unpkg.com/frappe-gantt@0.5.0/dist/frappe-gantt.min.js"></script>
@@ -265,6 +334,35 @@
             document.getElementById('theme-toggle').textContent = isDarkMode ? '💡' : '🕴';
             localStorage.setItem('theme', isDarkMode ? 'dark' : 'light');
         });
+
+        // Toggle functionality for Activities section
+        const activitiesSection = document.querySelector('.activities-section');
+        const roadmapSection = document.querySelector('.roadmap-section');
+        const mainContainer = document.querySelector('.main-container');
+        const toggleActivitiesBtn = document.getElementById('toggle-activities');
+        toggleActivitiesBtn.addEventListener('click', () => {
+            activitiesSection.classList.toggle('minimized');
+            toggleActivitiesBtn.textContent = activitiesSection.classList.contains('minimized') ? 'Maximize' : 'Minimize';
+            updateSectionHeights();
+        });
+
+        // Toggle functionality for Roadmap section
+        const toggleRoadmapBtn = document.getElementById('toggle-roadmap');
+        toggleRoadmapBtn.addEventListener('click', () => {
+            roadmapSection.classList.toggle('minimized');
+            toggleRoadmapBtn.textContent = roadmapSection.classList.contains('minimized') ? 'Maximize' : 'Minimize';
+            updateSectionHeights();
+        });
+
+        function updateSectionHeights() {
+            const isActivitiesMinimized = activitiesSection.classList.contains('minimized');
+            const isRoadmapMinimized = roadmapSection.classList.contains('minimized');
+            if (!isActivitiesMinimized && !isRoadmapMinimized) {
+                mainContainer.classList.add('both-maximized');
+            } else {
+                mainContainer.classList.remove('both-maximized');
+            }
+        }
 
         function addWorkDays(startDay, effort, allowWeekendWork) {
             let currentDay = startDay;
@@ -710,15 +808,17 @@
             const endDateFormatted = new Date(2023, 0, 1 + maxEnd).toISOString().split('T')[0];
 
             document.getElementById('summary').innerHTML = `
-                <p>Roadmap Start Date: ${startDateFormatted}</p>
-                <p>Roadmap End Date: ${endDateFormatted}</p>
-                <p>Total Budget: £${totalCost.toFixed(2)}</p>
-                <p>Internal Cost: £${internalCost.toFixed(2)}</p>
-                <p>External Cost: £${externalCost.toFixed(2)}</p>
-                <p>Total Duration: ${totalDuration >= 0 ? totalDuration : 0} days</p>
-                <p>Total Effort: ${totalEffort} days</p>
-                <p>Internal Effort: ${internalEffort} days</p>
-                <p>External Effort: ${externalEffort} days</p>
+                <table>
+                    <tr><th>Start Date</th><td>${startDateFormatted}</td></tr>
+                    <tr><th>End Date</th><td>${endDateFormatted}</td></tr>
+                    <tr><th>Total Budget</th><td>£${totalCost.toFixed(2)}</td></tr>
+                    <tr><th>Internal Cost</th><td>£${internalCost.toFixed(2)}</td></tr>
+                    <tr><th>External Cost</th><td>£${externalCost.toFixed(2)}</td></tr>
+                    <tr><th>Total Duration</th><td>${totalDuration >= 0 ? totalDuration : 0} days</td></tr>
+                    <tr><th>Total Effort</th><td>${totalEffort} days</td></tr>
+                    <tr><th>Internal Effort</th><td>${internalEffort} days</td></tr>
+                    <tr><th>External Effort</th><td>${externalEffort} days</td></tr>
+                </table>
             `;
 
             const tasks = activities.map(a => ({
