@@ -17,7 +17,7 @@ Reactive Orgs that either do not have Policies, Processes and Procedures or ones
 
 🧑‍🤝‍🧑 [Joiners, Movers, Leavers (JML)](https://mr-r3b00t.github.io/soc_chef/processes/identitymanagement/joinersmoversleavers.html)
 
-🇬🇧 [CAF Assessment - very experimental](https://mr-r3b00t.github.io/soc_chef/processes/governance/caf.html)
+🇬🇧 [CAF Planning Assessment - very experimental](https://mr-r3b00t.github.io/soc_chef/processes/governance/caf.html)
 
 🇬🇧 [CAF 3.2 Assessment PoC- very experimental](https://mr-r3b00t.github.io/soc_chef/assessments/caf/caf_tool.html)
 
