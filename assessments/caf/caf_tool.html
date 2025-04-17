@@ -110,7 +110,7 @@
         #file-input {
             margin-top: 10px;
         }
-        #generate-report {
+        #generate-report, #clear-data {
             margin-top: 15px;
             padding: 10px 20px;
             background-color: #2c3e50;
@@ -118,8 +118,9 @@
             border: none;
             border-radius: 5px;
             cursor: pointer;
+            margin-right: 10px;
         }
-        #generate-report:hover {
+        #generate-report:hover, #clear-data:hover {
             background-color: #34495e;
         }
         .instruction {
@@ -145,7 +146,7 @@
         }
         #metadata-form label {
             display: block;
-            margin-bottom: 5px;
+            margin-bottom: basin5px;
             font-weight: bold;
         }
         #metadata-form input, #metadata-form select {
@@ -208,8 +209,33 @@
         <h3>Responses</h3>
         <ul id="response-list"></ul>
         <button id="generate-report">Generate Report</button>
+        <button id="clear-data">Clear Data</button>
     </div>
     <script>
+        var gk_isXlsx = false;
+        var gk_xlsxFileLookup = {};
+        var gk_fileData = {};
+        function loadFileData(filename) {
+            if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
+                try {
+                    var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
+                    var firstSheetName = workbook.SheetNames[0];
+                    var worksheet = workbook.Sheets[firstSheetName];
+                    var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
+                    var filteredData = jsonData.filter(row =>
+                        row.some(cell => cell !== '' && cell !== null && cell !== undefined)
+                    );
+                    var csv = XLSX.utils.aoa_to_sheet(filteredData);
+                    csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
+                    return csv;
+                } catch (e) {
+                    console.error(e);
+                    return "";
+                }
+            }
+            return gk_fileData[filename] || "";
+        }
+
         let cafData = [];
         const CAF_URL = 'https://mr-r3b00t.github.io/soc_chef/resources/caf_3_2.html';
 
@@ -406,7 +432,6 @@
                     if (radio && savedDifficulty !== 'Not Required') radio.checked = true;
                 }
             });
-            // Load metadata
             const metadata = ['assessor-name', 'assessment-date', 'status', 'organisation-name'];
             metadata.forEach(field => {
                 const savedValue = localStorage.getItem(field);
@@ -486,6 +511,31 @@
             }
         }
 
+        function clearAllData() {
+            if (confirm('Are you sure you want to clear all assessment data? This action cannot be undone.')) {
+                localStorage.clear();
+                const metadataForm = document.getElementById('metadata-form');
+                metadataForm.querySelectorAll('input, select').forEach(input => {
+                    input.value = input.type === 'select-one' ? '' : '';
+                });
+                document.querySelectorAll('input[type="radio"]').forEach(radio => {
+                    radio.checked = false;
+                });
+                document.querySelectorAll('textarea.notes-input').forEach(textarea => {
+                    textarea.value = '';
+                });
+                document.getElementById('log-list').innerHTML = '';
+                document.getElementById('response-list').innerHTML = '';
+                cafData.forEach(subsection => {
+                    const difficultyGroup = document.getElementById(`difficulty-group-${subsection.code}`);
+                    if (difficultyGroup) {
+                        difficultyGroup.classList.remove('disabled-section');
+                    }
+                });
+                alert('All data has been cleared.');
+            }
+        }
+
         document.addEventListener('DOMContentLoaded', function() {
             fetch(CAF_URL)
                 .then(response => {
@@ -536,6 +586,7 @@
         });
 
         document.getElementById('generate-report').addEventListener('click', generateReport);
+        document.getElementById('clear-data').addEventListener('click', clearAllData);
 
         function generateReport() {
             const metadata = {
