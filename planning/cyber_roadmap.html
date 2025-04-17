@@ -1,0 +1,378 @@
+<script type="text/javascript">
+        var gk_isXlsx = false;
+        var gk_xlsxFileLookup = {};
+        var gk_fileData = {};
+        function loadFileData(filename) {
+        if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
+            try {
+                var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
+                var firstSheetName = workbook.SheetNames[0];
+                var worksheet = workbook.Sheets[firstSheetName];
+
+                // Convert sheet to JSON to filter blank rows
+                var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
+                // Filter out blank rows (rows where all cells are empty, null, or undefined)
+                var filteredData = jsonData.filter(row =>
+                    row.some(cell => cell !== '' && cell !== null && cell !== undefined)
+                );
+
+                // Convert filtered JSON back to CSV
+                var csv = XLSX.utils.aoa_to_sheet(filteredData); // Create a new sheet from filtered array of arrays
+                csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
+                return csv;
+            } catch (e) {
+                console.error(e);
+                return "";
+            }
+        }
+        return gk_fileData[filename] || "";
+        }
+        </script><!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Security Programme Roadmap Designer</title>
+    <link rel="stylesheet" href="https://unpkg.com/frappe-gantt@0.5.0/dist/frappe-gantt.css">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 10px;
+        }
+        th, td {
+            padding: 8px;
+            border: 1px solid #ddd;
+            text-align: left;
+        }
+        input, select {
+            width: 100%;
+            box-sizing: border-box;
+        }
+        button {
+            margin: 5px;
+            padding: 5px 10px;
+        }
+        #gantt {
+            margin-top: 20px;
+        }
+        #summary {
+            font-weight: bold;
+        }
+        select[multiple] {
+            height: 100px;
+        }
+        .calculated-cost {
+            background-color: #f0f0f0;
+            pointer-events: none;
+        }
+    </style>
+</head>
+<body>
+    <h1>Security Programme Roadmap Designer</h1>
+
+    <h2>Activities</h2>
+    <table id="activities-table">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Name</th>
+                <th>Owner</th>
+                <th>Equipment/Services Cost (£)</th>
+                <th>Day Rate (£)</th>
+                <th>Internal</th>
+                <th>Effort (days)</th>
+                <th>Calculated Cost (£)</th>
+                <th>Desired Start Date</th>
+                <th>Dependencies</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody></tbody>
+    </table>
+    <button id="add-activity">Add Activity</button>
+    <button id="generate-roadmap">Generate Roadmap</button>
+
+    <h2>Roadmap</h2>
+    <div id="summary"></div>
+    <div id="gantt"></div>
+
+    <script src="https://unpkg.com/frappe-gantt@0.5.0/dist/frappe-gantt.min.js"></script>
+    <script>
+        let activities = [];
+        let idCounter = 1;
+        const DEFAULT_DAY_RATE = 1000;
+
+        function renderActivitiesTable() {
+            const tbody = document.querySelector('#activities-table tbody');
+            tbody.innerHTML = '';
+            activities.forEach(activity => {
+                const row = document.createElement('tr');
+                let dependencyOptions = '<option value="" disabled>Select dependencies</option>';
+                activities.forEach(other => {
+                    if (other.id !== activity.id) {
+                        const selected = activity.predecessors.includes(other.id) ? 'selected' : '';
+                        dependencyOptions += `<option value="${other.id}" ${selected}>Activity ${other.id}: ${other.name || 'Unnamed'}</option>`;
+                    }
+                });
+                const calculatedCost = activity.effort * (activity.isInternal ? activity.dayRate * 0.5 : activity.dayRate);
+                row.innerHTML = `
+                    <td>${activity.id}</td>
+                    <td><input type="text" value="${activity.name}" data-id="${activity.id}" class="name-input"></td>
+                    <td><input type="text" value="${activity.owner}" data-id="${activity.id}" class="owner-input"></td>
+                    <td><input type="number" value="${activity.equipmentCost}" data-id="${activity.id}" class="equipment-cost-input" min="0" step="0.01"></td>
+                    <td><input type="number" value="${activity.dayRate}" data-id="${activity.id}" class="day-rate-input" min="0" step="0.01"></td>
+                    <td><input type="checkbox" ${activity.isInternal ? 'checked' : ''} data-id="${activity.id}" class="internal-input"></td>
+                    <td><input type="number" value="${activity.effort}" data-id="${activity.id}" class="effort-input" min="1"></td>
+                    <td><input type="text" value="${calculatedCost.toFixed(2)}" class="calculated-cost" readonly></td>
+                    <td><input type="date" value="${activity.desiredStartDate || ''}" data-id="${activity.id}" class="start-date-input"></td>
+                    <td><select multiple data-id="${activity.id}" class="dependency-input">${dependencyOptions}</select></td>
+                    <td><button data-id="${activity.id}" class="delete-btn">Delete</button></td>
+                `;
+                tbody.appendChild(row);
+            });
+
+            attachEventListeners();
+        }
+
+        function attachEventListeners() {
+            document.querySelectorAll('.name-input').forEach(input => {
+                input.removeEventListener('change', handleNameChange);
+                input.addEventListener('change', handleNameChange);
+            });
+            document.querySelectorAll('.owner-input').forEach(input => {
+                input.removeEventListener('change', handleOwnerChange);
+                input.addEventListener('change', handleOwnerChange);
+            });
+            document.querySelectorAll('.equipment-cost-input').forEach(input => {
+                input.removeEventListener('change', handleEquipmentCostChange);
+                input.addEventListener('change', handleEquipmentCostChange);
+            });
+            document.querySelectorAll('.day-rate-input').forEach(input => {
+                input.removeEventListener('change', handleDayRateChange);
+                input.addEventListener('change', handleDayRateChange);
+            });
+            document.querySelectorAll('.internal-input').forEach(input => {
+                input.removeEventListener('change', handleInternalChange);
+                input.addEventListener('change', handleInternalChange);
+            });
+            document.querySelectorAll('.effort-input').forEach(input => {
+                input.removeEventListener('change', handleEffortChange);
+                input.addEventListener('change', handleEffortChange);
+            });
+            document.querySelectorAll('.start-date-input').forEach(input => {
+                input.removeEventListener('change', handleStartDateChange);
+                input.addEventListener('change', handleStartDateChange);
+            });
+            document.querySelectorAll('.dependency-input').forEach(select => {
+                select.removeEventListener('change', handleDependencyChange);
+                select.addEventListener('change', handleDependencyChange);
+            });
+            document.querySelectorAll('.delete-btn').forEach(btn => {
+                btn.removeEventListener('click', handleDelete);
+                btn.addEventListener('click', handleDelete);
+            });
+        }
+
+        function handleNameChange(e) {
+            const id = parseInt(e.target.dataset.id);
+            activities.find(a => a.id === id).name = e.target.value;
+            renderActivitiesTable();
+        }
+
+        function handleOwnerChange(e) {
+            const id = parseInt(e.target.dataset.id);
+            activities.find(a => a.id === id).owner = e.target.value;
+        }
+
+        function handleEquipmentCostChange(e) {
+            const id = parseInt(e.target.dataset.id);
+            activities.find(a => a.id === id).equipmentCost = parseFloat(e.target.value) || 0;
+            renderActivitiesTable();
+        }
+
+        function handleDayRateChange(e) {
+            const id = parseInt(e.target.dataset.id);
+            activities.find(a => a.id === id).dayRate = parseFloat(e.target.value) || DEFAULT_DAY_RATE;
+            renderActivitiesTable();
+        }
+
+        function handleInternalChange(e) {
+            const id = parseInt(e.target.dataset.id);
+            activities.find(a => a.id === id).isInternal = e.target.checked;
+            renderActivitiesTable();
+        }
+
+        function handleEffortChange(e) {
+            const id = parseInt(e.target.dataset.id);
+            activities.find(a => a.id === id).effort = parseInt(e.target.value) || 1;
+            renderActivitiesTable();
+        }
+
+        function handleStartDateChange(e) {
+            const id = parseInt(e.target.dataset.id);
+            activities.find(a => a.id === id).desiredStartDate = e.target.value;
+        }
+
+        function handleDependencyChange(e) {
+            const id = parseInt(e.target.dataset.id);
+            const activity = activities.find(a => a.id === id);
+            activity.predecessors = Array.from(e.target.selectedOptions, option => parseInt(option.value)).filter(val => !isNaN(val));
+        }
+
+        function handleDelete(e) {
+            const id = parseInt(e.target.dataset.id);
+            activities = activities.filter(a => a.id !== id);
+            activities.forEach(a => {
+                a.predecessors = a.predecessors.filter(pred => pred !== id);
+            });
+            renderActivitiesTable();
+        }
+
+        document.getElementById('add-activity').addEventListener('click', () => {
+            const newActivity = {
+                id: idCounter++,
+                name: '',
+                owner: '',
+                equipmentCost: 0,
+                dayRate: DEFAULT_DAY_RATE,
+                isInternal: false,
+                effort: 1,
+                desiredStartDate: '',
+                predecessors: [],
+                start: null,
+                end: null
+            };
+            activities.push(newActivity);
+            renderActivitiesTable();
+        });
+
+        document.getElementById('generate-roadmap').addEventListener('click', () => {
+            try {
+                computeSchedule();
+                updateRoadmap();
+            } catch (error) {
+                alert('Error generating roadmap: ' + error.message);
+            }
+        });
+
+        function updateRoadmap() {
+            const totalCost = activities.reduce((sum, a) => {
+                const laborCost = a.effort * (a.isInternal ? a.dayRate * 0.5 : a.dayRate);
+                return sum + a.equipmentCost + laborCost;
+            }, 0);
+            const minStart = activities.length > 0 ? Math.min(...activities.map(a => a.start)) : 0;
+            const maxEnd = activities.length > 0 ? Math.max(...activities.map(a => a.end)) : 0;
+            const totalDuration = maxEnd - minStart;
+
+            document.getElementById('summary').innerHTML = `
+                <p>Total Budget: £${totalCost.toFixed(2)}</p>
+                <p>Total Duration: ${totalDuration >= 0 ? totalDuration : 0} days</p>
+            `;
+
+            const tasks = activities.map(a => ({
+                id: a.id.toString(),
+                name: `${a.name || `Activity ${a.id}`} (${a.owner || 'No owner'})`,
+                start: new Date(2023, 0, 1 + a.start).toISOString().split('T')[0],
+                end: new Date(2023, 0, 1 + a.end).toISOString().split('T')[0],
+                progress: 0,
+                dependencies: a.predecessors.join(',')
+            }));
+
+            const startDate = activities.length > 0 ? new Date(2023, 0, 1 + minStart) : new Date();
+            const endDate = activities.length > 0 ? new Date(2023, 0, 1 + maxEnd) : new Date();
+
+            document.getElementById('gantt').innerHTML = '';
+            new Gantt("#gantt", tasks, {
+                header_height: 50,
+                column_width: 30,
+                step: 24,
+                view_modes: ['Day'],
+                bar_height: 20,
+                padding: 18,
+                start_date: startDate,
+                end_date: endDate,
+                on_date_change: function(task, start, end) {
+                    const id = parseInt(task.id);
+                    const activity = activities.find(a => a.id === id);
+                    const baseDate = new Date(2023, 0, 1);
+                    const newStartDays = Math.floor((start - baseDate) / (1000 * 60 * 60 * 24));
+                    activity.desiredStartDate = start.toISOString().split('T')[0];
+                    activity.effort = Math.ceil((end - start) / (1000 * 60 * 60 * 24));
+                    activity.start = newStartDays;
+                    activity.end = activity.start + activity.effort;
+                    try {
+                        computeSchedule(); // Recompute schedule to enforce dependencies
+                        renderActivitiesTable();
+                        updateRoadmap(); // Update summary and Gantt chart
+                    } catch (error) {
+                        alert('Invalid change: ' + error.message);
+                        renderActivitiesTable(); // Revert to last valid state
+                    }
+                }
+            });
+        }
+
+        function computeSchedule() {
+            activities.forEach(a => { a.start = null; a.end = null; });
+            const activityMap = new Map(activities.map(a => [a.id, a]));
+            const incoming = new Map(activities.map(a => [a.id, a.predecessors.length]));
+            const queue = activities.filter(a => a.predecessors.length === 0).map(a => a.id);
+
+            const baseDate = new Date(2023, 0, 1);
+            const today = new Date();
+            const todayDays = Math.floor((today - baseDate) / (1000 * 60 * 60 * 24));
+
+            activities.forEach(a => {
+                if (a.desiredStartDate) {
+                    const date = new Date(a.desiredStartDate);
+                    if (!isNaN(date.getTime())) {
+                        a.desiredStartDays = Math.floor((date - baseDate) / (1000 * 60 * 60 * 24));
+                    } else {
+                        a.desiredStartDays = null;
+                    }
+                } else {
+                    a.desiredStartDays = null;
+                }
+            });
+
+            while (queue.length > 0) {
+                const currentId = queue.shift();
+                const current = activityMap.get(currentId);
+
+                let earliestStart = current.predecessors.length === 0 
+                    ? (current.desiredStartDays !== null ? current.desiredStartDays : todayDays)
+                    : Math.max(...current.predecessors.map(predId => {
+                        const pred = activityMap.get(predId);
+                        if (!pred) throw new Error(`Invalid predecessor ID ${predId}`);
+                        return pred.end;
+                    }));
+
+                current.start = current.desiredStartDays !== null && current.desiredStartDays >= earliestStart 
+                    ? current.desiredStartDays 
+                    : earliestStart;
+                
+                current.end = current.start + current.effort;
+
+                activities.forEach(a => {
+                    if (a.predecessors.includes(currentId)) {
+                        incoming.set(a.id, incoming.get(a.id) - 1);
+                        if (incoming.get(a.id) === 0) queue.push(a.id);
+                    }
+                });
+            }
+
+            const unscheduled = activities.filter(a => a.start === null);
+            if (unscheduled.length > 0) {
+                throw new Error('Cycle detected in dependencies. Please revise.');
+            }
+        }
+
+        renderActivitiesTable();
+    </script>
+</body>
+</html>
