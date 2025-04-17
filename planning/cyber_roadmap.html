@@ -32,7 +32,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Security Programme Roadmap Designer</title>
+    <title>Project Planning Tool</title>
     <link rel="stylesheet" href="https://unpkg.com/frappe-gantt@0.5.0/dist/frappe-gantt.css">
     <style>
         body {
@@ -131,10 +131,6 @@
         body.dark-mode .calculated-cost {
             background-color: #444;
         }
-        .custom-name-input {
-            display: none;
-            margin-top: 5px;
-        }
         .theme-toggle {
             position: absolute;
             top: 20px;
@@ -146,8 +142,17 @@
         body.dark-mode .theme-toggle {
             color: #ffd700;
         }
-        body.dark-mode .gantt .bar {
-            fill: #4a90e2;
+        .gantt .bar-wrapper .bar.internal {
+            fill: #0000ff !important; /* Blue for internal tasks */
+        }
+        .gantt .bar-wrapper .bar.external {
+            fill: #ff0000 !important; /* Red for external tasks */
+        }
+        body.dark-mode .gantt .bar-wrapper .bar.internal {
+            fill: #1e90ff !important; /* Lighter blue for dark mode */
+        }
+        body.dark-mode .gantt .bar-wrapper .bar.external {
+            fill: #ff4040 !important; /* Lighter red for dark mode */
         }
         body.dark-mode .gantt .bar-label {
             fill: #ffffff;
@@ -177,7 +182,7 @@
 </head>
 <body>
     <div id="theme-toggle" class="theme-toggle">🕴</div>
-    <h1>Security Programme Roadmap Designer</h1>
+    <h1>Project Planning Tool</h1>
 
     <div class="activities-section">
         <h2>Activities</h2>
@@ -186,6 +191,7 @@
                 <tr>
                     <th>ID</th>
                     <th>Name</th>
+                    <th>Phase</th>
                     <th>Owner</th>
                     <th>Equipment/Services Cost (£)</th>
                     <th>Day Rate (£)</th>
@@ -205,7 +211,6 @@
     <div class="buttons-section">
         <button id="add-activity">Add Activity</button>
         <button id="clear-all">Clear All Tasks</button>
-        <button id="load-example">Load Example Roadmap</button>
         <button id="export-tasks">Export Tasks</button>
         <label for="import-tasks" class="button-label">Import Tasks</label>
         <input type="file" id="import-tasks" accept=".json">
@@ -261,35 +266,6 @@
             localStorage.setItem('theme', isDarkMode ? 'dark' : 'light');
         });
 
-        const genericTasks = [
-            { name: "Risk Assessment", equipmentCost: 5000, dayRate: 1000, isInternal: false, effort: 5, owner: "Security Lead" },
-            { name: "Policy Development", equipmentCost: 2000, dayRate: 800, isInternal: true, effort: 10, owner: "Compliance Team" },
-            { name: "Security Awareness Training", equipmentCost: 3000, dayRate: 600, isInternal: false, effort: 3, owner: "HR" },
-            { name: "Vulnerability Scanning", equipmentCost: 10000, dayRate: 1200, isInternal: false, effort: 7, owner: "IT Security" },
-            { name: "Penetration Testing", equipmentCost: 15000, dayRate: 1500, isInternal: false, effort: 5, owner: "External Vendor" },
-            { name: "Firewall Implementation", equipmentCost: 20000, dayRate: 1000, isInternal: false, effort: 10, owner: "Network Team" },
-            { name: "Incident Response Planning", equipmentCost: 4000, dayRate: 900, isInternal: true, effort: 8, owner: "Security Lead" },
-            { name: "Access Control Implementation", equipmentCost: 8000, dayRate: 1100, isInternal: false, effort: 6, owner: "IT Security" },
-            { name: "Encryption Deployment", equipmentCost: 12000, dayRate: 1000, isInternal: false, effort: 7, owner: "IT Security" },
-            { name: "Security Monitoring Setup", equipmentCost: 10000, dayRate: 1000, isInternal: false, effort: 10, owner: "SOC Team" },
-            { name: "Red Teaming", equipmentCost: 20000, dayRate: 2000, isInternal: false, effort: 7, owner: "External Vendor" },
-            { name: "Purple Teaming", equipmentCost: 18000, dayRate: 1800, isInternal: false, effort: 6, owner: "SOC Team" },
-            { name: "Enterprise Posture Review", equipmentCost: 7000, dayRate: 1200, isInternal: true, effort: 8, owner: "Security Lead" },
-            { name: "Vulnerability Assessment", equipmentCost: 8000, dayRate: 1100, isInternal: false, effort: 5, owner: "IT Security" },
-            { name: "Disaster Recovery Testing", equipmentCost: 10000, dayRate: 1000, isInternal: true, effort: 10, owner: "DR Team" },
-            { name: "Threat Modeling", equipmentCost: 6000, dayRate: 1000, isInternal: true, effort: 6, owner: "Security Lead" },
-            { name: "SIEM Configuration", equipmentCost: 15000, dayRate: 1200, isInternal: false, effort: 12, owner: "SOC Team" },
-            { name: "Endpoint Protection Deployment", equipmentCost: 12000, dayRate: 1000, isInternal: false, effort: 8, owner: "IT Security" },
-            { name: "Internal Audit", equipmentCost: 3000, dayRate: 1000, isInternal: true, effort: 7, owner: "Audit Team" },
-            { name: "Health Check", equipmentCost: 5000, dayRate: 1100, isInternal: false, effort: 5, owner: "IT Security" },
-            { name: "Strategy Review", equipmentCost: 4000, dayRate: 1200, isInternal: true, effort: 6, owner: "Security Lead" },
-            { name: "Strategy Development", equipmentCost: 6000, dayRate: 1000, isInternal: true, effort: 10, owner: "Security Lead" },
-            { name: "Compliance Certification", equipmentCost: 10000, dayRate: 1300, isInternal: false, effort: 8, owner: "Compliance Team" },
-            { name: "External Audit", equipmentCost: 12000, dayRate: 1500, isInternal: false, effort: 6, owner: "External Auditor" },
-            { name: "Discovery Service", equipmentCost: 9000, dayRate: 1200, isInternal: false, effort: 6, owner: "IT Security" },
-            { name: "Custom", equipmentCost: 0, dayRate: DEFAULT_DAY_RATE, isInternal: false, effort: 1, owner: "None" }
-        ];
-
         function addWorkDays(startDay, effort, allowWeekendWork) {
             let currentDay = startDay;
             let daysAdded = 0;
@@ -317,22 +293,16 @@
                     }
                 });
                 const calculatedCost = activity.effort * (activity.isInternal ? activity.dayRate * 0.5 : activity.dayRate);
-                const isCustom = !genericTasks.some(task => task.name === activity.name) || activity.name === "Custom";
-                const taskOptions = genericTasks.map(task => 
-                    `<option value="${task.name}" ${activity.name === task.name ? 'selected' : ''}>${task.name}</option>`
-                ).join('');
                 row.innerHTML = `
                     <td>${activity.id}</td>
-                    <td>
-                        <select data-id="${activity.id}" class="name-select">${taskOptions}</select>
-                        <input type="text" value="${isCustom ? activity.name : ''}" data-id="${activity.id}" class="custom-name-input" placeholder="Custom task name">
-                    </td>
+                    <td><input type="text" value="${activity.name}" data-id="${activity.id}" class="name-input"></td>
+                    <td><input type="text" value="${activity.phase}" data-id="${activity.id}" class="phase-input"></td>
                     <td><input type="text" value="${activity.owner}" data-id="${activity.id}" class="owner-input"></td>
                     <td><input type="number" value="${activity.equipmentCost}" data-id="${activity.id}" class="equipment-cost-input" min="0" step="0.01"></td>
                     <td><input type="number" value="${activity.dayRate}" data-id="${activity.id}" class="day-rate-input" min="0" step="0.01"></td>
                     <td><input type="checkbox" ${activity.isInternal ? 'checked' : ''} data-id="${activity.id}" class="internal-input"></td>
                     <td><input type="checkbox" ${activity.allowWeekendWork ? 'checked' : ''} data-id="${activity.id}" class="weekend-work-input"></td>
-                    <td><input type="number" value="${activity.effort}" data-id="${activity.id}" class="effort-input" min="1"></td>
+                    <td><input type="number" value="${activity.effort}" data-id="${activity.id}" class="effort-input" min="0.25" step="0.01"></td>
                     <td><input type="text" value="${calculatedCost.toFixed(2)}" class="calculated-cost" readonly></td>
                     <td><input type="date" value="${activity.desiredStartDate || ''}" data-id="${activity.id}" class="start-date-input"></td>
                     <td><select multiple data-id="${activity.id}" class="dependency-input">${dependencyOptions}</select></td>
@@ -341,24 +311,17 @@
                 tbody.appendChild(row);
             });
 
-            document.querySelectorAll('.name-select').forEach(select => {
-                const id = parseInt(select.dataset.id);
-                const activity = activities.find(a => a.id === id);
-                const customInput = select.parentElement.querySelector('.custom-name-input');
-                customInput.style.display = select.value === "Custom" ? 'block' : 'none';
-            });
-
             attachEventListeners();
         }
 
         function attachEventListeners() {
-            document.querySelectorAll('.name-select').forEach(select => {
-                select.removeEventListener('change', handleNameChange);
-                select.addEventListener('change', handleNameChange);
+            document.querySelectorAll('.name-input').forEach(input => {
+                input.removeEventListener('change', handleNameChange);
+                input.addEventListener('change', handleNameChange);
             });
-            document.querySelectorAll('.custom-name-input').forEach(input => {
-                input.removeEventListener('change', handleCustomNameChange);
-                input.addEventListener('change', handleCustomNameChange);
+            document.querySelectorAll('.phase-input').forEach(input => {
+                input.removeEventListener('change', handlePhaseChange);
+                input.addEventListener('change', handlePhaseChange);
             });
             document.querySelectorAll('.owner-input').forEach(input => {
                 input.removeEventListener('change', handleOwnerChange);
@@ -400,8 +363,6 @@
             document.getElementById('clear-all').addEventListener('click', handleClearAll);
             document.getElementById('add-activity').removeEventListener('click', handleAddActivity);
             document.getElementById('add-activity').addEventListener('click', handleAddActivity);
-            document.getElementById('load-example').removeEventListener('click', handleLoadExample);
-            document.getElementById('load-example').addEventListener('click', handleLoadExample);
             document.getElementById('export-tasks').removeEventListener('click', handleExportTasks);
             document.getElementById('export-tasks').addEventListener('click', handleExportTasks);
             document.getElementById('import-tasks').removeEventListener('change', handleImportTasks);
@@ -411,20 +372,7 @@
         function handleNameChange(e) {
             const id = parseInt(e.target.dataset.id);
             const activity = activities.find(a => a.id === id);
-            const selectedTaskName = e.target.value;
-            const task = genericTasks.find(t => t.name === selectedTaskName);
-            activity.name = selectedTaskName;
-
-            if (task && selectedTaskName !== "Custom") {
-                activity.equipmentCost = task.equipmentCost;
-                activity.dayRate = task.dayRate;
-                activity.isInternal = task.isInternal;
-                activity.effort = task.effort;
-                activity.owner = task.owner;
-            } else {
-                activity.name = '';
-            }
-
+            activity.name = e.target.value || "Unnamed";
             renderActivitiesTable();
             try {
                 computeSchedule();
@@ -434,10 +382,9 @@
             }
         }
 
-        function handleCustomNameChange(e) {
+        function handlePhaseChange(e) {
             const id = parseInt(e.target.dataset.id);
-            const activity = activities.find(a => a.id === id);
-            activity.name = e.target.value || "Custom";
+            activities.find(a => a.id === id).phase = e.target.value;
             renderActivitiesTable();
             try {
                 computeSchedule();
@@ -509,7 +456,9 @@
 
         function handleEffortChange(e) {
             const id = parseInt(e.target.dataset.id);
-            activities.find(a => a.id === id).effort = parseInt(e.target.value) || 1;
+            const activity = activities.find(a => a.id === id);
+            const newEffort = parseFloat(e.target.value);
+            activity.effort = isNaN(newEffort) || newEffort < 0.25 ? 0.25 : newEffort;
             renderActivitiesTable();
             try {
                 computeSchedule();
@@ -569,7 +518,8 @@
         function handleAddActivity() {
             const newActivity = {
                 id: idCounter++,
-                name: "Custom",
+                name: "Unnamed",
+                phase: "",
                 owner: "None",
                 equipmentCost: 0,
                 dayRate: DEFAULT_DAY_RATE,
@@ -591,64 +541,11 @@
             }
         }
 
-        function handleLoadExample() {
-            activities = [];
-            idCounter = 1;
-
-            const exampleTasks = [
-                { name: "Risk Assessment", desiredStartDate: "2025-01-01", predecessors: [], allowWeekendWork: false },
-                { name: "Policy Development", desiredStartDate: "2025-01-15", predecessors: [1], allowWeekendWork: false },
-                { name: "Security Awareness Training", desiredStartDate: "2025-02-01", predecessors: [2], allowWeekendWork: false },
-                { name: "Discovery Service", desiredStartDate: "2025-02-10", predecessors: [1], allowWeekendWork: false },
-                { name: "Vulnerability Scanning", desiredStartDate: "2025-02-20", predecessors: [4], allowWeekendWork: false },
-                { name: "Penetration Testing", desiredStartDate: "2025-03-01", predecessors: [5], allowWeekendWork: false },
-                { name: "Internal Audit", desiredStartDate: "2025-03-15", predecessors: [2], allowWeekendWork: false },
-                { name: "Firewall Implementation", desiredStartDate: "2025-04-01", predecessors: [6], allowWeekendWork: false },
-                { name: "Encryption Deployment", desiredStartDate: "2025-04-15", predecessors: [8], allowWeekendWork: false },
-                { name: "Incident Response Planning", desiredStartDate: "2025-05-01", predecessors: [7], allowWeekendWork: false },
-                { name: "SIEM Configuration", desiredStartDate: "2025-05-15", predecessors: [9], allowWeekendWork: false },
-                { name: "Security Monitoring Setup", desiredStartDate: "2025-06-01", predecessors: [11], allowWeekendWork: false },
-                { name: "Red Teaming", desiredStartDate: "2025-07-01", predecessors: [12], allowWeekendWork: false },
-                { name: "Purple Teaming", desiredStartDate: "2025-07-15", predecessors: [13], allowWeekendWork: false },
-                { name: "Compliance Certification", desiredStartDate: "2025-08-01", predecessors: [7], allowWeekendWork: false },
-                { name: "Disaster Recovery Testing", desiredStartDate: "2025-09-01", predecessors: [10], allowWeekendWork: false },
-                { name: "Strategy Review", desiredStartDate: "2025-10-01", predecessors: [15], allowWeekendWork: false },
-                { name: "Strategy Development", desiredStartDate: "2025-10-15", predecessors: [17], allowWeekendWork: false },
-                { name: "External Audit", desiredStartDate: "2025-11-01", predecessors: [15], allowWeekendWork: false },
-                { name: "Enterprise Posture Review", desiredStartDate: "2025-11-15", predecessors: [19], allowWeekendWork: false }
-            ];
-
-            exampleTasks.forEach(task => {
-                const template = genericTasks.find(t => t.name === task.name);
-                activities.push({
-                    id: idCounter++,
-                    name: task.name,
-                    owner: template.owner,
-                    equipmentCost: template.equipmentCost,
-                    dayRate: template.dayRate,
-                    isInternal: template.isInternal,
-                    allowWeekendWork: task.allowWeekendWork,
-                    effort: template.effort,
-                    desiredStartDate: task.desiredStartDate,
-                    predecessors: task.predecessors,
-                    start: null,
-                    end: null
-                });
-            });
-
-            renderActivitiesTable();
-            try {
-                computeSchedule();
-                updateRoadmap();
-            } catch (error) {
-                alert('Error loading example roadmap: ' + error.message);
-            }
-        }
-
         function handleExportTasks() {
             const exportData = activities.map(activity => ({
                 id: activity.id,
                 name: activity.name,
+                phase: activity.phase,
                 owner: activity.owner,
                 equipmentCost: activity.equipmentCost,
                 dayRate: activity.dayRate,
@@ -700,6 +597,11 @@
                         }
                         if (typeof task.name !== 'string') {
                             throw new Error('Invalid name: Must be a string.');
+                        }
+                        if (!('phase' in task)) {
+                            task.phase = '';
+                        } else if (typeof task.phase !== 'string') {
+                            throw new Error('Invalid phase: Must be a string.');
                         }
                         if (typeof task.owner !== 'string') {
                             throw new Error('Invalid owner: Must be a string.');
@@ -788,6 +690,18 @@
                 const laborCost = a.effort * (a.isInternal ? a.dayRate * 0.5 : a.dayRate);
                 return sum + a.equipmentCost + laborCost;
             }, 0);
+            const internalCost = activities
+                .filter(a => a.isInternal)
+                .reduce((sum, a) => sum + a.equipmentCost + (a.effort * a.dayRate * 0.5), 0);
+            const externalCost = activities
+                .filter(a => !a.isInternal)
+                .reduce((sum, a) => sum + a.equipmentCost + (a.effort * a.dayRate), 0);
+            const internalEffort = activities
+                .filter(a => a.isInternal)
+                .reduce((sum, a) => sum + a.effort, 0);
+            const externalEffort = activities
+                .filter(a => !a.isInternal)
+                .reduce((sum, a) => sum + a.effort, 0);
             const minStart = Math.min(...activities.map(a => a.start));
             const maxEnd = Math.max(...activities.map(a => a.end));
             const totalDuration = maxEnd - minStart + 1;
@@ -799,8 +713,12 @@
                 <p>Roadmap Start Date: ${startDateFormatted}</p>
                 <p>Roadmap End Date: ${endDateFormatted}</p>
                 <p>Total Budget: £${totalCost.toFixed(2)}</p>
+                <p>Internal Cost: £${internalCost.toFixed(2)}</p>
+                <p>External Cost: £${externalCost.toFixed(2)}</p>
                 <p>Total Duration: ${totalDuration >= 0 ? totalDuration : 0} days</p>
                 <p>Total Effort: ${totalEffort} days</p>
+                <p>Internal Effort: ${internalEffort} days</p>
+                <p>External Effort: ${externalEffort} days</p>
             `;
 
             const tasks = activities.map(a => ({
@@ -809,7 +727,8 @@
                 start: new Date(2023, 0, 1 + a.start).toISOString().split('T')[0],
                 end: new Date(2023, 0, 1 + a.end).toISOString().split('T')[0],
                 progress: 0,
-                dependencies: a.predecessors.join(',')
+                dependencies: a.predecessors.join(','),
+                custom_class: a.isInternal ? 'internal' : 'external'
             }));
 
             const startDate = new Date(2023, 0, 1 + minStart);
