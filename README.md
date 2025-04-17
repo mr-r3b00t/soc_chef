@@ -11,7 +11,7 @@ Reactive Orgs that either do not have Policies, Processes and Procedures or ones
 
 💻 [Device Security Policy Generation Tool - High Level](https://mr-r3b00t.github.io/soc_chef/policy/device_security.html)
 
-🗒️ [Cyber Security Roadmap & Budget Planner](https://mr-r3b00t.github.io/planning/cyber_roadmap.html)
+🗒️ [Cyber Security Roadmap & Budget Planner](https://mr-r3b00t.github.io/soc_chef/planning/cyber_roadmap.html)
 
 🏥 [Generic Cyber Incident Response Plan](https://mr-r3b00t.github.io/soc_chef/processes/ir/generic_incident_response.html)
 
@@ -43,4 +43,4 @@ Reactive Orgs that either do not have Policies, Processes and Procedures or ones
 Copyright (c) Xservus Limited
 Created by mRr3b00t
 
-Version 0.22 - Experimental - Use at own risk
+Version 0.23 - Experimental - Use at own risk
