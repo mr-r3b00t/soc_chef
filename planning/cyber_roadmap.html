@@ -179,6 +179,7 @@
                     <th>Equipment/Services Cost (£)</th>
                     <th>Day Rate (£)</th>
                     <th>Internal</th>
+                    <th>Allow Weekend Work</th>
                     <th>Effort (days)</th>
                     <th>Calculated Cost (£)</th>
                     <th>Desired Start Date</th>
@@ -253,6 +254,20 @@
             { name: "Custom", equipmentCost: 0, dayRate: DEFAULT_DAY_RATE, isInternal: false, effort: 1, owner: "None" }
         ];
 
+        function addWorkDays(startDay, effort, allowWeekendWork) {
+            let currentDay = startDay;
+            let daysAdded = 0;
+            while (daysAdded < effort) {
+                currentDay++;
+                const date = new Date(2023, 0, 1 + currentDay);
+                const isWeekend = date.getDay() === 0 || date.getDay() === 6; // Sunday or Saturday
+                if (allowWeekendWork || !isWeekend) {
+                    daysAdded++;
+                }
+            }
+            return currentDay;
+        }
+
         function renderActivitiesTable() {
             const tbody = document.querySelector('#activities-table tbody');
             tbody.innerHTML = '';
@@ -280,6 +295,7 @@
                     <td><input type="number" value="${activity.equipmentCost}" data-id="${activity.id}" class="equipment-cost-input" min="0" step="0.01"></td>
                     <td><input type="number" value="${activity.dayRate}" data-id="${activity.id}" class="day-rate-input" min="0" step="0.01"></td>
                     <td><input type="checkbox" ${activity.isInternal ? 'checked' : ''} data-id="${activity.id}" class="internal-input"></td>
+                    <td><input type="checkbox" ${activity.allowWeekendWork ? 'checked' : ''} data-id="${activity.id}" class="weekend-work-input"></td>
                     <td><input type="number" value="${activity.effort}" data-id="${activity.id}" class="effort-input" min="1"></td>
                     <td><input type="text" value="${calculatedCost.toFixed(2)}" class="calculated-cost" readonly></td>
                     <td><input type="date" value="${activity.desiredStartDate || ''}" data-id="${activity.id}" class="start-date-input"></td>
@@ -323,6 +339,10 @@
             document.querySelectorAll('.internal-input').forEach(input => {
                 input.removeEventListener('change', handleInternalChange);
                 input.addEventListener('change', handleInternalChange);
+            });
+            document.querySelectorAll('.weekend-work-input').forEach(input => {
+                input.removeEventListener('change', handleWeekendWorkChange);
+                input.addEventListener('change', handleWeekendWorkChange);
             });
             document.querySelectorAll('.effort-input').forEach(input => {
                 input.removeEventListener('change', handleEffortChange);
@@ -435,6 +455,18 @@
             }
         }
 
+        function handleWeekendWorkChange(e) {
+            const id = parseInt(e.target.dataset.id);
+            activities.find(a => a.id === id).allowWeekendWork = e.target.checked;
+            renderActivitiesTable();
+            try {
+                computeSchedule();
+                updateRoadmap();
+            } catch (error) {
+                alert('Error updating roadmap: ' + error.message);
+            }
+        }
+
         function handleEffortChange(e) {
             const id = parseInt(e.target.dataset.id);
             activities.find(a => a.id === id).effort = parseInt(e.target.value) || 1;
@@ -502,6 +534,7 @@
                 equipmentCost: 0,
                 dayRate: DEFAULT_DAY_RATE,
                 isInternal: false,
+                allowWeekendWork: false,
                 effort: 1,
                 desiredStartDate: '',
                 predecessors: [],
@@ -523,26 +556,26 @@
             idCounter = 1;
 
             const exampleTasks = [
-                { name: "Risk Assessment", desiredStartDate: "2025-01-01", predecessors: [] },
-                { name: "Policy Development", desiredStartDate: "2025-01-15", predecessors: [1] },
-                { name: "Security Awareness Training", desiredStartDate: "2025-02-01", predecessors: [2] },
-                { name: "Discovery Service", desiredStartDate: "2025-02-10", predecessors: [1] },
-                { name: "Vulnerability Scanning", desiredStartDate: "2025-02-20", predecessors: [4] },
-                { name: "Penetration Testing", desiredStartDate: "2025-03-01", predecessors: [5] },
-                { name: "Internal Audit", desiredStartDate: "2025-03-15", predecessors: [2] },
-                { name: "Firewall Implementation", desiredStartDate: "2025-04-01", predecessors: [6] },
-                { name: "Encryption Deployment", desiredStartDate: "2025-04-15", predecessors: [8] },
-                { name: "Incident Response Planning", desiredStartDate: "2025-05-01", predecessors: [7] },
-                { name: "SIEM Configuration", desiredStartDate: "2025-05-15", predecessors: [9] },
-                { name: "Security Monitoring Setup", desiredStartDate: "2025-06-01", predecessors: [11] },
-                { name: "Red Teaming", desiredStartDate: "2025-07-01", predecessors: [12] },
-                { name: "Purple Teaming", desiredStartDate: "2025-07-15", predecessors: [13] },
-                { name: "Compliance Certification", desiredStartDate: "2025-08-01", predecessors: [7] },
-                { name: "Disaster Recovery Testing", desiredStartDate: "2025-09-01", predecessors: [10] },
-                { name: "Strategy Review", desiredStartDate: "2025-10-01", predecessors: [15] },
-                { name: "Strategy Development", desiredStartDate: "2025-10-15", predecessors: [17] },
-                { name: "External Audit", desiredStartDate: "2025-11-01", predecessors: [15] },
-                { name: "Enterprise Posture Review", desiredStartDate: "2025-11-15", predecessors: [19] }
+                { name: "Risk Assessment", desiredStartDate: "2025-01-01", predecessors: [], allowWeekendWork: false },
+                { name: "Policy Development", desiredStartDate: "2025-01-15", predecessors: [1], allowWeekendWork: false },
+                { name: "Security Awareness Training", desiredStartDate: "2025-02-01", predecessors: [2], allowWeekendWork: false },
+                { name: "Discovery Service", desiredStartDate: "2025-02-10", predecessors: [1], allowWeekendWork: false },
+                { name: "Vulnerability Scanning", desiredStartDate: "2025-02-20", predecessors: [4], allowWeekendWork: false },
+                { name: "Penetration Testing", desiredStartDate: "2025-03-01", predecessors: [5], allowWeekendWork: false },
+                { name: "Internal Audit", desiredStartDate: "2025-03-15", predecessors: [2], allowWeekendWork: false },
+                { name: "Firewall Implementation", desiredStartDate: "2025-04-01", predecessors: [6], allowWeekendWork: false },
+                { name: "Encryption Deployment", desiredStartDate: "2025-04-15", predecessors: [8], allowWeekendWork: false },
+                { name: "Incident Response Planning", desiredStartDate: "2025-05-01", predecessors: [7], allowWeekendWork: false },
+                { name: "SIEM Configuration", desiredStartDate: "2025-05-15", predecessors: [9], allowWeekendWork: false },
+                { name: "Security Monitoring Setup", desiredStartDate: "2025-06-01", predecessors: [11], allowWeekendWork: false },
+                { name: "Red Teaming", desiredStartDate: "2025-07-01", predecessors: [12], allowWeekendWork: false },
+                { name: "Purple Teaming", desiredStartDate: "2025-07-15", predecessors: [13], allowWeekendWork: false },
+                { name: "Compliance Certification", desiredStartDate: "2025-08-01", predecessors: [7], allowWeekendWork: false },
+                { name: "Disaster Recovery Testing", desiredStartDate: "2025-09-01", predecessors: [10], allowWeekendWork: false },
+                { name: "Strategy Review", desiredStartDate: "2025-10-01", predecessors: [15], allowWeekendWork: false },
+                { name: "Strategy Development", desiredStartDate: "2025-10-15", predecessors: [17], allowWeekendWork: false },
+                { name: "External Audit", desiredStartDate: "2025-11-01", predecessors: [15], allowWeekendWork: false },
+                { name: "Enterprise Posture Review", desiredStartDate: "2025-11-15", predecessors: [19], allowWeekendWork: false }
             ];
 
             exampleTasks.forEach(task => {
@@ -554,6 +587,7 @@
                     equipmentCost: template.equipmentCost,
                     dayRate: template.dayRate,
                     isInternal: template.isInternal,
+                    allowWeekendWork: task.allowWeekendWork,
                     effort: template.effort,
                     desiredStartDate: task.desiredStartDate,
                     predecessors: task.predecessors,
@@ -618,10 +652,11 @@
                     const activity = activities.find(a => a.id === id);
                     const baseDate = new Date(2023, 0, 1);
                     const newStartDays = Math.floor((start - baseDate) / (1000 * 60 * 60 * 24));
+                    const effortDays = Math.ceil((end - start) / (1000 * 60 * 60 * 24));
                     activity.desiredStartDate = start.toISOString().split('T')[0];
-                    activity.effort = Math.ceil((end - start) / (1000 * 60 * 60 * 24));
+                    activity.effort = effortDays;
                     activity.start = newStartDays;
-                    activity.end = activity.start + activity.effort;
+                    activity.end = addWorkDays(newStartDays, effortDays, activity.allowWeekendWork);
                     try {
                         computeSchedule();
                         renderActivitiesTable();
@@ -673,7 +708,7 @@
                     ? current.desiredStartDays 
                     : earliestStart;
                 
-                current.end = current.start + current.effort;
+                current.end = addWorkDays(current.start, current.effort, current.allowWeekendWork);
 
                 activities.forEach(a => {
                     if (a.predecessors.includes(currentId)) {
