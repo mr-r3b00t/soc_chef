@@ -324,30 +324,6 @@
 
     <script src="https://unpkg.com/frappe-gantt@0.5.0/dist/frappe-gantt.min.js"></script>
     <script type="text/javascript">
-        var gk_isXlsx = false;
-        var gk_xlsxFileLookup = {};
-        var gk_fileData = {};
-        function loadFileData(filename) {
-            if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
-                try {
-                    var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
-                    var firstSheetName = workbook.SheetNames[0];
-                    var worksheet = workbook.Sheets[firstSheetName];
-                    var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
-                    var filteredData = jsonData.filter(row =>
-                        row.some(cell => cell !== '' && cell !== null && cell !== undefined)
-                    );
-                    var csv = XLSX.utils.aoa_to_sheet(filteredData);
-                    csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
-                    return csv;
-                } catch (e) {
-                    console.error(e);
-                    return "";
-                }
-            }
-            return gk_fileData[filename] || "";
-        }
-
         let activities = [];
         let idCounter = 1;
         const DEFAULT_DAY_RATE = 1000;
@@ -782,7 +758,6 @@
                         if (!Array.isArray(task.predecessors) || !task.predecessors.every(id => typeof id === 'number' && id > 0)) {
                             throw new Error('Invalid predecessors: Must be an array of positive numbers.');
                         }
-                        // Map isInternal to staff counts for backward compatibility
                         if ('isInternal' in task) {
                             task.internalStaffCount = task.isInternal ? 1 : 0;
                             task.externalStaffCount = task.isInternal ? 0 : 1;
