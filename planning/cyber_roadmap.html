@@ -105,13 +105,14 @@
             color: #ffffff;
             border-color: #555;
         }
-        button {
+        button, .button-label {
             padding: 5px 10px;
             background-color: #f0f0f0;
             border: 1px solid #ddd;
             cursor: pointer;
+            text-align: center;
         }
-        body.dark-mode button {
+        body.dark-mode button, body.dark-mode .button-label {
             background-color: #444;
             border-color: #666;
             color: #ffffff;
@@ -140,12 +141,11 @@
             right: 20px;
             font-size: 24px;
             cursor: pointer;
-            color: #888; /* Gray for unlit bulb in light mode */
+            color: #888;
         }
         body.dark-mode .theme-toggle {
-            color: #ffd700; /* Gold for lit bulb in dark mode */
+            color: #ffd700;
         }
-        /* Adjust Gantt chart colors for dark mode */
         body.dark-mode .gantt .bar {
             fill: #4a90e2;
         }
@@ -161,6 +161,17 @@
         }
         body.dark-mode .gantt .tick {
             stroke: #555;
+        }
+        .gantt .day-letter {
+            font-size: 12px;
+            text-anchor: middle;
+            fill: #000;
+        }
+        body.dark-mode .gantt .day-letter {
+            fill: #fff;
+        }
+        #import-tasks {
+            display: none;
         }
     </style>
 </head>
@@ -195,6 +206,9 @@
         <button id="add-activity">Add Activity</button>
         <button id="clear-all">Clear All Tasks</button>
         <button id="load-example">Load Example Roadmap</button>
+        <button id="export-tasks">Export Tasks</button>
+        <label for="import-tasks" class="button-label">Import Tasks</label>
+        <input type="file" id="import-tasks" accept=".json">
     </div>
 
     <div class="roadmap-section">
@@ -204,12 +218,35 @@
     </div>
 
     <script src="https://unpkg.com/frappe-gantt@0.5.0/dist/frappe-gantt.min.js"></script>
-    <script>
+    <script type="text/javascript">
+        var gk_isXlsx = false;
+        var gk_xlsxFileLookup = {};
+        var gk_fileData = {};
+        function loadFileData(filename) {
+            if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
+                try {
+                    var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
+                    var firstSheetName = workbook.SheetNames[0];
+                    var worksheet = workbook.Sheets[firstSheetName];
+                    var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
+                    var filteredData = jsonData.filter(row =>
+                        row.some(cell => cell !== '' && cell !== null && cell !== undefined)
+                    );
+                    var csv = XLSX.utils.aoa_to_sheet(filteredData);
+                    csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
+                    return csv;
+                } catch (e) {
+                    console.error(e);
+                    return "";
+                }
+            }
+            return gk_fileData[filename] || "";
+        }
+
         let activities = [];
         let idCounter = 1;
         const DEFAULT_DAY_RATE = 1000;
 
-        // Load theme from localStorage
         if (localStorage.getItem('theme') === 'dark') {
             document.body.classList.add('dark-mode');
             document.getElementById('theme-toggle').textContent = '💡';
@@ -217,7 +254,6 @@
             document.getElementById('theme-toggle').textContent = '🕴';
         }
 
-        // Theme toggle event listener
         document.getElementById('theme-toggle').addEventListener('click', () => {
             document.body.classList.toggle('dark-mode');
             const isDarkMode = document.body.classList.contains('dark-mode');
@@ -260,7 +296,7 @@
             while (daysAdded < effort) {
                 currentDay++;
                 const date = new Date(2023, 0, 1 + currentDay);
-                const isWeekend = date.getDay() === 0 || date.getDay() === 6; // Sunday or Saturday
+                const isWeekend = date.getDay() === 0 || date.getDay() === 6;
                 if (allowWeekendWork || !isWeekend) {
                     daysAdded++;
                 }
@@ -273,7 +309,7 @@
             tbody.innerHTML = '';
             activities.forEach(activity => {
                 const row = document.createElement('tr');
-                let dependencyOptions = '<option value="" disabled ${activity.predecessors.length === 0 ? "selected" : ""}>Select dependencies</option>';
+                let dependencyOptions = `<option value="" disabled ${activity.predecessors.length === 0 ? "selected" : ""}>Select dependencies</option>`;
                 activities.forEach(other => {
                     if (other.id !== activity.id) {
                         const selected = activity.predecessors.includes(other.id) ? 'selected' : '';
@@ -366,6 +402,10 @@
             document.getElementById('add-activity').addEventListener('click', handleAddActivity);
             document.getElementById('load-example').removeEventListener('click', handleLoadExample);
             document.getElementById('load-example').addEventListener('click', handleLoadExample);
+            document.getElementById('export-tasks').removeEventListener('click', handleExportTasks);
+            document.getElementById('export-tasks').addEventListener('click', handleExportTasks);
+            document.getElementById('import-tasks').removeEventListener('change', handleImportTasks);
+            document.getElementById('import-tasks').addEventListener('change', handleImportTasks);
         }
 
         function handleNameChange(e) {
@@ -605,17 +645,155 @@
             }
         }
 
+        function handleExportTasks() {
+            const exportData = activities.map(activity => ({
+                id: activity.id,
+                name: activity.name,
+                owner: activity.owner,
+                equipmentCost: activity.equipmentCost,
+                dayRate: activity.dayRate,
+                isInternal: activity.isInternal,
+                allowWeekendWork: activity.allowWeekendWork,
+                effort: activity.effort,
+                desiredStartDate: activity.desiredStartDate,
+                predecessors: activity.predecessors
+            }));
+            const jsonString = JSON.stringify(exportData, null, 2);
+            const blob = new Blob([jsonString], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'roadmap_tasks.json';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        function handleImportTasks(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            if (!file.name.endsWith('.json')) {
+                alert('Please upload a .json file.');
+                e.target.value = '';
+                return;
+            }
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                try {
+                    const importedData = JSON.parse(event.target.result);
+                    if (!Array.isArray(importedData)) {
+                        throw new Error('Invalid format: Expected an array of tasks.');
+                    }
+                    const requiredFields = [
+                        'id', 'name', 'owner', 'equipmentCost', 'dayRate',
+                        'isInternal', 'allowWeekendWork', 'effort', 'desiredStartDate', 'predecessors'
+                    ];
+                    for (const task of importedData) {
+                        for (const field of requiredFields) {
+                            if (!(field in task)) {
+                                throw new Error(`Missing required field: ${field}`);
+                            }
+                        }
+                        if (typeof task.id !== 'number' || task.id <= 0) {
+                            throw new Error('Invalid ID: Must be a positive number.');
+                        }
+                        if (typeof task.name !== 'string') {
+                            throw new Error('Invalid name: Must be a string.');
+                        }
+                        if (typeof task.owner !== 'string') {
+                            throw new Error('Invalid owner: Must be a string.');
+                        }
+                        if (typeof task.equipmentCost !== 'number' || task.equipmentCost < 0) {
+                            throw new Error('Invalid equipmentCost: Must be a non-negative number.');
+                        }
+                        if (typeof task.dayRate !== 'number' || task.dayRate <= 0) {
+                            throw new Error('Invalid dayRate: Must be a positive number.');
+                        }
+                        if (typeof task.isInternal !== 'boolean') {
+                            throw new Error('Invalid isInternal: Must be a boolean.');
+                        }
+                        if (typeof task.allowWeekendWork !== 'boolean') {
+                            throw new Error('Invalid allowWeekendWork: Must be a boolean.');
+                        }
+                        if (typeof task.effort !== 'number' || task.effort <= 0) {
+                            throw new Error('Invalid effort: Must be a positive number.');
+                        }
+                        if (task.desiredStartDate && !/^\d{4}-\d{2}-\d{2}$/.test(task.desiredStartDate)) {
+                            throw new Error('Invalid desiredStartDate: Must be in YYYY-MM-DD format or empty.');
+                        }
+                        if (!Array.isArray(task.predecessors) || !task.predecessors.every(id => typeof id === 'number' && id > 0)) {
+                            throw new Error('Invalid predecessors: Must be an array of positive numbers.');
+                        }
+                    }
+                    const idSet = new Set(importedData.map(task => task.id));
+                    if (idSet.size !== importedData.length) {
+                        throw new Error('Duplicate IDs detected.');
+                    }
+                    for (const task of importedData) {
+                        for (const predId of task.predecessors) {
+                            if (!idSet.has(predId)) {
+                                throw new Error(`Invalid predecessor ID ${predId}: Not found in task list.`);
+                            }
+                        }
+                    }
+                    activities = importedData.map(task => ({
+                        ...task,
+                        start: null,
+                        end: null
+                    }));
+                    idCounter = Math.max(...activities.map(a => a.id)) + 1;
+                    renderActivitiesTable();
+                    try {
+                        computeSchedule();
+                        updateRoadmap();
+                    } catch (error) {
+                        alert('Error scheduling imported tasks: ' + error.message);
+                        activities = [];
+                        idCounter = 1;
+                        renderActivitiesTable();
+                        document.getElementById('summary').innerHTML = '<p>No tasks loaded.</p>';
+                        document.getElementById('gantt').innerHTML = '';
+                    }
+                } catch (error) {
+                    alert('Error importing tasks: ' + error.message);
+                    activities = [];
+                    idCounter = 1;
+                    renderActivitiesTable();
+                    document.getElementById('summary').innerHTML = '<p>No tasks loaded.</p>';
+                    document.getElementById('gantt').innerHTML = '';
+                }
+                e.target.value = '';
+            };
+            reader.onerror = function() {
+                alert('Error reading file.');
+                e.target.value = '';
+                activities = [];
+                idCounter = 1;
+                renderActivitiesTable();
+                document.getElementById('summary').innerHTML = '<p>No tasks loaded.</p>';
+                document.getElementById('gantt').innerHTML = '';
+            };
+            reader.readAsText(file);
+        }
+
         function updateRoadmap() {
+            if (activities.length === 0) {
+                document.getElementById('summary').innerHTML = '<p>No tasks loaded.</p>';
+                document.getElementById('gantt').innerHTML = '';
+                return;
+            }
+
             const totalCost = activities.reduce((sum, a) => {
                 const laborCost = a.effort * (a.isInternal ? a.dayRate * 0.5 : a.dayRate);
                 return sum + a.equipmentCost + laborCost;
             }, 0);
-            const minStart = activities.length > 0 ? Math.min(...activities.map(a => a.start)) : 0;
-            const maxEnd = activities.length > 0 ? Math.max(...activities.map(a => a.end)) : 0;
-            const totalDuration = activities.length > 0 ? maxEnd - minStart + 1 : 0;
+            const minStart = Math.min(...activities.map(a => a.start));
+            const maxEnd = Math.max(...activities.map(a => a.end));
+            const totalDuration = maxEnd - minStart + 1;
             const totalEffort = activities.reduce((sum, a) => sum + a.effort, 0);
-            const startDateFormatted = activities.length > 0 ? new Date(2023, 0, 1 + minStart).toISOString().split('T')[0] : "N/A";
-            const endDateFormatted = activities.length > 0 ? new Date(2023, 0, 1 + maxEnd).toISOString().split('T')[0] : "N/A";
+            const startDateFormatted = new Date(2023, 0, 1 + minStart).toISOString().split('T')[0];
+            const endDateFormatted = new Date(2023, 0, 1 + maxEnd).toISOString().split('T')[0];
 
             document.getElementById('summary').innerHTML = `
                 <p>Roadmap Start Date: ${startDateFormatted}</p>
@@ -634,12 +812,12 @@
                 dependencies: a.predecessors.join(',')
             }));
 
-            const startDate = activities.length > 0 ? new Date(2023, 0, 1 + minStart) : new Date();
-            const endDate = activities.length > 0 ? new Date(2023, 0, 1 + maxEnd) : new Date();
+            const startDate = new Date(2023, 0, 1 + minStart);
+            const endDate = new Date(2023, 0, 1 + maxEnd);
 
             document.getElementById('gantt').innerHTML = '';
-            new Gantt("#gantt", tasks, {
-                header_height: 50,
+            const gantt = new Gantt("#gantt", tasks, {
+                header_height: 70,
                 column_width: 30,
                 step: 24,
                 view_modes: ['Day'],
@@ -647,6 +825,7 @@
                 padding: 18,
                 start_date: startDate,
                 end_date: endDate,
+                custom_popup_html: null,
                 on_date_change: function(task, start, end) {
                     const id = parseInt(task.id);
                     const activity = activities.find(a => a.id === id);
@@ -667,6 +846,32 @@
                     }
                 }
             });
+
+            const svg = document.querySelector('.gantt .gantt-container svg');
+            const dateRow = document.querySelector('.gantt .grid-header');
+            if (svg && dateRow) {
+                const columnWidth = 30;
+                const startDateMs = startDate.getTime();
+                const endDateMs = endDate.getTime();
+                const dayLetters = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
+                const letterRow = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+                letterRow.setAttribute('class', 'day-letters');
+
+                for (let ms = startDateMs; ms <= endDateMs; ms += 24 * 60 * 60 * 1000) {
+                    const date = new Date(ms);
+                    const dayIndex = date.getDay();
+                    const dayLetter = dayLetters[dayIndex];
+                    const x = ((ms - startDateMs) / (24 * 60 * 60 * 1000)) * columnWidth + columnWidth / 2;
+                    const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                    text.setAttribute('x', x);
+                    text.setAttribute('y', 60);
+                    text.setAttribute('class', 'day-letter');
+                    text.textContent = dayLetter;
+                    letterRow.appendChild(text);
+                }
+
+                svg.insertBefore(letterRow, svg.querySelector('.grid-header').nextSibling);
+            }
         }
 
         function computeSchedule() {
