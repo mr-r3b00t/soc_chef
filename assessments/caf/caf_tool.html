@@ -71,7 +71,7 @@
             padding-left: 25px;
             margin: 10px 0;
         }
-        .radio-group {
+        .radio-group, .difficulty-group {
             margin-top: 10px;
         }
         label {
@@ -131,11 +131,64 @@
             text-align: center;
             margin-bottom: 20px;
         }
+        #metadata-form {
+            margin-bottom: 30px;
+            padding: 20px;
+            border: 1px solid #ddd;
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            justify-content: center;
+        }
+        #metadata-form label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        #metadata-form input, #metadata-form select {
+            width: 200px;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        .notes-input {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            margin-top: 10px;
+        }
     </style>
 </head>
 <body>
     <h1>Cyber Assessment Framework (CAF) Assessment Tool</h1>
-    <p class="instruction">Loading CAF data from URL. If this fails, upload the CAF data file below. Each subsection will display Indicators of Good Practice (IGPs) to help you determine the compliance level.</p>
+    <p class="instruction">Enter assessment details below, then review subsections. Each subsection displays Indicators of Good Practice (IGPs) to guide compliance level selection.</p>
+    <div id="metadata-form">
+        <div>
+            <label for="assessor-name">Name:</label>
+            <input type="text" id="assessor-name" name="assessor-name">
+        </div>
+        <div>
+            <label for="assessment-date">Date:</label>
+            <input type="date" id="assessment-date" name="assessment-date">
+        </div>
+        <div>
+            <label for="status">Status:</label>
+            <select id="status" name="status">
+                <option value="">Select Status</option>
+                <option value="Draft">Draft</option>
+                <option value="In Progress">In Progress</option>
+                <option value="Completed">Completed</option>
+            </select>
+        </div>
+        <div>
+            <label for="organisation-name">Organisation Name:</label>
+            <input type="text" id="organisation-name" name="organisation-name">
+        </div>
+    </div>
     <div id="file-input-container" style="display: none;">
         <p class="error-message">Failed to load CAF data from URL. Please upload the CAF data file to begin the assessment.</p>
         <input type="file" id="file-input" accept=".html">
@@ -256,13 +309,38 @@
                             const label = document.createElement('label');
                             const input = document.createElement('input');
                             input.type = 'radio';
-                            input.name = subsection.code;
+                            input.name = `compliance-${subsection.code}`;
                             input.value = option;
                             label.appendChild(input);
                             label.appendChild(document.createTextNode(option));
                             radioGroup.appendChild(label);
                         });
                         details.appendChild(radioGroup);
+                        const notesLabel = document.createElement('label');
+                        notesLabel.textContent = 'Notes:';
+                        notesLabel.htmlFor = `notes-${subsection.code}`;
+                        details.appendChild(notesLabel);
+                        const notesInput = document.createElement('textarea');
+                        notesInput.className = 'notes-input';
+                        notesInput.id = `notes-${subsection.code}`;
+                        notesInput.rows = 4;
+                        details.appendChild(notesInput);
+                        const difficultyLabel = document.createElement('label');
+                        difficultyLabel.textContent = 'Difficulty to Fix:';
+                        details.appendChild(difficultyLabel);
+                        const difficultyGroup = document.createElement('div');
+                        difficultyGroup.className = 'difficulty-group';
+                        ['Very Easy', 'Easy', 'Moderate', 'Hard', 'Very Hard'].forEach(option => {
+                            const label = document.createElement('label');
+                            const input = document.createElement('input');
+                            input.type = 'radio';
+                            input.name = `difficulty-${subsection.code}`;
+                            input.value = option;
+                            label.appendChild(input);
+                            label.appendChild(document.createTextNode(option));
+                            difficultyGroup.appendChild(label);
+                        });
+                        details.appendChild(difficultyGroup);
                         contentDiv.appendChild(details);
                     });
                 });
@@ -273,16 +351,37 @@
             const logList = document.getElementById('log-list');
             logList.innerHTML = '';
             cafData.forEach(subsection => {
-                const name = subsection.code;
-                const savedValue = localStorage.getItem(name);
-                if (savedValue) {
-                    const radio = document.querySelector(`input[name="${name}"][value="${savedValue}"]`);
+                const complianceName = `compliance-${subsection.code}`;
+                const notesName = `notes-${subsection.code}`;
+                const difficultyName = `difficulty-${subsection.code}`;
+                const savedCompliance = localStorage.getItem(complianceName);
+                const savedNotes = localStorage.getItem(notesName);
+                const savedDifficulty = localStorage.getItem(difficultyName);
+                if (savedCompliance) {
+                    const radio = document.querySelector(`input[name="${complianceName}"][value="${savedCompliance}"]`);
                     if (radio) radio.checked = true;
                     const li = document.createElement('li');
-                    li.textContent = `${name}: ${savedValue}`;
-                    li.className = getClass(savedValue);
-                    li.dataset.name = name;
+                    li.textContent = `${subsection.code}: ${savedCompliance}`;
+                    li.className = getClass(savedCompliance);
+                    li.dataset.name = complianceName;
                     logList.appendChild(li);
+                }
+                if (savedNotes) {
+                    const notesInput = document.getElementById(notesName);
+                    if (notesInput) notesInput.value = savedNotes;
+                }
+                if (savedDifficulty) {
+                    const radio = document.querySelector(`input[name="${difficultyName}"][value="${savedDifficulty}"]`);
+                    if (radio) radio.checked = true;
+                }
+            });
+            // Load metadata
+            const metadata = ['assessor-name', 'assessment-date', 'status', 'organisation-name'];
+            metadata.forEach(field => {
+                const savedValue = localStorage.getItem(field);
+                if (savedValue) {
+                    const input = document.getElementById(field);
+                    if (input) input.value = savedValue;
                 }
             });
         }
@@ -343,49 +442,70 @@
         });
 
         document.addEventListener('change', function(event) {
-            if (event.target.type === 'radio') {
-                const name = event.target.name;
+            if (event.target.type === 'radio' || event.target.type === 'textarea' || event.target.type === 'text' || event.target.type === 'date' || event.target.tagName === 'SELECT') {
+                const name = event.target.name || event.target.id;
                 const value = event.target.value;
-                localStorage.setItem(name, value);
-                const logList = document.getElementById('log-list');
-                const existingEntry = document.querySelector(`#log-list li[data-name="${name}"]`);
-                if (existingEntry) existingEntry.remove();
-                const li = document.createElement('li');
-                li.textContent = `${name}: ${value}`;
-                li.className = getClass(value);
-                li.dataset.name = name;
-                logList.appendChild(li);
+                if (name) {
+                    localStorage.setItem(name, value);
+                    if (event.target.type === 'radio' && name.startsWith('compliance-')) {
+                        const code = name.replace('compliance-', '');
+                        const logList = document.getElementById('log-list');
+                        const existingEntry = document.querySelector(`#log-list li[data-name="${name}"]`);
+                        if (existingEntry) existingEntry.remove();
+                        const li = document.createElement('li');
+                        li.textContent = `${code}: ${value}`;
+                        li.className = getClass(value);
+                        li.dataset.name = name;
+                        logList.appendChild(li);
+                    }
+                }
             }
         });
 
         document.getElementById('generate-report').addEventListener('click', generateReport);
 
         function generateReport() {
+            const metadata = {
+                'Assessor Name': localStorage.getItem('assessor-name') || 'Not provided',
+                'Assessment Date': localStorage.getItem('assessment-date') || 'Not provided',
+                'Status': localStorage.getItem('status') || 'Not provided',
+                'Organisation Name': localStorage.getItem('organisation-name') || 'Not provided'
+            };
             const data = cafData.map(subsection => {
                 const code = subsection.code;
-                const response = localStorage.getItem(code) || 'No response';
+                const compliance = localStorage.getItem(`compliance-${code}`) || 'No response';
+                const notes = localStorage.getItem(`notes-${code}`) || '';
+                const difficulty = localStorage.getItem(`difficulty-${code}`) || 'Not provided';
                 return {
                     objective: subsection.objective,
                     principle: subsection.principle,
                     code: subsection.code,
                     subsection: subsection.subsection,
-                    response
+                    compliance,
+                    notes,
+                    difficulty
                 };
             });
             data.sort((a, b) => a.code.localeCompare(b.code));
-            let tableHTML = '<table><thead><tr><th>Objective</th><th>Principle</th><th>Subsection</th><th>Response</th></tr></thead><tbody>';
+            let reportHTML = '<html><head><title>CAF Assessment Report</title>';
+            reportHTML += '<style>body { font-family: Arial, sans-serif; margin: 20px; } table { width: 100%; border-collapse: collapse; margin-top: 20px; } th, td { border: 1px solid #ddd; padding: 8px; text-align: left; } th { background-color: #f2f2f2; } h1 { color: #2c3e50; text-align: center; } p { text-align: center; } .metadata { margin-bottom: 20px; } .metadata p { text-align: left; margin: 5px 0; }</style>';
+            reportHTML += '</head><body>';
+            reportHTML += '<h1>CAF Assessment Report</h1>';
+            reportHTML += `<p>Report generated on: ${new Date().toLocaleString()}</p>`;
+            reportHTML += '<div class="metadata">';
+            reportHTML += `<p><strong>Assessor Name:</strong> ${metadata['Assessor Name']}</p>`;
+            reportHTML += `<p><strong>Assessment Date:</strong> ${metadata['Assessment Date']}</p>`;
+            reportHTML += `<p><strong>Status:</strong> ${metadata['Status']}</p>`;
+            reportHTML += `<p><strong>Organisation Name:</strong> ${metadata['Organisation Name']}</p>`;
+            reportHTML += '</div>';
+            reportHTML += '<table><thead><tr><th>Objective</th><th>Principle</th><th>Subsection</th><th>Compliance</th><th>Notes</th><th>Difficulty to Fix</th></tr></thead><tbody>';
             data.forEach(item => {
-                tableHTML += `<tr><td>${item.objective}</td><td>${item.principle}</td><td>${item.code} - ${item.subsection}</td><td>${item.response}</td></tr>`;
+                reportHTML += `<tr><td>${item.objective}</td><td>${item.principle}</td><td>${item.code} - ${item.subsection}</td><td>${item.compliance}</td><td>${item.notes.replace(/\n/g, '<br>')}</td><td>${item.difficulty}</td></tr>`;
             });
-            tableHTML += '</tbody></table>';
+            reportHTML += '</tbody></table>';
+            reportHTML += '</body></html>';
             const reportWindow = window.open('', '_blank');
-            reportWindow.document.write('<html><head><title>CAF Assessment Report</title>');
-            reportWindow.document.write('<style>body { font-family: Arial, sans-serif; margin: 20px; } table { width: 100%; border-collapse: collapse; } th, td { border: 1px solid #ddd; padding: 8px; text-align: left; } th { background-color: #f2f2f2; } h1 { color: #2c3e50; text-align: center; } p { text-align: center; }</style>');
-            reportWindow.document.write('</head><body>');
-            reportWindow.document.write('<h1>CAF Assessment Report</h1>');
-            reportWindow.document.write(`<p>Report generated on: ${new Date().toLocaleString()}</p>`);
-            reportWindow.document.write(tableHTML);
-            reportWindow.document.write('</body></html>');
+            reportWindow.document.write(reportHTML);
             reportWindow.document.close();
         }
     </script>
