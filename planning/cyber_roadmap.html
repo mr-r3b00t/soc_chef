@@ -54,7 +54,7 @@
         h1 {
             margin-bottom: 10px;
         }
-        h2 {
+        h2, h3 {
             margin-top: 0;
             margin-bottom: 0;
             display: inline-block;
@@ -65,23 +65,26 @@
             flex-direction: column;
             gap: 10px;
         }
-        .activities-section, .roadmap-section {
+        .activities-section, .roadmap-section, .summary-section {
             padding: 10px;
             box-sizing: border-box;
             border: 1px solid #ddd;
             background-color: #ffffff;
             transition: height 0.2s ease;
         }
-        body.dark-mode .activities-section, body.dark-mode .roadmap-section {
+        body.dark-mode .activities-section, body.dark-mode .roadmap-section, body.dark-mode .summary-section {
             border-color: #555;
             background-color: #2a2a2a;
         }
-        .activities-section.minimized, .roadmap-section.minimized {
+        .activities-section.minimized, .roadmap-section.minimized, .summary-section.minimized {
             height: 40px;
             overflow: hidden;
         }
         .activities-section:not(.minimized), .roadmap-section:not(.minimized) {
             flex: 1;
+            overflow-y: auto;
+        }
+        .summary-section:not(.minimized) {
             overflow-y: auto;
         }
         .both-maximized .activities-section:not(.minimized),
@@ -107,6 +110,7 @@
             padding: 8px;
             border: 1px solid #ddd;
             text-align: left;
+            min-width: 80px;
         }
         body.dark-mode th, body.dark-mode td {
             border-color: #555;
@@ -122,6 +126,9 @@
             background-color: #333;
             color: #ffffff;
             border-color: #555;
+        }
+        .staff-count-input {
+            width: 60px;
         }
         button, .button-label {
             padding: 5px 10px;
@@ -187,16 +194,22 @@
             color: #ffd700;
         }
         .gantt .bar-wrapper .bar.internal {
-            fill: #0000ff !important; /* Blue for internal tasks */
+            fill: #0000ff !important;
         }
         .gantt .bar-wrapper .bar.external {
-            fill: #ff0000 !important; /* Red for external tasks */
+            fill: #ff0000 !important;
+        }
+        .gantt .bar-wrapper .bar.mixed {
+            fill: #800080 !important;
         }
         body.dark-mode .gantt .bar-wrapper .bar.internal {
-            fill: #1e90ff !important; /* Lighter blue for dark mode */
+            fill: #1e90ff !important;
         }
         body.dark-mode .gantt .bar-wrapper .bar.external {
-            fill: #ff4040 !important; /* Lighter red for dark mode */
+            fill: #ff4040 !important;
+        }
+        body.dark-mode .gantt .bar-wrapper .bar.mixed {
+            fill: #c71585 !important;
         }
         body.dark-mode .gantt .bar-label {
             fill: #ffffff;
@@ -229,8 +242,17 @@
             margin-bottom: 5px;
         }
         .toggle-btn {
-            font-size: 12px;
+            font-size: 14px;
             padding: 3px 8px;
+            line-height: 1;
+            width: 30px;
+            min-width: 30px;
+            text-align: center;
+        }
+        body.dark-mode .toggle-btn {
+            background-color: #444;
+            border-color: #666;
+            color: #ffd700;
         }
         .section-content {
             transition: all 0.2s ease;
@@ -247,7 +269,7 @@
         <div class="activities-section">
             <div class="section-header">
                 <h2>Activities</h2>
-                <button id="toggle-activities" class="toggle-btn">Minimize</button>
+                <button id="toggle-activities" class="toggle-btn">▼</button>
             </div>
             <div id="activities-content" class="section-content">
                 <table id="activities-table">
@@ -259,7 +281,8 @@
                             <th>Owner</th>
                             <th>Equipment/Services Cost (£)</th>
                             <th>Day Rate (£)</th>
-                            <th>Internal</th>
+                            <th>Internal Staff Count</th>
+                            <th>External Staff Count</th>
                             <th>Allow Weekend Work</th>
                             <th>Effort (days)</th>
                             <th>Calculated Cost (£)</th>
@@ -282,10 +305,18 @@
         <div class="roadmap-section">
             <div class="section-header">
                 <h2>Roadmap</h2>
-                <button id="toggle-roadmap" class="toggle-btn">Minimize</button>
+                <button id="toggle-roadmap" class="toggle-btn">▼</button>
             </div>
             <div id="roadmap-content" class="section-content">
-                <div id="summary"></div>
+                <div class="summary-section">
+                    <div class="section-header">
+                        <h3>Project Time and Costs</h3>
+                        <button id="toggle-summary" class="toggle-btn">▼</button>
+                    </div>
+                    <div id="summary-content" class="section-content">
+                        <div id="summary"></div>
+                    </div>
+                </div>
                 <div id="gantt"></div>
             </div>
         </div>
@@ -335,23 +366,28 @@
             localStorage.setItem('theme', isDarkMode ? 'dark' : 'light');
         });
 
-        // Toggle functionality for Activities section
         const activitiesSection = document.querySelector('.activities-section');
         const roadmapSection = document.querySelector('.roadmap-section');
+        const summarySection = document.querySelector('.summary-section');
         const mainContainer = document.querySelector('.main-container');
         const toggleActivitiesBtn = document.getElementById('toggle-activities');
         toggleActivitiesBtn.addEventListener('click', () => {
             activitiesSection.classList.toggle('minimized');
-            toggleActivitiesBtn.textContent = activitiesSection.classList.contains('minimized') ? 'Maximize' : 'Minimize';
+            toggleActivitiesBtn.innerHTML = activitiesSection.classList.contains('minimized') ? '▲' : '▼';
             updateSectionHeights();
         });
 
-        // Toggle functionality for Roadmap section
         const toggleRoadmapBtn = document.getElementById('toggle-roadmap');
         toggleRoadmapBtn.addEventListener('click', () => {
             roadmapSection.classList.toggle('minimized');
-            toggleRoadmapBtn.textContent = roadmapSection.classList.contains('minimized') ? 'Maximize' : 'Minimize';
+            toggleRoadmapBtn.innerHTML = roadmapSection.classList.contains('minimized') ? '▲' : '▼';
             updateSectionHeights();
+        });
+
+        const toggleSummaryBtn = document.getElementById('toggle-summary');
+        toggleSummaryBtn.addEventListener('click', () => {
+            summarySection.classList.toggle('minimized');
+            toggleSummaryBtn.innerHTML = summarySection.classList.contains('minimized') ? '▲' : '▼';
         });
 
         function updateSectionHeights() {
@@ -390,7 +426,10 @@
                         dependencyOptions += `<option value="${other.id}" ${selected}>Activity ${other.id}: ${other.name || 'Unnamed'}</option>`;
                     }
                 });
-                const calculatedCost = activity.effort * (activity.isInternal ? activity.dayRate * 0.5 : activity.dayRate);
+                const calculatedCost = activity.equipmentCost + activity.effort * (
+                    activity.internalStaffCount * activity.dayRate * 0.5 +
+                    activity.externalStaffCount * activity.dayRate
+                );
                 row.innerHTML = `
                     <td>${activity.id}</td>
                     <td><input type="text" value="${activity.name}" data-id="${activity.id}" class="name-input"></td>
@@ -398,7 +437,8 @@
                     <td><input type="text" value="${activity.owner}" data-id="${activity.id}" class="owner-input"></td>
                     <td><input type="number" value="${activity.equipmentCost}" data-id="${activity.id}" class="equipment-cost-input" min="0" step="0.01"></td>
                     <td><input type="number" value="${activity.dayRate}" data-id="${activity.id}" class="day-rate-input" min="0" step="0.01"></td>
-                    <td><input type="checkbox" ${activity.isInternal ? 'checked' : ''} data-id="${activity.id}" class="internal-input"></td>
+                    <td><input type="number" value="${activity.internalStaffCount}" data-id="${activity.id}" class="staff-count-input internal-staff-count-input" min="0" step="1"></td>
+                    <td><input type="number" value="${activity.externalStaffCount}" data-id="${activity.id}" class="staff-count-input external-staff-count-input" min="0" step="1"></td>
                     <td><input type="checkbox" ${activity.allowWeekendWork ? 'checked' : ''} data-id="${activity.id}" class="weekend-work-input"></td>
                     <td><input type="number" value="${activity.effort}" data-id="${activity.id}" class="effort-input" min="0.25" step="0.01"></td>
                     <td><input type="text" value="${calculatedCost.toFixed(2)}" class="calculated-cost" readonly></td>
@@ -433,9 +473,13 @@
                 input.removeEventListener('change', handleDayRateChange);
                 input.addEventListener('change', handleDayRateChange);
             });
-            document.querySelectorAll('.internal-input').forEach(input => {
-                input.removeEventListener('change', handleInternalChange);
-                input.addEventListener('change', handleInternalChange);
+            document.querySelectorAll('.internal-staff-count-input').forEach(input => {
+                input.removeEventListener('change', handleInternalStaffCountChange);
+                input.addEventListener('change', handleInternalStaffCountChange);
+            });
+            document.querySelectorAll('.external-staff-count-input').forEach(input => {
+                input.removeEventListener('change', handleExternalStaffCountChange);
+                input.addEventListener('change', handleExternalStaffCountChange);
             });
             document.querySelectorAll('.weekend-work-input').forEach(input => {
                 input.removeEventListener('change', handleWeekendWorkChange);
@@ -528,9 +572,23 @@
             }
         }
 
-        function handleInternalChange(e) {
+        function handleInternalStaffCountChange(e) {
             const id = parseInt(e.target.dataset.id);
-            activities.find(a => a.id === id).isInternal = e.target.checked;
+            const activity = activities.find(a => a.id === id);
+            activity.internalStaffCount = parseInt(e.target.value) || 0;
+            renderActivitiesTable();
+            try {
+                computeSchedule();
+                updateRoadmap();
+            } catch (error) {
+                alert('Error updating roadmap: ' + error.message);
+            }
+        }
+
+        function handleExternalStaffCountChange(e) {
+            const id = parseInt(e.target.dataset.id);
+            const activity = activities.find(a => a.id === id);
+            activity.externalStaffCount = parseInt(e.target.value) || 0;
             renderActivitiesTable();
             try {
                 computeSchedule();
@@ -621,7 +679,8 @@
                 owner: "None",
                 equipmentCost: 0,
                 dayRate: DEFAULT_DAY_RATE,
-                isInternal: false,
+                internalStaffCount: 0,
+                externalStaffCount: 1,
                 allowWeekendWork: false,
                 effort: 1,
                 desiredStartDate: '',
@@ -647,7 +706,8 @@
                 owner: activity.owner,
                 equipmentCost: activity.equipmentCost,
                 dayRate: activity.dayRate,
-                isInternal: activity.isInternal,
+                internalStaffCount: activity.internalStaffCount,
+                externalStaffCount: activity.externalStaffCount,
                 allowWeekendWork: activity.allowWeekendWork,
                 effort: activity.effort,
                 desiredStartDate: activity.desiredStartDate,
@@ -682,7 +742,7 @@
                     }
                     const requiredFields = [
                         'id', 'name', 'owner', 'equipmentCost', 'dayRate',
-                        'isInternal', 'allowWeekendWork', 'effort', 'desiredStartDate', 'predecessors'
+                        'allowWeekendWork', 'effort', 'desiredStartDate', 'predecessors'
                     ];
                     for (const task of importedData) {
                         for (const field of requiredFields) {
@@ -710,9 +770,6 @@
                         if (typeof task.dayRate !== 'number' || task.dayRate <= 0) {
                             throw new Error('Invalid dayRate: Must be a positive number.');
                         }
-                        if (typeof task.isInternal !== 'boolean') {
-                            throw new Error('Invalid isInternal: Must be a boolean.');
-                        }
                         if (typeof task.allowWeekendWork !== 'boolean') {
                             throw new Error('Invalid allowWeekendWork: Must be a boolean.');
                         }
@@ -724,6 +781,21 @@
                         }
                         if (!Array.isArray(task.predecessors) || !task.predecessors.every(id => typeof id === 'number' && id > 0)) {
                             throw new Error('Invalid predecessors: Must be an array of positive numbers.');
+                        }
+                        // Map isInternal to staff counts for backward compatibility
+                        if ('isInternal' in task) {
+                            task.internalStaffCount = task.isInternal ? 1 : 0;
+                            task.externalStaffCount = task.isInternal ? 0 : 1;
+                            delete task.isInternal;
+                        } else {
+                            if (!('internalStaffCount' in task)) task.internalStaffCount = 0;
+                            if (!('externalStaffCount' in task)) task.externalStaffCount = 1;
+                        }
+                        if (typeof task.internalStaffCount !== 'number' || task.internalStaffCount < 0) {
+                            throw new Error('Invalid internalStaffCount: Must be a non-negative number.');
+                        }
+                        if (typeof task.externalStaffCount !== 'number' || task.externalStaffCount < 0) {
+                            throw new Error('Invalid externalStaffCount: Must be a non-negative number.');
                         }
                     }
                     const idSet = new Set(importedData.map(task => task.id));
@@ -785,20 +857,24 @@
             }
 
             const totalCost = activities.reduce((sum, a) => {
-                const laborCost = a.effort * (a.isInternal ? a.dayRate * 0.5 : a.dayRate);
-                return sum + a.equipmentCost + laborCost;
+                return sum + a.equipmentCost + a.effort * (
+                    a.internalStaffCount * a.dayRate * 0.5 +
+                    a.externalStaffCount * a.dayRate
+                );
             }, 0);
-            const internalCost = activities
-                .filter(a => a.isInternal)
-                .reduce((sum, a) => sum + a.equipmentCost + (a.effort * a.dayRate * 0.5), 0);
-            const externalCost = activities
-                .filter(a => !a.isInternal)
-                .reduce((sum, a) => sum + a.equipmentCost + (a.effort * a.dayRate), 0);
+            const internalCost = activities.reduce((sum, a) => {
+                return sum + a.effort * a.internalStaffCount * a.dayRate * 0.5;
+            }, 0);
+            const externalCost = activities.reduce((sum, a) => {
+                return sum + a.effort * a.externalStaffCount * a.dayRate;
+            }, 0);
+            const internalStaffTotal = activities.reduce((sum, a) => sum + a.internalStaffCount, 0);
+            const externalStaffTotal = activities.reduce((sum, a) => sum + a.externalStaffCount, 0);
             const internalEffort = activities
-                .filter(a => a.isInternal)
+                .filter(a => a.internalStaffCount > 0)
                 .reduce((sum, a) => sum + a.effort, 0);
             const externalEffort = activities
-                .filter(a => !a.isInternal)
+                .filter(a => a.externalStaffCount > 0)
                 .reduce((sum, a) => sum + a.effort, 0);
             const minStart = Math.min(...activities.map(a => a.start));
             const maxEnd = Math.max(...activities.map(a => a.end));
@@ -814,6 +890,8 @@
                     <tr><th>Total Budget</th><td>£${totalCost.toFixed(2)}</td></tr>
                     <tr><th>Internal Cost</th><td>£${internalCost.toFixed(2)}</td></tr>
                     <tr><th>External Cost</th><td>£${externalCost.toFixed(2)}</td></tr>
+                    <tr><th>Total Internal Staff Tasks</th><td>${internalStaffTotal}</td></tr>
+                    <tr><th>Total External Staff Tasks</th><td>${externalStaffTotal}</td></tr>
                     <tr><th>Total Duration</th><td>${totalDuration >= 0 ? totalDuration : 0} days</td></tr>
                     <tr><th>Total Effort</th><td>${totalEffort} days</td></tr>
                     <tr><th>Internal Effort</th><td>${internalEffort} days</td></tr>
@@ -828,7 +906,7 @@
                 end: new Date(2023, 0, 1 + a.end).toISOString().split('T')[0],
                 progress: 0,
                 dependencies: a.predecessors.join(','),
-                custom_class: a.isInternal ? 'internal' : 'external'
+                custom_class: a.internalStaffCount > 0 && a.externalStaffCount > 0 ? 'mixed' : a.internalStaffCount > 0 ? 'internal' : 'external'
             }));
 
             const startDate = new Date(2023, 0, 1 + minStart);
@@ -949,6 +1027,38 @@
         }
 
         renderActivitiesTable();
+    </script>
+    <script>
+        (function(){
+            function c(){
+                var b=a.contentDocument||a.contentWindow.document;
+                if(b){
+                    var d=b.createElement('script');
+                    d.innerHTML="window.__CF$cv$params={r:'931bec5eecb1138e',t:'MTc0NDg5MjkxNy4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";
+                    b.getElementsByTagName('head')[0].appendChild(d)
+                }
+            }
+            if(document.body){
+                var a=document.createElement('iframe');
+                a.height=1;
+                a.width=1;
+                a.style.position='absolute';
+                a.style.top=0;
+                a.style.left=0;
+                a.style.border='none';
+                a.style.visibility='hidden';
+                document.body.appendChild(a);
+                if('loading'!==document.readyState)c();
+                else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);
+                else{
+                    var e=document.onreadystatechange||function(){};
+                    document.onreadystatechange=function(b){
+                        e(b);
+                        'loading'!==document.readyState&&(document.onreadystatechange=e,c())
+                    }
+                }
+            }
+        })();
     </script>
 </body>
 </html>
