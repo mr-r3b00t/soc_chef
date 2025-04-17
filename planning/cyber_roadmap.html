@@ -38,6 +38,31 @@
         body {
             font-family: Arial, sans-serif;
             padding: 20px;
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            box-sizing: border-box;
+        }
+        h1 {
+            margin-bottom: 10px;
+        }
+        h2 {
+            margin-top: 0;
+        }
+        .activities-section, .roadmap-section {
+            max-height: 45vh; /* Reduced slightly to accommodate buttons section */
+            overflow-y: auto;
+            padding: 10px;
+            box-sizing: border-box;
+            border: 1px solid #ddd;
+            margin-bottom: 10px;
+        }
+        .buttons-section {
+            padding: 10px;
+            display: flex;
+            gap: 10px;
+            margin-bottom: 10px;
         }
         table {
             width: 100%;
@@ -54,14 +79,11 @@
             box-sizing: border-box;
         }
         button {
-            margin: 5px;
             padding: 5px 10px;
-        }
-        #gantt {
-            margin-top: 20px;
         }
         #summary {
             font-weight: bold;
+            margin-bottom: 10px;
         }
         select[multiple] {
             height: 100px;
@@ -79,30 +101,38 @@
 <body>
     <h1>Security Programme Roadmap Designer</h1>
 
-    <h2>Activities</h2>
-    <table id="activities-table">
-        <thead>
-            <tr>
-                <th>ID</th>
-                <th>Name</th>
-                <th>Owner</th>
-                <th>Equipment/Services Cost (£)</th>
-                <th>Day Rate (£)</th>
-                <th>Internal</th>
-                <th>Effort (days)</th>
-                <th>Calculated Cost (£)</th>
-                <th>Desired Start Date</th>
-                <th>Dependencies</th>
-                <th>Actions</th>
-            </tr>
-        </thead>
-        <tbody></tbody>
-    </table>
-    <button id="add-activity">Add Activity</button>
+    <div class="activities-section">
+        <h2>Activities</h2>
+        <table id="activities-table">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Name</th>
+                    <th>Owner</th>
+                    <th>Equipment/Services Cost (£)</th>
+                    <th>Day Rate (£)</th>
+                    <th>Internal</th>
+                    <th>Effort (days)</th>
+                    <th>Calculated Cost (£)</th>
+                    <th>Desired Start Date</th>
+                    <th>Dependencies</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
 
-    <h2>Roadmap</h2>
-    <div id="summary"></div>
-    <div id="gantt"></div>
+    <div class="buttons-section">
+        <button id="add-activity">Add Activity</button>
+        <button id="clear-all">Clear All Tasks</button>
+    </div>
+
+    <div class="roadmap-section">
+        <h2>Roadmap</h2>
+        <div id="summary"></div>
+        <div id="gantt"></div>
+    </div>
 
     <script src="https://unpkg.com/frappe-gantt@0.5.0/dist/frappe-gantt.min.js"></script>
     <script>
@@ -135,6 +165,7 @@
             { name: "Strategy Development", equipmentCost: 6000, dayRate: 1000, isInternal: true, effort: 10, owner: "Security Lead" },
             { name: "Compliance Certification", equipmentCost: 10000, dayRate: 1300, isInternal: false, effort: 8, owner: "Compliance Team" },
             { name: "External Audit", equipmentCost: 12000, dayRate: 1500, isInternal: false, effort: 6, owner: "External Auditor" },
+            { name: "Discovery Service", equipmentCost: 9000, dayRate: 1200, isInternal: false, effort: 6, owner: "IT Security" },
             { name: "Custom", equipmentCost: 0, dayRate: DEFAULT_DAY_RATE, isInternal: false, effort: 1, owner: "None" }
         ];
 
@@ -225,6 +256,10 @@
                 btn.removeEventListener('click', handleDelete);
                 btn.addEventListener('click', handleDelete);
             });
+            document.getElementById('clear-all').removeEventListener('click', handleClearAll);
+            document.getElementById('clear-all').addEventListener('click', handleClearAll);
+            document.getElementById('add-activity').removeEventListener('click', handleAddActivity);
+            document.getElementById('add-activity').addEventListener('click', handleAddActivity);
         }
 
         function handleNameChange(e) {
@@ -366,7 +401,14 @@
             }
         }
 
-        document.getElementById('add-activity').addEventListener('click', () => {
+        function handleClearAll() {
+            activities = [];
+            idCounter = 1;
+            renderActivitiesTable();
+            updateRoadmap();
+        }
+
+        function handleAddActivity() {
             const newActivity = {
                 id: idCounter++,
                 name: "Custom",
@@ -388,7 +430,7 @@
             } catch (error) {
                 alert('Error updating roadmap: ' + error.message);
             }
-        });
+        }
 
         function updateRoadmap() {
             const totalCost = activities.reduce((sum, a) => {
