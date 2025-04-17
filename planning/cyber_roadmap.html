@@ -269,7 +269,7 @@
         <div class="activities-section">
             <div class="section-header">
                 <h2>Activities</h2>
-                <button id="toggle-activities" class="toggle-btn">▼</button>
+                <button id="toggle-activities" class="toggle-btn">▲▼</button>
             </div>
             <div id="activities-content" class="section-content">
                 <table id="activities-table">
@@ -305,13 +305,13 @@
         <div class="roadmap-section">
             <div class="section-header">
                 <h2>Roadmap</h2>
-                <button id="toggle-roadmap" class="toggle-btn">▼</button>
+                <button id="toggle-roadmap" class="toggle-btn">▲▼</button>
             </div>
             <div id="roadmap-content" class="section-content">
                 <div class="summary-section">
                     <div class="section-header">
                         <h3>Project Time and Costs</h3>
-                        <button id="toggle-summary" class="toggle-btn">▼</button>
+                        <button id="toggle-summary" class="toggle-btn">▲▼</button>
                     </div>
                     <div id="summary-content" class="section-content">
                         <div id="summary"></div>
@@ -373,21 +373,21 @@
         const toggleActivitiesBtn = document.getElementById('toggle-activities');
         toggleActivitiesBtn.addEventListener('click', () => {
             activitiesSection.classList.toggle('minimized');
-            toggleActivitiesBtn.innerHTML = activitiesSection.classList.contains('minimized') ? '▲' : '▼';
+            toggleActivitiesBtn.innerHTML = activitiesSection.classList.contains('minimized') ? '▲▼' : '▲▼';
             updateSectionHeights();
         });
 
         const toggleRoadmapBtn = document.getElementById('toggle-roadmap');
         toggleRoadmapBtn.addEventListener('click', () => {
             roadmapSection.classList.toggle('minimized');
-            toggleRoadmapBtn.innerHTML = roadmapSection.classList.contains('minimized') ? '▲' : '▼';
+            toggleRoadmapBtn.innerHTML = roadmapSection.classList.contains('minimized') ? '▲▼' : '▲▼';
             updateSectionHeights();
         });
 
         const toggleSummaryBtn = document.getElementById('toggle-summary');
         toggleSummaryBtn.addEventListener('click', () => {
             summarySection.classList.toggle('minimized');
-            toggleSummaryBtn.innerHTML = summarySection.classList.contains('minimized') ? '▲' : '▼';
+            toggleSummaryBtn.innerHTML = summarySection.classList.contains('minimized') ? '▲▼' : '▲▼';
         });
 
         function updateSectionHeights() {
