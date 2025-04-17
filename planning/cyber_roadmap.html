@@ -70,6 +70,10 @@
             background-color: #f0f0f0;
             pointer-events: none;
         }
+        .custom-name-input {
+            display: none;
+            margin-top: 5px;
+        }
     </style>
 </head>
 <body>
@@ -95,7 +99,6 @@
         <tbody></tbody>
     </table>
     <button id="add-activity">Add Activity</button>
-    <button id="generate-roadmap">Generate Roadmap</button>
 
     <h2>Roadmap</h2>
     <div id="summary"></div>
@@ -107,12 +110,26 @@
         let idCounter = 1;
         const DEFAULT_DAY_RATE = 1000;
 
+        const genericTasks = [
+            { name: "Risk Assessment", equipmentCost: 5000, dayRate: 1000, isInternal: false, effort: 5, owner: "Security Lead" },
+            { name: "Policy Development", equipmentCost: 2000, dayRate: 800, isInternal: true, effort: 10, owner: "Compliance Team" },
+            { name: "Security Awareness Training", equipmentCost: 3000, dayRate: 600, isInternal: false, effort: 3, owner: "HR" },
+            { name: "Vulnerability Scanning", equipmentCost: 10000, dayRate: 1200, isInternal: false, effort: 7, owner: "IT Security" },
+            { name: "Penetration Testing", equipmentCost: 15000, dayRate: 1500, isInternal: false, effort: 5, owner: "External Vendor" },
+            { name: "Firewall Implementation", equipmentCost: 20000, dayRate: 1000, isInternal: false, effort: 10, owner: "Network Team" },
+            { name: "Incident Response Planning", equipmentCost: 4000, dayRate: 900, isInternal: true, effort: 8, owner: "Security Lead" },
+            { name: "Access Control Implementation", equipmentCost: 8000, dayRate: 1100, isInternal: false, effort: 6, owner: "IT Security" },
+            { name: "Encryption Deployment", equipmentCost: 12000, dayRate: 1000, isInternal: false, effort: 7, owner: "IT Security" },
+            { name: "Security Monitoring Setup", equipmentCost: 10000, dayRate: 1000, isInternal: false, effort: 10, owner: "SOC Team" },
+            { name: "Custom", equipmentCost: 0, dayRate: DEFAULT_DAY_RATE, isInternal: false, effort: 1, owner: "None" }
+        ];
+
         function renderActivitiesTable() {
             const tbody = document.querySelector('#activities-table tbody');
             tbody.innerHTML = '';
             activities.forEach(activity => {
                 const row = document.createElement('tr');
-                let dependencyOptions = '<option value="" disabled>Select dependencies</option>';
+                let dependencyOptions = '<option value="" disabled ${activity.predecessors.length === 0 ? "selected" : ""}>Select dependencies</option>';
                 activities.forEach(other => {
                     if (other.id !== activity.id) {
                         const selected = activity.predecessors.includes(other.id) ? 'selected' : '';
@@ -120,9 +137,16 @@
                     }
                 });
                 const calculatedCost = activity.effort * (activity.isInternal ? activity.dayRate * 0.5 : activity.dayRate);
+                const isCustom = !genericTasks.some(task => task.name === activity.name) || activity.name === "Custom";
+                const taskOptions = genericTasks.map(task => 
+                    `<option value="${task.name}" ${activity.name === task.name ? 'selected' : ''}>${task.name}</option>`
+                ).join('');
                 row.innerHTML = `
                     <td>${activity.id}</td>
-                    <td><input type="text" value="${activity.name}" data-id="${activity.id}" class="name-input"></td>
+                    <td>
+                        <select data-id="${activity.id}" class="name-select">${taskOptions}</select>
+                        <input type="text" value="${isCustom ? activity.name : ''}" data-id="${activity.id}" class="custom-name-input" placeholder="Custom task name">
+                    </td>
                     <td><input type="text" value="${activity.owner}" data-id="${activity.id}" class="owner-input"></td>
                     <td><input type="number" value="${activity.equipmentCost}" data-id="${activity.id}" class="equipment-cost-input" min="0" step="0.01"></td>
                     <td><input type="number" value="${activity.dayRate}" data-id="${activity.id}" class="day-rate-input" min="0" step="0.01"></td>
@@ -136,13 +160,24 @@
                 tbody.appendChild(row);
             });
 
+            document.querySelectorAll('.name-select').forEach(select => {
+                const id = parseInt(select.dataset.id);
+                const activity = activities.find(a => a.id === id);
+                const customInput = select.parentElement.querySelector('.custom-name-input');
+                customInput.style.display = select.value === "Custom" ? 'block' : 'none';
+            });
+
             attachEventListeners();
         }
 
         function attachEventListeners() {
-            document.querySelectorAll('.name-input').forEach(input => {
-                input.removeEventListener('change', handleNameChange);
-                input.addEventListener('change', handleNameChange);
+            document.querySelectorAll('.name-select').forEach(select => {
+                select.removeEventListener('change', handleNameChange);
+                select.addEventListener('change', handleNameChange);
+            });
+            document.querySelectorAll('.custom-name-input').forEach(input => {
+                input.removeEventListener('change', handleCustomNameChange);
+                input.addEventListener('change', handleCustomNameChange);
             });
             document.querySelectorAll('.owner-input').forEach(input => {
                 input.removeEventListener('change', handleOwnerChange);
@@ -180,48 +215,126 @@
 
         function handleNameChange(e) {
             const id = parseInt(e.target.dataset.id);
-            activities.find(a => a.id === id).name = e.target.value;
+            const activity = activities.find(a => a.id === id);
+            const selectedTaskName = e.target.value;
+            const task = genericTasks.find(t => t.name === selectedTaskName);
+            activity.name = selectedTaskName;
+
+            if (task && selectedTaskName !== "Custom") {
+                activity.equipmentCost = task.equipmentCost;
+                activity.dayRate = task.dayRate;
+                activity.isInternal = task.isInternal;
+                activity.effort = task.effort;
+                activity.owner = task.owner;
+            } else {
+                activity.name = '';
+            }
+
             renderActivitiesTable();
+            try {
+                computeSchedule();
+                updateRoadmap();
+            } catch (error) {
+                alert('Error updating roadmap: ' + error.message);
+            }
+        }
+
+        function handleCustomNameChange(e) {
+            const id = parseInt(e.target.dataset.id);
+            const activity = activities.find(a => a.id === id);
+            activity.name = e.target.value || "Custom";
+            renderActivitiesTable();
+            try {
+                computeSchedule();
+                updateRoadmap();
+            } catch (error) {
+                alert('Error updating roadmap: ' + error.message);
+            }
         }
 
         function handleOwnerChange(e) {
             const id = parseInt(e.target.dataset.id);
             activities.find(a => a.id === id).owner = e.target.value;
+            renderActivitiesTable();
+            try {
+                computeSchedule();
+                updateRoadmap();
+            } catch (error) {
+                alert('Error updating roadmap: ' + error.message);
+            }
         }
 
         function handleEquipmentCostChange(e) {
             const id = parseInt(e.target.dataset.id);
             activities.find(a => a.id === id).equipmentCost = parseFloat(e.target.value) || 0;
             renderActivitiesTable();
+            try {
+                computeSchedule();
+                updateRoadmap();
+            } catch (error) {
+                alert('Error updating roadmap: ' + error.message);
+            }
         }
 
         function handleDayRateChange(e) {
             const id = parseInt(e.target.dataset.id);
             activities.find(a => a.id === id).dayRate = parseFloat(e.target.value) || DEFAULT_DAY_RATE;
             renderActivitiesTable();
+            try {
+                computeSchedule();
+                updateRoadmap();
+            } catch (error) {
+                alert('Error updating roadmap: ' + error.message);
+            }
         }
 
         function handleInternalChange(e) {
             const id = parseInt(e.target.dataset.id);
             activities.find(a => a.id === id).isInternal = e.target.checked;
             renderActivitiesTable();
+            try {
+                computeSchedule();
+                updateRoadmap();
+            } catch (error) {
+                alert('Error updating roadmap: ' + error.message);
+            }
         }
 
         function handleEffortChange(e) {
             const id = parseInt(e.target.dataset.id);
             activities.find(a => a.id === id).effort = parseInt(e.target.value) || 1;
             renderActivitiesTable();
+            try {
+                computeSchedule();
+                updateRoadmap();
+            } catch (error) {
+                alert('Error updating roadmap: ' + error.message);
+            }
         }
 
         function handleStartDateChange(e) {
             const id = parseInt(e.target.dataset.id);
             activities.find(a => a.id === id).desiredStartDate = e.target.value;
+            renderActivitiesTable();
+            try {
+                computeSchedule();
+                updateRoadmap();
+            } catch (error) {
+                alert('Error updating roadmap: ' + error.message);
+            }
         }
 
         function handleDependencyChange(e) {
             const id = parseInt(e.target.dataset.id);
             const activity = activities.find(a => a.id === id);
             activity.predecessors = Array.from(e.target.selectedOptions, option => parseInt(option.value)).filter(val => !isNaN(val));
+            renderActivitiesTable();
+            try {
+                computeSchedule();
+                updateRoadmap();
+            } catch (error) {
+                alert('Error updating roadmap: ' + error.message);
+            }
         }
 
         function handleDelete(e) {
@@ -231,13 +344,19 @@
                 a.predecessors = a.predecessors.filter(pred => pred !== id);
             });
             renderActivitiesTable();
+            try {
+                computeSchedule();
+                updateRoadmap();
+            } catch (error) {
+                alert('Error updating roadmap: ' + error.message);
+            }
         }
 
         document.getElementById('add-activity').addEventListener('click', () => {
             const newActivity = {
                 id: idCounter++,
-                name: '',
-                owner: '',
+                name: "Custom",
+                owner: "None",
                 equipmentCost: 0,
                 dayRate: DEFAULT_DAY_RATE,
                 isInternal: false,
@@ -249,14 +368,11 @@
             };
             activities.push(newActivity);
             renderActivitiesTable();
-        });
-
-        document.getElementById('generate-roadmap').addEventListener('click', () => {
             try {
                 computeSchedule();
                 updateRoadmap();
             } catch (error) {
-                alert('Error generating roadmap: ' + error.message);
+                alert('Error updating roadmap: ' + error.message);
             }
         });
 
@@ -306,12 +422,12 @@
                     activity.start = newStartDays;
                     activity.end = activity.start + activity.effort;
                     try {
-                        computeSchedule(); // Recompute schedule to enforce dependencies
+                        computeSchedule();
                         renderActivitiesTable();
-                        updateRoadmap(); // Update summary and Gantt chart
+                        updateRoadmap();
                     } catch (error) {
                         alert('Invalid change: ' + error.message);
-                        renderActivitiesTable(); // Revert to last valid state
+                        renderActivitiesTable();
                     }
                 }
             });
