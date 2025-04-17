@@ -43,6 +43,13 @@
             flex-direction: column;
             height: 100vh;
             box-sizing: border-box;
+            background-color: #ffffff;
+            color: #000000;
+            transition: background-color 0.3s, color 0.3s;
+        }
+        body.dark-mode {
+            background-color: #1e1e1e;
+            color: #ffffff;
         }
         h1 {
             margin-bottom: 10px;
@@ -51,12 +58,17 @@
             margin-top: 0;
         }
         .activities-section, .roadmap-section {
-            max-height: 45vh; /* Reduced slightly to accommodate buttons section */
+            max-height: 45vh;
             overflow-y: auto;
             padding: 10px;
             box-sizing: border-box;
             border: 1px solid #ddd;
             margin-bottom: 10px;
+            background-color: #ffffff;
+        }
+        body.dark-mode .activities-section, body.dark-mode .roadmap-section {
+            border-color: #555;
+            background-color: #2a2a2a;
         }
         .buttons-section {
             padding: 10px;
@@ -68,18 +80,41 @@
             width: 100%;
             border-collapse: collapse;
             margin-bottom: 10px;
+            background-color: #ffffff;
+        }
+        body.dark-mode table {
+            background-color: #2a2a2a;
         }
         th, td {
             padding: 8px;
             border: 1px solid #ddd;
             text-align: left;
         }
+        body.dark-mode th, body.dark-mode td {
+            border-color: #555;
+        }
         input, select {
             width: 100%;
             box-sizing: border-box;
+            background-color: #ffffff;
+            color: #000000;
+            border: 1px solid #ddd;
+        }
+        body.dark-mode input, body.dark-mode select {
+            background-color: #333;
+            color: #ffffff;
+            border-color: #555;
         }
         button {
             padding: 5px 10px;
+            background-color: #f0f0f0;
+            border: 1px solid #ddd;
+            cursor: pointer;
+        }
+        body.dark-mode button {
+            background-color: #444;
+            border-color: #666;
+            color: #ffffff;
         }
         #summary {
             font-weight: bold;
@@ -92,13 +127,46 @@
             background-color: #f0f0f0;
             pointer-events: none;
         }
+        body.dark-mode .calculated-cost {
+            background-color: #444;
+        }
         .custom-name-input {
             display: none;
             margin-top: 5px;
         }
+        .theme-toggle {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            font-size: 24px;
+            cursor: pointer;
+            transition: transform 0.3s;
+        }
+        body.dark-mode .theme-toggle {
+            transform: rotate(180deg);
+            color: #ffd700; /* Gold color for glowing effect in dark mode */
+        }
+        /* Adjust Gantt chart colors for dark mode */
+        body.dark-mode .gantt .bar {
+            fill: #4a90e2;
+        }
+        body.dark-mode .gantt .bar-label {
+            fill: #ffffff;
+        }
+        body.dark-mode .gantt .grid-header {
+            fill: #2a2a2a;
+            stroke: #555;
+        }
+        body.dark-mode .gantt .grid-row {
+            fill: #1e1e1e;
+        }
+        body.dark-mode .gantt .tick {
+            stroke: #555;
+        }
     </style>
 </head>
 <body>
+    <div id="theme-toggle" class="theme-toggle">💡</div>
     <h1>Security Programme Roadmap Designer</h1>
 
     <div class="activities-section">
@@ -126,6 +194,7 @@
     <div class="buttons-section">
         <button id="add-activity">Add Activity</button>
         <button id="clear-all">Clear All Tasks</button>
+        <button id="load-example">Load Example Roadmap</button>
     </div>
 
     <div class="roadmap-section">
@@ -139,6 +208,17 @@
         let activities = [];
         let idCounter = 1;
         const DEFAULT_DAY_RATE = 1000;
+
+        // Load theme from localStorage
+        if (localStorage.getItem('theme') === 'dark') {
+            document.body.classList.add('dark-mode');
+        }
+
+        // Theme toggle event listener
+        document.getElementById('theme-toggle').addEventListener('click', () => {
+            document.body.classList.toggle('dark-mode');
+            localStorage.setItem('theme', document.body.classList.contains('dark-mode') ? 'dark' : 'light');
+        });
 
         const genericTasks = [
             { name: "Risk Assessment", equipmentCost: 5000, dayRate: 1000, isInternal: false, effort: 5, owner: "Security Lead" },
@@ -260,6 +340,8 @@
             document.getElementById('clear-all').addEventListener('click', handleClearAll);
             document.getElementById('add-activity').removeEventListener('click', handleAddActivity);
             document.getElementById('add-activity').addEventListener('click', handleAddActivity);
+            document.getElementById('load-example').removeEventListener('click', handleLoadExample);
+            document.getElementById('load-example').addEventListener('click', handleLoadExample);
         }
 
         function handleNameChange(e) {
@@ -432,6 +514,59 @@
             }
         }
 
+        function handleLoadExample() {
+            activities = [];
+            idCounter = 1;
+
+            const exampleTasks = [
+                { name: "Risk Assessment", desiredStartDate: "2025-01-01", predecessors: [] },
+                { name: "Policy Development", desiredStartDate: "2025-01-15", predecessors: [1] },
+                { name: "Security Awareness Training", desiredStartDate: "2025-02-01", predecessors: [2] },
+                { name: "Discovery Service", desiredStartDate: "2025-02-10", predecessors: [1] },
+                { name: "Vulnerability Scanning", desiredStartDate: "2025-02-20", predecessors: [4] },
+                { name: "Penetration Testing", desiredStartDate: "2025-03-01", predecessors: [5] },
+                { name: "Internal Audit", desiredStartDate: "2025-03-15", predecessors: [2] },
+                { name: "Firewall Implementation", desiredStartDate: "2025-04-01", predecessors: [6] },
+                { name: "Encryption Deployment", desiredStartDate: "2025-04-15", predecessors: [8] },
+                { name: "Incident Response Planning", desiredStartDate: "2025-05-01", predecessors: [7] },
+                { name: "SIEM Configuration", desiredStartDate: "2025-05-15", predecessors: [9] },
+                { name: "Security Monitoring Setup", desiredStartDate: "2025-06-01", predecessors: [11] },
+                { name: "Red Teaming", desiredStartDate: "2025-07-01", predecessors: [12] },
+                { name: "Purple Teaming", desiredStartDate: "2025-07-15", predecessors: [13] },
+                { name: "Compliance Certification", desiredStartDate: "2025-08-01", predecessors: [7] },
+                { name: "Disaster Recovery Testing", desiredStartDate: "2025-09-01", predecessors: [10] },
+                { name: "Strategy Review", desiredStartDate: "2025-10-01", predecessors: [15] },
+                { name: "Strategy Development", desiredStartDate: "2025-10-15", predecessors: [17] },
+                { name: "External Audit", desiredStartDate: "2025-11-01", predecessors: [15] },
+                { name: "Enterprise Posture Review", desiredStartDate: "2025-11-15", predecessors: [19] }
+            ];
+
+            exampleTasks.forEach(task => {
+                const template = genericTasks.find(t => t.name === task.name);
+                activities.push({
+                    id: idCounter++,
+                    name: task.name,
+                    owner: template.owner,
+                    equipmentCost: template.equipmentCost,
+                    dayRate: template.dayRate,
+                    isInternal: template.isInternal,
+                    effort: template.effort,
+                    desiredStartDate: task.desiredStartDate,
+                    predecessors: task.predecessors,
+                    start: null,
+                    end: null
+                });
+            });
+
+            renderActivitiesTable();
+            try {
+                computeSchedule();
+                updateRoadmap();
+            } catch (error) {
+                alert('Error loading example roadmap: ' + error.message);
+            }
+        }
+
         function updateRoadmap() {
             const totalCost = activities.reduce((sum, a) => {
                 const laborCost = a.effort * (a.isInternal ? a.dayRate * 0.5 : a.dayRate);
@@ -439,11 +574,17 @@
             }, 0);
             const minStart = activities.length > 0 ? Math.min(...activities.map(a => a.start)) : 0;
             const maxEnd = activities.length > 0 ? Math.max(...activities.map(a => a.end)) : 0;
-            const totalDuration = maxEnd - minStart;
+            const totalDuration = activities.length > 0 ? maxEnd - minStart + 1 : 0;
+            const totalEffort = activities.reduce((sum, a) => sum + a.effort, 0);
+            const startDateFormatted = activities.length > 0 ? new Date(2023, 0, 1 + minStart).toISOString().split('T')[0] : "N/A";
+            const endDateFormatted = activities.length > 0 ? new Date(2023, 0, 1 + maxEnd).toISOString().split('T')[0] : "N/A";
 
             document.getElementById('summary').innerHTML = `
+                <p>Roadmap Start Date: ${startDateFormatted}</p>
+                <p>Roadmap End Date: ${endDateFormatted}</p>
                 <p>Total Budget: £${totalCost.toFixed(2)}</p>
                 <p>Total Duration: ${totalDuration >= 0 ? totalDuration : 0} days</p>
+                <p>Total Effort: ${totalEffort} days</p>
             `;
 
             const tasks = activities.map(a => ({
