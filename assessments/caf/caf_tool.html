@@ -41,7 +41,7 @@
             background-color: #f4f4f4;
             color: #333;
         }
-        h1, h2, h3 {
+        h1, h2, h3, h4 {
             color: #2c3e50;
         }
         h1 {
@@ -84,7 +84,7 @@
         label input {
             margin-right: 10px;
         }
-        #action-log {
+        #action-log, #responses {
             margin-top: 30px;
             padding: 20px;
             border: 1px solid #ddd;
@@ -92,13 +92,13 @@
             border-radius: 8px;
             box-shadow: 0 2px 5px rgba(0,0,0,0.1);
         }
-        #log-list li {
+        #log-list li, #response-list li {
             margin: 10px 0;
             padding: 8px;
             border-radius: 5px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
+        }
+        #response-list li {
+            border: 1px solid #eee;
         }
         .not-achieved { color: red; }
         .partially-achieved { color: orange; }
@@ -161,11 +161,15 @@
             border-radius: 4px;
             margin-top: 10px;
         }
+        .disabled-section {
+            opacity: 0.5;
+            pointer-events: none;
+        }
     </style>
 </head>
 <body>
     <h1>Cyber Assessment Framework (CAF) Assessment Tool</h1>
-    <p class="instruction">Enter assessment details below, then review subsections. Each subsection displays Indicators of Good Practice (IGPs) to guide compliance level selection.</p>
+    <p class="instruction">Enter assessment details below, then review subsections. Each subsection displays Indicators of Good Practice (IGPs) to guide compliance level selection. Responses are shown below with aligned IGPs, notes, and difficulty.</p>
     <div id="metadata-form">
         <div>
             <label for="assessor-name">Name:</label>
@@ -199,6 +203,10 @@
     <div id="action-log">
         <h3>Action Log</h3>
         <ul id="log-list"></ul>
+    </div>
+    <div id="responses">
+        <h3>Responses</h3>
+        <ul id="response-list"></ul>
         <button id="generate-report">Generate Report</button>
     </div>
     <script>
@@ -311,6 +319,7 @@
                             input.type = 'radio';
                             input.name = `compliance-${subsection.code}`;
                             input.value = option;
+                            input.addEventListener('change', () => updateDifficultySection(subsection.code));
                             label.appendChild(input);
                             label.appendChild(document.createTextNode(option));
                             radioGroup.appendChild(label);
@@ -330,7 +339,8 @@
                         details.appendChild(difficultyLabel);
                         const difficultyGroup = document.createElement('div');
                         difficultyGroup.className = 'difficulty-group';
-                        ['Very Easy', 'Easy', 'Moderate', 'Hard', 'Very Hard'].forEach(option => {
+                        difficultyGroup.id = `difficulty-group-${subsection.code}`;
+                        ['Very Easy', 'Easy', 'Moderate', 'Hard', 'Very Hard', 'Not Applicable'].forEach(option => {
                             const label = document.createElement('label');
                             const input = document.createElement('input');
                             input.type = 'radio';
@@ -345,6 +355,27 @@
                     });
                 });
             });
+            updateResponsesSection();
+            cafData.forEach(subsection => updateDifficultySection(subsection.code));
+        }
+
+        function updateDifficultySection(code) {
+            const complianceName = `compliance-${code}`;
+            const difficultyGroup = document.getElementById(`difficulty-group-${code}`);
+            const compliance = localStorage.getItem(complianceName);
+            if (compliance === 'Achieved') {
+                difficultyGroup.classList.add('disabled-section');
+                localStorage.setItem(`difficulty-${code}`, 'Not Required');
+                const radios = difficultyGroup.querySelectorAll('input[type="radio"]');
+                radios.forEach(radio => radio.checked = false);
+            } else {
+                difficultyGroup.classList.remove('disabled-section');
+                const savedDifficulty = localStorage.getItem(`difficulty-${code}`);
+                if (savedDifficulty === 'Not Required') {
+                    localStorage.removeItem(`difficulty-${code}`);
+                }
+            }
+            updateResponsesSection();
         }
 
         function initializeFromStorage(cafData) {
@@ -372,7 +403,7 @@
                 }
                 if (savedDifficulty) {
                     const radio = document.querySelector(`input[name="${difficultyName}"][value="${savedDifficulty}"]`);
-                    if (radio) radio.checked = true;
+                    if (radio && savedDifficulty !== 'Not Required') radio.checked = true;
                 }
             });
             // Load metadata
@@ -384,6 +415,8 @@
                     if (input) input.value = savedValue;
                 }
             });
+            cafData.forEach(subsection => updateDifficultySection(subsection.code));
+            updateResponsesSection();
         }
 
         function getClass(value) {
@@ -393,6 +426,44 @@
                 case 'Achieved': return 'achieved';
                 default: return '';
             }
+        }
+
+        function updateResponsesSection() {
+            const responseList = document.getElementById('response-list');
+            responseList.innerHTML = '';
+            cafData.forEach(subsection => {
+                const complianceName = `compliance-${subsection.code}`;
+                const notesName = `notes-${subsection.code}`;
+                const difficultyName = `difficulty-${subsection.code}`;
+                const compliance = localStorage.getItem(complianceName) || 'No response';
+                const notes = localStorage.getItem(notesName) || '';
+                const difficulty = localStorage.getItem(difficultyName) || 'Not provided';
+                if (compliance !== 'No response') {
+                    const li = document.createElement('li');
+                    li.className = getClass(compliance);
+                    let igps = [];
+                    if (compliance === 'Not Achieved') {
+                        igps = subsection.igps.notAchieved;
+                    } else if (compliance === 'Partially Achieved') {
+                        igps = subsection.igps.partiallyAchieved;
+                    } else if (compliance === 'Achieved') {
+                        igps = subsection.igps.achieved;
+                    }
+                    let igpHTML = '<ul>';
+                    igps.forEach(igp => {
+                        igpHTML += `<li>${igp}</li>`;
+                    });
+                    igpHTML += '</ul>';
+                    li.innerHTML = `
+                        <strong>${subsection.code} - ${subsection.subsection}</strong><br>
+                        <strong>Compliance:</strong> ${compliance}<br>
+                        <strong>Aligned IGPs:</strong> ${igps.length > 0 ? igpHTML : 'None'}<br>
+                        <strong>Notes:</strong> ${notes ? notes.replace(/\n/g, '<br>') : 'None'}<br>
+                        <strong>Difficulty to Fix:</strong> ${difficulty}
+                    `;
+                    responseList.appendChild(li);
+                }
+            });
         }
 
         function showFileUpload() {
@@ -457,7 +528,9 @@
                         li.className = getClass(value);
                         li.dataset.name = name;
                         logList.appendChild(li);
+                        updateDifficultySection(code);
                     }
+                    updateResponsesSection();
                 }
             }
         });
@@ -476,19 +549,28 @@
                 const compliance = localStorage.getItem(`compliance-${code}`) || 'No response';
                 const notes = localStorage.getItem(`notes-${code}`) || '';
                 const difficulty = localStorage.getItem(`difficulty-${code}`) || 'Not provided';
+                let igps = [];
+                if (compliance === 'Not Achieved') {
+                    igps = subsection.igps.notAchieved;
+                } else if (compliance === 'Partially Achieved') {
+                    igps = subsection.igps.partiallyAchieved;
+                } else if (compliance === 'Achieved') {
+                    igps = subsection.igps.achieved;
+                }
                 return {
                     objective: subsection.objective,
                     principle: subsection.principle,
                     code: subsection.code,
                     subsection: subsection.subsection,
                     compliance,
+                    igps,
                     notes,
                     difficulty
                 };
             });
             data.sort((a, b) => a.code.localeCompare(b.code));
             let reportHTML = '<html><head><title>CAF Assessment Report</title>';
-            reportHTML += '<style>body { font-family: Arial, sans-serif; margin: 20px; } table { width: 100%; border-collapse: collapse; margin-top: 20px; } th, td { border: 1px solid #ddd; padding: 8px; text-align: left; } th { background-color: #f2f2f2; } h1 { color: #2c3e50; text-align: center; } p { text-align: center; } .metadata { margin-bottom: 20px; } .metadata p { text-align: left; margin: 5px 0; }</style>';
+            reportHTML += '<style>body { font-family: Arial, sans-serif; margin: 20px; } table { width: 100%; border-collapse: collapse; margin-top: 20px; } th, td { border: 1px solid #ddd; padding: 8px; text-align: left; } th { background-color: #f2f2f2; } h1 { color: #2c3e50; text-align: center; } p { text-align: center; } .metadata { margin-bottom: 20px; } .metadata p { text-align: left; margin: 5px 0; } ul { padding-left: 20px; }</style>';
             reportHTML += '</head><body>';
             reportHTML += '<h1>CAF Assessment Report</h1>';
             reportHTML += `<p>Report generated on: ${new Date().toLocaleString()}</p>`;
@@ -498,9 +580,14 @@
             reportHTML += `<p><strong>Status:</strong> ${metadata['Status']}</p>`;
             reportHTML += `<p><strong>Organisation Name:</strong> ${metadata['Organisation Name']}</p>`;
             reportHTML += '</div>';
-            reportHTML += '<table><thead><tr><th>Objective</th><th>Principle</th><th>Subsection</th><th>Compliance</th><th>Notes</th><th>Difficulty to Fix</th></tr></thead><tbody>';
+            reportHTML += '<table><thead><tr><th>Objective</th><th>Principle</th><th>Subsection</th><th>Compliance</th><th>Aligned IGPs</th><th>Notes</th><th>Difficulty to Fix</th></tr></thead><tbody>';
             data.forEach(item => {
-                reportHTML += `<tr><td>${item.objective}</td><td>${item.principle}</td><td>${item.code} - ${item.subsection}</td><td>${item.compliance}</td><td>${item.notes.replace(/\n/g, '<br>')}</td><td>${item.difficulty}</td></tr>`;
+                let igpHTML = '<ul>';
+                item.igps.forEach(igp => {
+                    igpHTML += `<li>${igp}</li>`;
+                });
+                igpHTML += '</ul>';
+                reportHTML += `<tr><td>${item.objective}</td><td>${item.principle}</td><td>${item.code} - ${item.subsection}</td><td>${item.compliance}</td><td>${item.igps.length > 0 ? igpHTML : 'None'}</td><td>${item.notes.replace(/\n/g, '<br>')}</td><td>${item.difficulty}</td></tr>`;
             });
             reportHTML += '</tbody></table>';
             reportHTML += '</body></html>';
