@@ -1,0 +1,185 @@
+<script type="text/javascript">
+        var gk_isXlsx = false;
+        var gk_xlsxFileLookup = {};
+        var gk_fileData = {};
+        function filledCell(cell) {
+          return cell !== '' && cell != null;
+        }
+        function loadFileData(filename) {
+        if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
+            try {
+                var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
+                var firstSheetName = workbook.SheetNames[0];
+                var worksheet = workbook.Sheets[firstSheetName];
+
+                // Convert sheet to JSON to filter blank rows
+                var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
+                // Filter out blank rows (rows where all cells are empty, null, or undefined)
+                var filteredData = jsonData.filter(row => row.some(filledCell));
+
+                // Heuristic to find the header row by ignoring rows with fewer filled cells than the next row
+                var headerRowIndex = filteredData.findIndex((row, index) =>
+                  row.filter(filledCell).length >= filteredData[index + 1]?.filter(filledCell).length
+                );
+                // Fallback
+                if (headerRowIndex === -1 || headerRowIndex > 25) {
+                  headerRowIndex = 0;
+                }
+
+                // Convert filtered JSON back to CSV
+                var csv = XLSX.utils.aoa_to_sheet(filteredData.slice(headerRowIndex)); // Create a new sheet from filtered array of arrays
+                csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
+                return csv;
+            } catch (e) {
+                console.error(e);
+                return "";
+            }
+        }
+        return gk_fileData[filename] || "";
+        }
+        </script><!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Incident Response Process Guide</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    <style>
+        body {
+            background-color: #f8f9fa;
+            font-family: 'Arial', sans-serif;
+        }
+        header {
+            background: linear-gradient(90deg, #007bff, #0056b3);
+        }
+        .step {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            transition: transform 0.2s;
+        }
+        .step:hover {
+            transform: translateY(-5px);
+        }
+        .step h3 {
+            color: #007bff;
+        }
+        .step i {
+            margin-right: 10px;
+            color: #28a745;
+        }
+        .nav-tabs .nav-link {
+            font-weight: bold;
+        }
+        .nav-tabs .nav-link.active {
+            background-color: #007bff;
+            color: white;
+        }
+        footer {
+            background-color: #e9ecef;
+        }
+    </style>
+</head>
+<body>
+    <header class="text-white text-center py-4">
+        <h1>Incident Response Process Guide</h1>
+    </header>
+    <main class="container my-5">
+        <section id="introduction" class="mb-5">
+            <h2 class="text-center">Introduction</h2>
+            <p class="text-center">The incident response process is a structured approach to managing and mitigating security incidents. It ensures organizations can detect, contain, and recover from incidents effectively, minimizing impact and meeting legal requirements.</p>
+        </section>
+        <section id="steps">
+            <div class="step" id="step1">
+                <h3><i class="fas fa-search"></i> 1. Incident Detection</h3>
+                <p>Identify the security incident as quickly as possible. Use monitoring systems (e.g., intrusion detection systems, SIEM tools), respond to user reports, or detect anomalies in network traffic, system behavior, or application performance.</p>
+            </div>
+            <div class="step" id="step2">
+                <h3><i class="fas fa-clipboard-check"></i> 2. Initial Assessment</h3>
+                <p>Evaluate the scope, severity, and impact of the incident. Determine the type of incident (e.g., data breach, malware), assess potential damage to systems and data, and prioritize based on criticality.</p>
+            </div>
+            <div class="step" id="step3">
+                <h3><i class="fas fa-shield-alt"></i> 3. Containment</h3>
+                <p>Limit the spread of the incident to prevent further damage. Isolate affected systems, apply temporary fixes (e.g., block malicious IPs, disable compromised accounts), and preserve evidence for analysis.</p>
+            </div>
+            <div class="step" id="step4">
+                <h3><i class="fas fa-microscope"></i> 4. Investigation</h3>
+                <p>Analyze the cause, extent, and root cause of the incident. Conduct forensic analysis, identify the attack vector and vulnerabilities exploited, and determine if sensitive data was accessed or exfiltrated.</p>
+            </div>
+            <div class="decision-point">
+                <h3><i class="fas fa-question-circle"></i> Decision Point: Third-Party Source?</h3>
+                <p>Determine if the incident was caused by or involves a third party.</p>
+                <ul class="nav nav-tabs mt-3" id="pathTabs" role="tablist">
+                    <li class="nav-item">
+                        <a class="nav-link active" id="yes-tab" data-toggle="tab" href="#yes-path" role="tab">Yes, Third-Party Involved</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" id="no-tab" data-toggle="tab" href="#no-path" role="tab">No, Not Involved</a>
+                    </li>
+                </ul>
+                <div class="tab-content mt-3" id="pathTabsContent">
+                    <div class="tab-pane fade show active" id="yes-path" role="tabpanel">
+                        <div class="step" id="step5-yes">
+                            <h3><i class="fas fa-bell"></i> 5. Notification</h3>
+                            <p>Inform relevant parties about the incident. Notify internal stakeholders (e.g., management, legal), report to regulatory bodies if required, and inform affected customers, partners, or data subjects as per legal obligations.</p>
+                        </div>
+                        <div class="step" id="step6-yes">
+                            <h3><i class="fas fa-trash-alt"></i> 6. Eradication</h3>
+                            <p>Remove the threat and eliminate the root cause. Remove malware, close vulnerabilities, apply patches, revoke compromised credentials, and ensure all affected systems are secured.</p>
+                        </div>
+                        <div class="step" id="step7-yes">
+                            <h3><i class="fas fa-tools"></i> 7. Recovery</h3>
+                            <p>Restore normal operations and strengthen defenses. Rebuild or restore systems from backups, monitor for residual threats, and ensure the system is secure.</p>
+                        </div>
+                        <div class="step" id="step8-yes">
+                            <h3><i class="fas fa-lightbulb"></i> 8. Lessons Learned</h3>
+                            <p>Review the incident response process to identify successes and areas for improvement. Document key takeaways to enhance future incident handling.</p>
+                            <ul>
+                                <li>Analyze the effectiveness of detection and response times.</li>
+                                <li>Evaluate the accuracy of the initial assessment and containment strategies.</li>
+                                <li>Assess communication and coordination among team members and stakeholders.</li>
+                                <li>Identify any gaps in tools, processes, or training.</li>
+                                <li>Update incident response plans and procedures based on findings.</li>
+                            </ul>
+                        </div>
+                    </div>
+                    <div class="tab-pane fade" id="no-path" role="tabpanel">
+                        <div class="step" id="step5-no">
+                            <h3><i class="fas fa-trash-alt"></i> 5. Eradication</h3>
+                            <p>Remove the threat and eliminate the root cause. Remove malware, close vulnerabilities, apply patches, revoke compromised credentials, and ensure all affected systems are secured.</p>
+                        </div>
+                        <div class="step" id="step6-no">
+                            <h3><i class="fas fa-bell"></i> 6. Notification (if needed)</h3>
+                            <p>If the incident requires it, inform relevant parties. This may include internal stakeholders or regulatory bodies, depending on the nature and impact of the incident.</p>
+                        </div>
+                        <div class="step" id="step7-no">
+                            <h3><i class="fas fa-tools"></i> 7. Recovery</h3>
+                            <p>Restore normal operations and strengthen defenses. Rebuild or restore systems from backups, monitor for residual threats, and ensure the system is secure.</p>
+                        </div>
+                        <div class="step" id="step8-no">
+                            <h3><i class="fas fa-lightbulb"></i> 8. Lessons Learned</h3>
+                            <p>Review the incident response process to identify successes and areas for improvement. Document key takeaways to enhance future incident handling.</p>
+                            <ul>
+                                <li>Analyze the effectiveness of detection and response times.</li>
+                                <li>Evaluate the accuracy of the initial assessment and containment strategies.</li>
+                                <li>Assess communication and coordination among team members and stakeholders.</li>
+                                <li>Identify any gaps in tools, processes, or training.</li>
+                                <li>Update incident response plans and procedures based on findings.</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+    <footer class="text-center py-3">
+        <p>For more information, contact the security team.</p>
+    </footer>
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.2/dist/umd/popper.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+</body>
+</html>
