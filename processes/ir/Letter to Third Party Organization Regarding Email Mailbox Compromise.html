@@ -1,0 +1,107 @@
+<script type="text/javascript">
+        var gk_isXlsx = false;
+        var gk_xlsxFileLookup = {};
+        var gk_fileData = {};
+        function filledCell(cell) {
+          return cell !== '' && cell != null;
+        }
+        function loadFileData(filename) {
+        if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
+            try {
+                var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
+                var firstSheetName = workbook.SheetNames[0];
+                var worksheet = workbook.Sheets[firstSheetName];
+
+                // Convert sheet to JSON to filter blank rows
+                var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
+                // Filter out blank rows (rows where all cells are empty, null, or undefined)
+                var filteredData = jsonData.filter(row => row.some(filledCell));
+
+                // Heuristic to find the header row by ignoring rows with fewer filled cells than the next row
+                var headerRowIndex = filteredData.findIndex((row, index) =>
+                  row.filter(filledCell).length >= filteredData[index + 1]?.filter(filledCell).length
+                );
+                // Fallback
+                if (headerRowIndex === -1 || headerRowIndex > 25) {
+                  headerRowIndex = 0;
+                }
+
+                // Convert filtered JSON back to CSV
+                var csv = XLSX.utils.aoa_to_sheet(filteredData.slice(headerRowIndex)); // Create a new sheet from filtered array of arrays
+                csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
+                return csv;
+            } catch (e) {
+                console.error(e);
+                return "";
+            }
+        }
+        return gk_fileData[filename] || "";
+        }
+        </script><!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Letter Regarding Email Mailbox Compromise</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            margin: 40px;
+            max-width: 800px;
+        }
+        .letter {
+            border: 1px solid #ccc;
+            padding: 20px;
+            background-color: #f9f9f9;
+        }
+        .header {
+            margin-bottom: 20px;
+        }
+        .subject {
+            font-weight: bold;
+            margin-bottom: 20px;
+        }
+        .question-list {
+            margin: 20px 0;
+        }
+        .signature {
+            margin-top: 30px;
+        }
+    </style>
+</head>
+<body>
+    <div class="letter">
+        <div class="header">
+            <p>[Your Full Name]<br>
+            [Your Job Title]<br>
+            [Your Organization]<br>
+            [Your Contact Information]</p>
+        </div>
+        <p>[Recipient/Organization Name]<br>
+        [Recipient Address, if known]<br>
+        [Date]</p>
+        <p class="subject">Subject: Urgent Inquiry Regarding Potential Email Mailbox Compromise</p>
+        <p>Dear [Recipient/Organization Name],</p>
+        <p>We have recently identified indicators suggesting that an email mailbox associated with your organization ([specific mailbox or domain, if known]) may have been compromised. To assist in our assessment and ensure the security of our mutual interactions, we kindly request your response to the following questions:</p>
+        <ol class="question-list">
+            <li><strong>Nature of the Incident</strong>: Can you confirm whether a security incident or compromise involving the mailbox has occurred? If so, please provide a brief description of what occurred.</li>
+            <li><strong>Timeline</strong>: When was the potential compromise detected, and when did it likely begin?</li>
+            <li><strong>Actions Taken</strong>: What steps has your organization taken to investigate and address the issue?</li>
+            <li><strong>Confirmation of Compromise</strong>: Has the compromise been formally confirmed, and if so, what is the current status of the incident?</li>
+            <li><strong>Mailbox Security</strong>: Has the affected mailbox been secured to prevent further unauthorized access? If so, what measures have been implemented?</li>
+            <li><strong>Incident Report</strong>: Are you able to share an incident report or summary of findings related to this event?</li>
+            <li><strong>Indicators of Compromise (IOCs)</strong>: Would your organization be willing to share any IOCs or related technical details to aid in our own investigation and to prevent further risk?</li>
+        </ol>
+        <p>Please treat this matter with urgency, as it may impact the security of our communications. We would appreciate a response by [insert deadline, e.g., within 5 business days]. If you have any questions or require additional details from our side, please contact me at [your contact information].</p>
+        <p>Thank you for your prompt attention to this matter.</p>
+        <div class="signature">
+            <p>Sincerely,<br>
+            [Your Full Name]<br>
+            [Your Job Title]<br>
+            [Your Organization]<br>
+            [Your Contact Information]</p>
+        </div>
+    </div>
+</body>
+</html>
