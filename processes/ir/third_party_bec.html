@@ -1,0 +1,412 @@
+<script type="text/javascript">
+        var gk_isXlsx = false;
+        var gk_xlsxFileLookup = {};
+        var gk_fileData = {};
+        function filledCell(cell) {
+          return cell !== '' && cell != null;
+        }
+        function loadFileData(filename) {
+        if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
+            try {
+                var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
+                var firstSheetName = workbook.SheetNames[0];
+                var worksheet = workbook.Sheets[firstSheetName];
+
+                // Convert sheet to JSON to filter blank rows
+                var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
+                // Filter out blank rows (rows where all cells are empty, null, or undefined)
+                var filteredData = jsonData.filter(row => row.some(filledCell));
+
+                // Heuristic to find the header row by ignoring rows with fewer filled cells than the next row
+                var headerRowIndex = filteredData.findIndex((row, index) =>
+                  row.filter(filledCell).length >= filteredData[index + 1]?.filter(filledCell).length
+                );
+                // Fallback
+                if (headerRowIndex === -1 || headerRowIndex > 25) {
+                  headerRowIndex = 0;
+                }
+
+                // Convert filtered JSON back to CSV
+                var csv = XLSX.utils.aoa_to_sheet(filteredData.slice(headerRowIndex)); // Create a new sheet from filtered array of arrays
+                csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
+                return csv;
+            } catch (e) {
+                console.error(e);
+                return "";
+            }
+        }
+        return gk_fileData[filename] || "";
+        }
+        </script><!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Process Document: Handling Suspected Third Party Mailbox Compromise</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            margin: 40px;
+            max-width: 900px;
+        }
+        .container {
+            border: 1px solid #ccc;
+            padding: 20px;
+            background-color: #f9f9f9;
+        }
+        h1 {
+            font-size: 24px;
+            color: #333;
+        }
+        h2 {
+            font-size: 20px;
+            color: #444;
+            margin-top: 20px;
+        }
+        h3 {
+            font-size: 18px;
+            color: #555;
+        }
+        p, li {
+            font-size: 16px;
+            color: #333;
+        }
+        ul, ol {
+            margin: 10px 0 10px 20px;
+        }
+        .section {
+            margin-bottom: 20px;
+        }
+        .summary {
+            background-color: #e6f3ff;
+            padding: 15px;
+            border-left: 4px solid #007bff;
+            margin-bottom: 20px;
+        }
+        .checkbox-list {
+            margin: 20px 0;
+        }
+        .checkbox-list label {
+            display: block;
+            margin-bottom: 10px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+        .input-form {
+            margin: 20px 0;
+            padding: 15px;
+            background-color: #fff;
+            border: 1px solid #ddd;
+        }
+        .input-form label {
+            display: block;
+            margin: 5px 0;
+        }
+        .input-form input, .input-form select, .input-form textarea {
+            width: 100%;
+            padding: 8px;
+            margin-bottom: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        .input-form button {
+            padding: 10px 20px;
+            background-color: #007bff;
+            color: #fff;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .input-form button:hover {
+            background-color: #0056b3;
+        }
+        .footer {
+            font-size: 14px;
+            color: #666;
+            margin-top: 30px;
+            border-top: 1px solid #ddd;
+            padding-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Process Document: Handling Suspected Third Party Mailbox Compromise</h1>
+
+        <div class="section summary">
+            <h2>High-Level Summary</h2>
+            <p>This process provides a structured approach to respond to a suspected compromise of a third party email mailbox. It involves detecting and assessing the issue, escalating internally, notifying the third party, implementing protective measures, evaluating the third party's response, resolving the incident, and maintaining ongoing monitoring. The goal is to mitigate risks, secure communications, and prevent future incidents through clear responsibilities and actionable steps.</p>
+        </div>
+
+        <div class="section">
+            <h2>Purpose</h2>
+            <p>This document outlines the steps to be taken when a third party email mailbox is suspected to have been compromised, ensuring a timely, organized, and effective response to mitigate risks and maintain security.</p>
+        </div>
+
+        <div class="section">
+            <h2>Scope</h2>
+            <p>This process applies to situations where an email mailbox owned by a third party (e.g., a partner, vendor, or client) is suspected of being compromised, potentially affecting communications or data shared with our organization.</p>
+        </div>
+
+        <div class="section">
+            <h2>Process Steps</h2>
+
+            <div class="section">
+                <h3>1. Initial Detection and Assessment</h3>
+                <ul>
+                    <li><strong>Objective</strong>: Confirm suspicion of a compromise and gather initial evidence.</li>
+                    <li><strong>Actions</strong>:
+                        <ul>
+                            <li>Document indicators of compromise (e.g., unusual email activity, phishing attempts, or unauthorized access alerts).</li>
+                            <li>Collect relevant details, such as the mailbox address, timestamps, and any suspicious emails or attachments.</li>
+                            <li>Notify the internal security team or incident response coordinator.</li>
+                        </ul>
+                    </li>
+                    <li><strong>Responsible Party</strong>: IT/Security Analyst or employee who detected the issue.</li>
+                    <li><strong>Tools</strong>: Email logs, SIEM system, or threat intelligence platforms.</li>
+                </ul>
+            </div>
+
+            <div class="section">
+                <h3>2. Internal Escalation</h3>
+                <ul>
+                    <li><strong>Objective</strong>: Ensure appropriate stakeholders are informed and engaged.</li>
+                    <li><strong>Actions</strong>:
+                        <ul>
+                            <li>Escalate the issue to the Information Security Officer or Incident Response Team Lead.</li>
+                            <li>Provide a summary of findings, including evidence and potential impact (e.g., sensitive data exposure).</li>
+                            <li>Determine if immediate protective measures (e.g., email filtering or blocking) are needed.</li>
+                        </ul>
+                    </li>
+                    <li><strong>Responsible Party</strong>: Incident Response Coordinator.</li>
+                    <li><strong>Tools</strong>: Incident tracking system, internal communication channels (e.g., Slack, email).</li>
+                </ul>
+            </div>
+
+            <div class="section">
+                <h3>3. Third Party Notification</h3>
+                <ul>
+                    <li><strong>Objective</strong>: Inform the third party of the suspected compromise and request information.</li>
+                    <li><strong>Actions</strong>:
+                        <ul>
+                            <li>Draft and send a formal letter to the third party, including:
+                                <ul>
+                                    <li>Description of the suspected compromise.</li>
+                                    <li>Request for confirmation and details (e.g., what occurred, timeline, actions taken).</li>
+                                    <li>Specific questions about incident response, mailbox security, and willingness to share incident reports or IOCs.</li>
+                                </ul>
+                            </li>
+                            <li>Use a professional and urgent tone, specifying a response deadline (e.g., 5 business days).</li>
+                            <li>Log the communication in the incident tracking system.</li>
+                        </ul>
+                    </li>
+                    <li><strong>Responsible Party</strong>: Information Security Officer or designated communications lead.</li>
+                    <li><strong>Tools</strong>: Email client, incident tracking system, letter template (see referenced HTML letter).</li>
+                </ul>
+            </div>
+
+            <div class="section">
+                <h3>4. Implement Interim Protective Measures</h3>
+                <ul>
+                    <li><strong>Objective</strong>: Mitigate risks while awaiting third party response.</li>
+                    <li><strong>Actions</strong>:
+                        <ul>
+                            <li>Flag or quarantine emails from the suspected mailbox to prevent further exposure.</li>
+                            <li>Review and update email security rules (e.g., spam filters, DKIM/SPF checks).</li>
+                            <li>Notify internal users to avoid interacting with emails from the suspected mailbox until cleared.</li>
+                            <li>Assess shared data or systems linked to the third party for potential compromise.</li>
+                        </ul>
+                    </li>
+                    <li><strong>Responsible Party</strong>: IT/Security Team.</li>
+                    <li><strong>Tools</strong>: Email security gateway, endpoint detection tools.</li>
+                </ul>
+            </div>
+
+            <div class="section">
+                <h3>5. Third Party Response Evaluation</h3>
+                <ul>
+                    <li><strong>Objective</strong>: Assess the third party’s response and determine next steps.</li>
+                    <li><strong>Actions</strong>:
+                        <ul>
+                            <li>Review the third party’s response for completeness (e.g., confirmation of compromise, remediation steps, IOCs).</li>
+                            <li>Validate any provided IOCs against internal systems to identify related threats.</li>
+                            <li>If the response is inadequate or unclear, follow up with additional questions or escalate to senior management for further action.</li>
+                            <li>Update the incident log with findings and decisions.</li>
+                        </ul>
+                    </li>
+                    <li><strong>Responsible Party</strong>: Information Security Officer and Incident Response Team.</li>
+                    <li><strong>Tools</strong>: Threat intelligence platform, incident tracking system.</li>
+                </ul>
+            </div>
+
+            <div class="section">
+                <h3>6. Remediation and Closure</h3>
+                <ul>
+                    <li><strong>Objective</strong>: Ensure the issue is resolved and lessons are documented.</li>
+                    <li><strong>Actions</strong>:
+                        <ul>
+                            <li>Confirm with the third party that the mailbox is secure and no further risks remain.</li>
+                            <li>Remove interim protective measures (e.g., email filters) if appropriate.</li>
+                            <li>Conduct a post-incident review to identify gaps in detection or response.</li>
+                            <li>Update security policies, training, or third party agreements as needed.</li>
+                            <li>Archive the incident report and related communications.</li>
+                        </ul>
+                    </li>
+                    <li><strong>Responsible Party</strong>: Incident Response Team Lead.</li>
+                    <li><strong>Tools</strong>: Incident tracking system, knowledge base.</li>
+                </ul>
+            </div>
+
+            <div class="section">
+                <h3>7. Ongoing Monitoring</h3>
+                <ul>
+                    <li><strong>Objective</strong>: Prevent recurrence and maintain vigilance.</li>
+                    <li><strong>Actions</strong>:
+                        <ul>
+                            <li>Monitor for similar indicators of compromise in communications with the third party.</li>
+                            <li>Periodically review third party security practices (e.g., during contract renewals).</li>
+                            <li>Share relevant IOCs with internal teams and, if appropriate, industry threat-sharing groups.</li>
+                        </ul>
+                    </li>
+                    <li><strong>Responsible Party</strong>: IT/Security Team.</li>
+                    <li><strong>Tools</strong>: SIEM system, threat intelligence feeds.</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>Roles and Responsibilities</h2>
+            <ul>
+                <li><strong>IT/Security Analyst</strong>: Detects and reports initial indicators of compromise.</li>
+                <li><strong>Incident Response Coordinator</strong>: Manages escalation and coordinates response efforts.</li>
+                <li><strong>Information Security Officer</strong>: Oversees communication with the third party and evaluates responses.</li>
+                <li><strong>IT/Security Team</strong>: Implements technical protective measures and monitors systems.</li>
+                <li><strong>Senior Management</strong>: Approves escalations or actions involving significant business impact.</li>
+            </ul>
+        </div>
+
+        <div class="section">
+            <h2>References</h2>
+            <ul>
+                <li>Letter template for third party notification (HTML format, artifact ID: 6d3b87f0-ccda-474f-9475-f7d45828bc84).</li>
+                <li>Incident response plan and organizational security policies.</li>
+            </ul>
+        </div>
+
+        <div class="section">
+            <h2>Checklist for Process Completion</h2>
+            <div class="checkbox-list">
+                <label><input type="checkbox"> Step 1: Initial Detection and Assessment Completed</label>
+                <label><input type="checkbox"> Step 2: Internal Escalation Completed</label>
+                <label><input type="checkbox"> Step 3: Third Party Notification Sent</label>
+                <label><input type="checkbox"> Step 4: Interim Protective Measures Implemented</label>
+                <label><input type="checkbox"> Step 5: Third Party Response Evaluated</label>
+                <label><input type="checkbox"> Step 6: Remediation and Closure Completed</label>
+                <label><input type="checkbox"> Step 7: Ongoing Monitoring Established</label>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>Incident Tracking Log</h2>
+            <div class="input-form">
+                <h3>Add New Log Entry</h3>
+                <label for="log-date">Date:</label>
+                <input type="date" id="log-date" required>
+                <label for="log-step">Step:</label>
+                <select id="log-step" required>
+                    <option value="">Select Step</option>
+                    <option value="1">Step 1: Initial Detection and Assessment</option>
+                    <option value="2">Step 2: Internal Escalation</option>
+                    <option value="3">Step 3: Third Party Notification</option>
+                    <option value="4">Step 4: Interim Protective Measures</option>
+                    <option value="5">Step 5: Third Party Response Evaluation</option>
+                    <option value="6">Step 6: Remediation and Closure</option>
+                    <option value="7">Step 7: Ongoing Monitoring</option>
+                </select>
+                <label for="log-action">Action Taken:</label>
+                <textarea id="log-action" rows="3" required></textarea>
+                <label for="log-responsible">Responsible Party:</label>
+                <input type="text" id="log-responsible" required>
+                <label for="log-notes">Notes:</label>
+                <textarea id="log-notes" rows="3"></textarea>
+                <button onclick="addLogEntry()">Add Entry</button>
+            </div>
+            <table id="log-table">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Step</th>
+                        <th>Action Taken</th>
+                        <th>Responsible Party</th>
+                        <th>Notes</th>
+                    </tr>
+                </thead>
+                <tbody id="log-table-body"></tbody>
+            </table>
+        </div>
+
+        <div class="section">
+            <h2>Approval</h2>
+            <p>This process is approved by [Approver Name], [Approver Title], on [Approval Date].</p>
+        </div>
+
+        <div class="footer">
+            <p><strong>Last Updated</strong>: April 24, 2025</p>
+        </div>
+    </div>
+
+    <script>
+        function addLogEntry() {
+            const date = document.getElementById('log-date').value;
+            const step = document.getElementById('log-step').value;
+            const action = document.getElementById('log-action').value.trim();
+            const responsible = document.getElementById('log-responsible').value.trim();
+            const notes = document.getElementById('log-notes').value.trim();
+
+            // Check for missing required fields
+            const missingFields = [];
+            if (!date) missingFields.push('Date');
+            if (!step) missingFields.push('Step');
+            if (!action) missingFields.push('Action Taken');
+            if (!responsible) missingFields.push('Responsible Party');
+
+            if (missingFields.length > 0) {
+                alert('Please fill in the following required fields:\n- ' + missingFields.join('\n- '));
+                return;
+            }
+
+            const tableBody = document.getElementById('log-table-body');
+            const newRow = document.createElement('tr');
+
+            newRow.innerHTML = `
+                <td>${date}</td>
+                <td>${step}</td>
+                <td>${action}</td>
+                <td>${responsible}</td>
+                <td>${notes}</td>
+            `;
+
+            tableBody.appendChild(newRow);
+
+            // Clear form inputs
+            document.getElementById('log-date').value = '';
+            document.getElementById('log-step').value = '';
+            document.getElementById('log-action').value = '';
+            document.getElementById('log-responsible').value = '';
+            document.getElementById('log-notes').value = '';
+        }
+    </script>
+</body>
+</html>
