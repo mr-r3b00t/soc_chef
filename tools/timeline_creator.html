@@ -1,43 +1,4 @@
-<script type="text/javascript">
-        var gk_isXlsx = false;
-        var gk_xlsxFileLookup = {};
-        var gk_fileData = {};
-        function filledCell(cell) {
-          return cell !== '' && cell != null;
-        }
-        function loadFileData(filename) {
-        if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
-            try {
-                var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
-                var firstSheetName = workbook.SheetNames[0];
-                var worksheet = workbook.Sheets[firstSheetName];
-
-                // Convert sheet to JSON to filter blank rows
-                var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
-                // Filter out blank rows (rows where all cells are empty, null, or undefined)
-                var filteredData = jsonData.filter(row => row.some(filledCell));
-
-                // Heuristic to find the header row by ignoring rows with fewer filled cells than the next row
-                var headerRowIndex = filteredData.findIndex((row, index) =>
-                  row.filter(filledCell).length >= filteredData[index + 1]?.filter(filledCell).length
-                );
-                // Fallback
-                if (headerRowIndex === -1 || headerRowIndex > 25) {
-                  headerRowIndex = 0;
-                }
-
-                // Convert filtered JSON back to CSV
-                var csv = XLSX.utils.aoa_to_sheet(filteredData.slice(headerRowIndex)); // Create a new sheet from filtered array of arrays
-                csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
-                return csv;
-            } catch (e) {
-                console.error(e);
-                return "";
-            }
-        }
-        return gk_fileData[filename] || "";
-        }
-        </script><!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
@@ -257,7 +218,21 @@
           doc.setFontSize(14);
           doc.setTextColor(31, 41, 55); // Gray-800
           doc.text(new Date(activity.date).toLocaleString(), marginLeft, yOffset);
-          yOffset += 10;
+          yOffset += 7;
+
+          // Duration since previous task
+          let durationText = 'N/A';
+          if (index > 0) {
+            const currentDate = new Date(activity.date);
+            const previousDate = new Date(activities[index - 1].date);
+            const diffTime = currentDate - previousDate;
+            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+            durationText = `${diffDays} day${diffDays !== 1 ? 's' : ''}`;
+          }
+          doc.setFontSize(10);
+          doc.setTextColor(107, 114, 128); // Gray-500
+          doc.text(`Since Previous: ${durationText}`, marginLeft, yOffset);
+          yOffset += 7;
 
           // Description
           doc.setFontSize(12);
@@ -409,7 +384,7 @@
               <p className="text-center text-gray-500">No activities added yet.</p>
             ) : (
               <div className="relative border-l-4 border-blue-600">
-                {activities.map((activity) => (
+                {activities.map((activity, index) => (
                   <div key={activity.id} className="mb-8 ml-6">
                     <div className="absolute w-4 h-4 bg-blue-600 rounded-full -left-2.5 mt-1.5"></div>
                     {editData && editData.id === activity.id ? (
@@ -503,6 +478,11 @@
                         <h3 className="text-lg font-semibold text-gray-800">
                           {new Date(activity.date).toLocaleString()}
                         </h3>
+                        <p className="text-sm text-gray-500">
+                          Since Previous: {index > 0 ? 
+                            `${Math.ceil((new Date(activity.date) - new Date(activities[index - 1].date)) / (1000 * 60 * 60 * 24))} day${Math.ceil((new Date(activity.date) - new Date(activities[index - 1].date)) / (1000 * 60 * 60 * 24)) !== 1 ? 's' : ''}` : 
+                            'N/A'}
+                        </p>
                         <p className="text-gray-600 mt-2">{activity.description}</p>
                         {activity.image && (
                           <img src={activity.image} alt="Attached" className="max-w-full h-auto rounded-md mt-2" />
