@@ -1,48 +1,9 @@
-<script type="text/javascript">
-        var gk_isXlsx = false;
-        var gk_xlsxFileLookup = {};
-        var gk_fileData = {};
-        function filledCell(cell) {
-          return cell !== '' && cell != null;
-        }
-        function loadFileData(filename) {
-        if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
-            try {
-                var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
-                var firstSheetName = workbook.SheetNames[0];
-                var worksheet = workbook.Sheets[firstSheetName];
-
-                // Convert sheet to JSON to filter blank rows
-                var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
-                // Filter out blank rows (rows where all cells are empty, null, or undefined)
-                var filteredData = jsonData.filter(row => row.some(filledCell));
-
-                // Heuristic to find the header row by ignoring rows with fewer filled cells than the next row
-                var headerRowIndex = filteredData.findIndex((row, index) =>
-                  row.filter(filledCell).length >= filteredData[index + 1]?.filter(filledCell).length
-                );
-                // Fallback
-                if (headerRowIndex === -1 || headerRowIndex > 25) {
-                  headerRowIndex = 0;
-                }
-
-                // Convert filtered JSON back to CSV
-                var csv = XLSX.utils.aoa_to_sheet(filteredData.slice(headerRowIndex)); // Create a new sheet from filtered array of arrays
-                csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
-                return csv;
-            } catch (e) {
-                console.error(e);
-                return "";
-            }
-        }
-        return gk_fileData[filename] || "";
-        }
-        </script><!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Investigating a Compromised Mailbox</title>
+    <title>SOC Analyst: Investigating a Compromised Mailbox</title>
     <style>
         body {
             font-family: 'Segoe UI', Arial, sans-serif;
@@ -290,130 +251,134 @@
     </style>
 </head>
 <body>
-    <h1>Investigating a Compromised Mailbox</h1>
-    <p class="highlight">As an intelligence analyst, investigating a report of a compromised mailbox within the organization requires a structured, methodical process to verify the claim, assess the scope of the compromise, mitigate risks, and prevent future incidents. Below is a detailed explanation of what I would do, why I would investigate, and how I would conduct the investigation.</p>
+    <h1>SOC Analyst: Investigating a Compromised Mailbox</h1>
+    <p class="highlight">As a Security Operations Center (SOC) analyst, my role is to monitor, detect, and respond to security incidents in real time. Investigating a report of a compromised mailbox requires a swift, systematic approach to validate the alert, contain the threat, mitigate damage, and document findings for escalation or reporting. Below is a detailed explanation of my process, rationale, and tools used to investigate and resolve the incident.</p>
 
     <div class="section">
         <h2>Why Investigate?</h2>
-        <p>A compromised mailbox poses significant risks to the organization, including:</p>
+        <p>A compromised mailbox is a critical security incident that can lead to:</p>
         <ul>
-            <li><strong>Data Breaches</strong>: Sensitive information (e.g., intellectual property, personal data, or financial records) could be exposed.</li>
-            <li><strong>Unauthorized Access</strong>: Attackers could use the account to send malicious emails, impersonate the user, or access other systems.</li>
-            <li><strong>Reputation Damage</strong>: Phishing or fraudulent emails sent from a compromised account could harm the organization’s credibility.</li>
-            <li><strong>Lateral Attacks</strong>: The compromised mailbox could be a foothold for further attacks, such as spreading malware or escalating privileges.</li>
-            <li><strong>Compliance Violations</strong>: A breach could violate regulations like GDPR, HIPAA, or industry-specific standards, leading to legal and financial consequences.</li>
+            <li><strong>Data Exfiltration</strong>: Attackers may steal sensitive data, such as customer information or proprietary documents.</li>
+            <li><strong>Phishing Campaigns</strong>: Compromised accounts can be used to send phishing emails, targeting internal or external recipients.</li>
+            <li><strong>Account Takeover</strong>: Attackers may escalate access to other systems or accounts within the organization.</li>
+            <li><strong>Business Disruption</strong>: Malicious activity can disrupt operations or lead to financial loss.</li>
+            <li><strong>Regulatory Non-Compliance</strong>: Breaches may violate standards like GDPR, PCI-DSS, or SOX, resulting in penalties.</li>
         </ul>
-        <p>Prompt investigation is critical to contain the incident, minimize damage, and gather evidence for potential legal or forensic purposes.</p>
+        <p>As a SOC analyst, my priority is to quickly validate and contain the incident to limit impact, preserve evidence, and support the organization’s security posture.</p>
     </div>
 
     <div class="section">
-        <h2>What I Will Do</h2>
-        <p>The investigation process can be broken down into several phases: preparation, initial assessment, detailed investigation, containment, remediation, and reporting.</p>
+        <h2>Incident Response Process</h2>
+        <p>My investigation follows the SOC’s incident response framework, aligned with NIST 800-61, and includes detection, analysis, containment, eradication, recovery, and post-incident activities.</p>
 
-        <h3>1. Preparation</h3>
-        <p><strong>Objective</strong>: Gather initial information and set up the investigation framework.</p>
+        <h3>1. Detection and Triage</h3>
+        <p><strong>Objective</strong>: Confirm the alert and prioritize the incident.</p>
         <ul>
-            <li><strong>Acknowledge the Report</strong>: Confirm receipt with the reporter, encouraging additional details.</li>
-            <li><strong>Document Initial Details</strong>: Record the email address, date/time of suspicious communication, recipients, and context.</li>
-            <li><strong>Engage Stakeholders</strong>: Notify the incident response team, IT/security team, and management.</li>
-            <li><strong>Establish a Secure Environment</strong>: Use a dedicated system to avoid contamination.</li>
-            <li><strong>Preserve Evidence</strong>: Log actions and preserve evidence forensically.</li>
+            <li><strong>Review Alert</strong>: Analyze the SIEM alert or user report (e.g., suspicious email or login) in tools like Splunk or Microsoft Sentinel.</li>
+            <li><strong>Validate Incident</strong>: Check for indicators like unusual login locations or unauthorized email activity.</li>
+            <li><strong>Assign Priority</strong>: Use the SOC’s severity matrix to prioritize based on impact and scope.</li>
+            <li><strong>Log Incident</strong>: Create a ticket in the SOC’s case management system (e.g., ServiceNow, Jira).</li>
         </ul>
-        <p><strong>Why</strong>: Ensures a systematic investigation, minimizes disruption, and preserves evidence.</p>
+        <p><strong>Why</strong>: Ensures the incident is legitimate and prioritized appropriately for rapid response.</p>
 
-        <h3>2. Initial Assessment</h3>
-        <p><strong>Objective</strong>: Verify the report and determine the likelihood of a compromise.</p>
+        <h3>2. Initial Analysis</h3>
+        <p><strong>Objective</strong>: Determine the scope and nature of the compromise.</p>
         <ul>
-            <li><strong>Validate the Report</strong>: Confirm the email address and suspicious communication.</li>
-            <li><strong>Interview the Reporter</strong>: Clarify how the communication was identified as suspicious.</li>
-            <li><strong>Check for Indicators</strong>: Review email content, headers, and login history for signs of compromise.</li>
-            <li><strong>Assess Scope</strong>: Determine if the issue is isolated or part of a broader attack.</li>
+            <li><strong>Check Login Activity</strong>: Review authentication logs for unfamiliar IPs, devices, or geolocations using Microsoft 365 audit logs or SIEM dashboards.</li>
+            <li><strong>Analyze Suspicious Emails</strong>: Inspect email headers, attachments, and URLs in a sandbox (e.g., Any.Run, JoeSandbox).</li>
+            <li><strong>Interview Reporter</strong>: If user-reported, gather details via secure communication channels.</li>
+            <li><strong>Correlate Events</strong>: Cross-reference with other alerts (e.g., failed logins, DLP triggers) to identify patterns.</li>
         </ul>
-        <p><strong>Why</strong>: Confirms the compromise and prioritizes next steps based on severity.</p>
+        <p><strong>Why</strong>: Confirms the compromise and identifies immediate risks to guide containment.</p>
 
         <h3>3. Detailed Investigation</h3>
-        <p><strong>Objective</strong>: Identify the root cause, scope, and impact.</p>
+        <p><strong>Objective</strong>: Identify the root cause, attack vector, and full scope.</p>
         <ul>
-            <li><strong>Analyze Email System Logs</strong>:
+            <li><strong>Log Analysis</strong>:
                 <ul>
-                    <li><strong>Access Logs</strong>: Check IP addresses, geolocations, and devices.</li>
-                    <li><strong>Activity Logs</strong>: Review sent emails, deleted items, or rule changes.</li>
-                    <li><strong>How</strong>: Use Microsoft 365 Security Center, Splunk, or SIEM systems.</li>
+                    <li>Query email server logs for sent/deleted emails or forwarding rules.</li>
+                    <li>Check Active Directory logs for credential misuse or privilege escalation.</li>
+                    <li>Use SIEM tools to aggregate and correlate logs.</li>
                 </ul>
             </li>
-            <li><strong>Examine Suspicious Communication</strong>:
+            <li><strong>Threat Intelligence</strong>: Compare indicators of compromise (IOCs) like IP addresses or domains with feeds (e.g., VirusTotal, AlienVault OTX).</li>
+            <li><strong>Credential Compromise</strong>:
                 <ul>
-                    <li><strong>Email Headers</strong>: Confirm the email’s origin.</li>
-                    <li><strong>Content Analysis</strong>: Inspect for phishing indicators or malware in a sandbox.</li>
-                    <li><strong>Recipient Analysis</strong>: Identify all recipients.</li>
+                    <li>Verify if credentials were leaked (e.g., HaveIBeenPwned).</li>
+                    <li>Check for phishing emails or malware infections via EDR tools (e.g., CrowdStrike, Carbon Black).</li>
                 </ul>
             </li>
-            <li><strong>Check for Credential Compromise</strong>:
-                <ul>
-                    <li>Reset passwords and enable MFA.</li>
-                    <li>Check for credential leaks using HaveIBeenPwned.</li>
-                    <li>Revoke active sessions.</li>
-                </ul>
-            </li>
-            <li><strong>Investigate Lateral Movement</strong>: Check for access to other systems.</li>
-            <li><strong>Correlate with Threat Intelligence</strong>: Compare IOCs with internal/external feeds.</li>
+            <li><strong>Lateral Movement</strong>: Investigate access to other systems (e.g., SharePoint, VPN) using network traffic analysis.</li>
         </ul>
-        <p><strong>How</strong>: Use email security tools, SIEM platforms, forensic tools, and threat intelligence sources.</p>
-        <p><strong>Why</strong>: Uncovers how the compromise occurred and whether it has spread.</p>
+        <p><strong>Why</strong>: Provides a comprehensive understanding of the incident to inform containment and remediation.</p>
 
         <h3>4. Containment</h3>
-        <p><strong>Objective</strong>: Prevent further damage while preserving evidence.</p>
+        <p><strong>Objective</strong>: Stop the threat and limit further damage.</p>
         <ul>
-            <li><strong>Short-Term</strong>: Suspend the account, remove malicious rules, quarantine emails.</li>
-            <li><strong>Long-Term</strong>: Implement network segmentation, update firewall rules, notify recipients.</li>
+            <li><strong>Short-Term Actions</strong>:
+                <ul>
+                    <li>Lock or suspend the compromised account.</li>
+                    <li>Revoke active sessions and reset passwords.</li>
+                    <li>Quarantine malicious emails using email security tools (e.g., Proofpoint, Mimecast).</li>
+                </ul>
+            </li>
+            <li><strong>Long-Term Actions</strong>:
+                <ul>
+                    <li>Block malicious IPs or domains via firewall rules.</li>
+                    <li>Notify recipients of phishing emails to prevent further interaction.</li>
+                </ul>
+            </li>
         </ul>
-        <p><strong>Why</strong>: Stops the attack while allowing investigation to continue.</p>
+        <p><strong>Why</strong>: Halts the attack while preserving evidence for further analysis.</p>
 
-        <h3>5. Remediation</h3>
-        <p><strong>Objective</strong>: Eliminate the threat and prevent recurrence.</p>
+        <h3>5. Eradication and Recovery</h3>
+        <p><strong>Objective</strong>: Remove the threat and restore normal operations.</p>
         <ul>
-            <li><strong>Eradicate</strong>: Remove malware, reset credentials, revoke tokens.</li>
-            <li><strong>Strengthen Controls</strong>: Enforce MFA, update email policies, conduct training.</li>
-            <li><strong>Patch Vulnerabilities</strong>: Apply patches, review access controls.</li>
-            <li><strong>Monitor</strong>: Set up alerts for similar activity.</li>
+            <li><strong>Eradicate</strong>: Remove malware, delete unauthorized rules, and clear compromised sessions.</li>
+            <li><strong>Strengthen Security</strong>: Enforce MFA, update email filtering policies, and patch vulnerabilities.</li>
+            <li><strong>Restore Access</strong>: Re-enable the account after verifying security controls.</li>
+            <li><strong>Monitor</strong>: Set up SIEM alerts for similar activity to detect recurrence.</li>
         </ul>
-        <p><strong>Why</strong>: Eliminates the threat and prevents future incidents.</p>
+        <p><strong>Why</strong>: Ensures the threat is fully eliminated and systems are secure before resuming operations.</p>
 
-        <h3>6. Reporting and Lessons Learned</h3>
-        <p><strong>Objective</strong>: Document findings, communicate, and improve.</p>
+        <h3>6. Post-Incident Activities</h3>
+        <p><strong>Objective</strong>: Document, report, and improve SOC processes.</p>
         <ul>
-            <li><strong>Internal Reporting</strong>: Prepare a report with timeline, root cause, actions, and recommendations.</li>
-            <li><strong>External Notification</strong>: Notify affected parties or regulators if required.</li>
-            <li><strong>Lessons Learned</strong>: Review gaps and update response plans.</li>
+            <li><strong>Document Findings</strong>: Update the incident ticket with a timeline, root cause, and actions taken.</li>
+            <li><strong>Escalate if Needed</strong>: Notify incident response leads or management for high-severity incidents.</li>
+            <li><strong>External Reporting</strong>: Inform regulators or affected parties if required (e.g., data breach notifications).</li>
+            <li><strong>Lessons Learned</strong>: Conduct a debrief to identify process gaps and update playbooks.</li>
         </ul>
-        <p><strong>Why</strong>: Ensures transparency, compliance, and continuous improvement.</p>
+        <p><strong>Why</strong>: Enhances SOC readiness and ensures compliance with organizational and regulatory requirements.</p>
     </div>
 
     <div class="section">
-        <h2>How I Will Investigate</h2>
-        <p>The investigation leverages tools, processes, and collaboration:</p>
+        <h2>Tools and Processes</h2>
+        <p>As a SOC analyst, I rely on a suite of tools and standardized processes to investigate efficiently:</p>
         <ul>
             <li><strong>Tools</strong>:
                 <ul>
-                    <li><strong>Email Security</strong>: Microsoft 365 Defender, Proofpoint, Mimecast.</li>
-                    <li><strong>SIEM</strong>: Splunk, QRadar, Elastic.</li>
-                    <li><strong>Forensic</strong>: Magnet AXIOM, EnCase, Autopsy.</li>
-                    <li><strong>Threat Intelligence</strong>: AlienVault OTX, VirusTotal.</li>
-                    <li><strong>Sandbox</strong>: JoeSandbox, Cuckoo, Any.Run.</li>
+                    <li><strong>SIEM</strong>: Splunk, Microsoft Sentinel, QRadar for log aggregation and alerting.</li>
+                    <li><strong>Email Security</strong>: Microsoft 365 Defender, Proofpoint, Mimecast for email analysis and quarantine.</li>
+                    <li><strong>EDR</strong>: CrowdStrike, Carbon Black for endpoint threat detection.</li>
+                    <li><strong>Threat Intelligence</strong>: VirusTotal, AlienVault OTX for IOC enrichment.</li>
+                    <li><strong>Sandbox</strong>: Any.Run, JoeSandbox for malware analysis.</li>
+                    <li><strong>Case Management</strong>: ServiceNow, Jira for incident tracking.</li>
                 </ul>
             </li>
             <li><strong>Processes</strong>:
                 <ul>
-                    <li>Follow NIST Cybersecurity Framework.</li>
-                    <li>Adhere to chain-of-custody protocols.</li>
-                    <li>Use ticketing systems for tracking.</li>
+                    <li>Follow SOC runbooks for mailbox compromise incidents.</li>
+                    <li>Adhere to chain-of-custody for evidence handling.</li>
+                    <li>Escalate incidents per the SOC’s escalation matrix.</li>
+                    <li>Align with NIST 800-61 and organizational incident response policies.</li>
                 </ul>
             </li>
             <li><strong>Collaboration</strong>:
                 <ul>
-                    <li>Work with IT for server access.</li>
-                    <li>Coordinate with security for containment.</li>
-                    <li>Consult legal/compliance teams.</li>
+                    <li>Coordinate with IT for account management and system access.</li>
+                    <li>Work with the incident response team for complex investigations.</li>
+                    <li>Engage legal/compliance teams for regulatory reporting.</li>
                 </ul>
             </li>
         </ul>
@@ -422,25 +387,25 @@
     <div class="section">
         <h2>Additional Considerations</h2>
         <ul>
-            <li><strong>Urgency</strong>: Prioritize based on severity.</li>
-            <li><strong>Communication</strong>: Use clear language for stakeholders.</li>
-            <li><strong>Privacy/Compliance</strong>: Comply with data protection laws.</li>
-            <li><strong>Proactive Monitoring</strong>: Implement continuous monitoring post-incident.</li>
+            <li><strong>Real-Time Monitoring</strong>: Continuously monitor SIEM and EDR alerts during the investigation.</li>
+            <li><strong>Shift Handoff</strong>: Document all actions clearly for the next SOC shift to ensure continuity.</li>
+            <li><strong>Communication</strong>: Use concise, actionable updates when reporting to stakeholders.</li>
+            <li><strong>Compliance</strong>: Ensure all actions comply with data protection and privacy regulations.</li>
         </ul>
     </div>
 
     <div class="section">
         <h2>Summary</h2>
-        <p>Upon receiving a report of a compromised mailbox, I would:</p>
+        <p>As a SOC analyst responding to a compromised mailbox alert, I would:</p>
         <ol>
-            <li>Acknowledge and document the report, engaging stakeholders.</li>
-            <li>Conduct an initial assessment to verify and assess scope.</li>
-            <li>Perform a detailed investigation using logs, email analysis, and threat intelligence.</li>
-            <li>Contain the incident by suspending the account and notifying recipients.</li>
-            <li>Remediate by resetting credentials, patching vulnerabilities, and strengthening controls.</li>
-            <li>Document findings, notify parties, and conduct a lessons-learned review.</li>
+            <li>Triage the alert, validate the incident, and create a ticket.</li>
+            <li>Analyze login activity, emails, and correlated events to assess scope.</li>
+            <li>Investigate logs, IOCs, and potential lateral movement to identify the root cause.</li>
+            <li>Contain the incident by locking the account and quarantining emails.</li>
+            <li>Eradicate threats, restore secure access, and implement monitoring.</li>
+            <li>Document findings, escalate if needed, and conduct a lessons-learned review.</li>
         </ol>
-        <p>This approach ensures a thorough, efficient investigation that minimizes damage, preserves evidence, and strengthens security.</p>
+        <p>This process ensures rapid response, minimizes impact, and strengthens the organization’s security posture.</p>
     </div>
 
     <div class="log-section">
@@ -450,7 +415,7 @@
                 <option value="Action">Action</option>
                 <option value="Note">Note</option>
             </select>
-            <textarea id="logContent" placeholder="Enter action or note..."></textarea>
+            <textarea id="logContent" placeholder="Enter action or note (e.g., 'Checked login logs in Splunk', 'Noted phishing email with malicious URL')..."></textarea>
             <button onclick="addLogEntry()">Add Entry</button>
         </div>
         <div class="log-display" id="logDisplay"></div>
