@@ -205,6 +205,22 @@
         });
       };
 
+      const getDurationText = (currentDate, previousDate) => {
+        if (!previousDate) return 'N/A';
+        const diffTime = new Date(currentDate) - new Date(previousDate);
+        const minutes = Math.ceil(diffTime / (1000 * 60));
+        const hours = Math.ceil(diffTime / (1000 * 60 * 60));
+        const days = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+        if (minutes < 60) {
+          return `${minutes} minute${minutes !== 1 ? 's' : ''}`;
+        } else if (hours < 24) {
+          return `${hours} hour${hours !== 1 ? 's' : ''}`;
+        } else {
+          return `${days} day${days !== 1 ? 's' : ''}`;
+        }
+      };
+
       const printToPDF = () => {
         const doc = new jsPDF();
         const pageWidth = doc.internal.pageSize.getWidth();
@@ -244,14 +260,7 @@
           yOffset += 7;
 
           // Duration since previous task
-          let durationText = 'N/A';
-          if (index > 0) {
-            const currentDate = new Date(activity.date);
-            const previousDate = new Date(activities[index - 1].date);
-            const diffTime = currentDate - previousDate;
-            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-            durationText = `${diffDays} day${diffDays !== 1 ? 's' : ''}`;
-          }
+          const durationText = getDurationText(activity.date, index > 0 ? activities[index - 1].date : null);
           doc.setFontSize(10);
           doc.setTextColor(107, 114, 128); // Gray-500
           doc.text(`Since Previous: ${durationText}`, marginLeft, yOffset);
@@ -502,9 +511,7 @@
                           {new Date(activity.date).toLocaleString()}
                         </h3>
                         <p className="text-sm text-gray-500">
-                          Since Previous: {index > 0 ? 
-                            `${Math.ceil((new Date(activity.date) - new Date(activities[index - 1].date)) / (1000 * 60 * 60 * 24))} day${Math.ceil((new Date(activity.date) - new Date(activities[index - 1].date)) / (1000 * 60 * 60 * 24)) !== 1 ? 's' : ''}` : 
-                            'N/A'}
+                          Since Previous: {getDurationText(activity.date, index > 0 ? activities[index - 1].date : null)}
                         </p>
                         <p className="text-gray-600 mt-2">{activity.description}</p>
                         {activity.image && (
