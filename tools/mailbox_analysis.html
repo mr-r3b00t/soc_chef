@@ -1,0 +1,584 @@
+<script type="text/javascript">
+        var gk_isXlsx = false;
+        var gk_xlsxFileLookup = {};
+        var gk_fileData = {};
+        function filledCell(cell) {
+          return cell !== '' && cell != null;
+        }
+        function loadFileData(filename) {
+        if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
+            try {
+                var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
+                var firstSheetName = workbook.SheetNames[0];
+                var worksheet = workbook.Sheets[firstSheetName];
+
+                // Convert sheet to JSON to filter blank rows
+                var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
+                // Filter out blank rows (rows where all cells are empty, null, or undefined)
+                var filteredData = jsonData.filter(row => row.some(filledCell));
+
+                // Heuristic to find the header row by ignoring rows with fewer filled cells than the next row
+                var headerRowIndex = filteredData.findIndex((row, index) =>
+                  row.filter(filledCell).length >= filteredData[index + 1]?.filter(filledCell).length
+                );
+                // Fallback
+                if (headerRowIndex === -1 || headerRowIndex > 25) {
+                  headerRowIndex = 0;
+                }
+
+                // Convert filtered JSON back to CSV
+                var csv = XLSX.utils.aoa_to_sheet(filteredData.slice(headerRowIndex)); // Create a new sheet from filtered array of arrays
+                csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
+                return csv;
+            } catch (e) {
+                console.error(e);
+                return "";
+            }
+        }
+        return gk_fileData[filename] || "";
+        }
+        </script><!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Investigating a Compromised Mailbox</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+
+        h1, h2, h3 {
+            color: #1a73e8;
+            margin-bottom: 15px;
+        }
+
+        h1 {
+            font-size: 2.5em;
+            text-align: center;
+            margin-top: 20px;
+        }
+
+        h2 {
+            font-size: 1.8em;
+            border-bottom: 2px solid #1a73e8;
+            padding-bottom: 5px;
+        }
+
+        h3 {
+            font-size: 1.4em;
+        }
+
+        p, ul, ol {
+            margin-bottom: 15px;
+        }
+
+        ul, ol {
+            padding-left: 20px;
+        }
+
+        li {
+            margin-bottom: 10px;
+        }
+
+        .section {
+            background: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+        }
+
+        .highlight {
+            background-color: #e8f0fe;
+            padding: 10px;
+            border-left: 4px solid #1a73e8;
+            margin-bottom: 15px;
+        }
+
+        .log-section {
+            background: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .log-input {
+            width: 100%;
+            max-width: 600px;
+            margin-bottom: 20px;
+        }
+
+        .log-input select {
+            width: 100%;
+            padding: 8px;
+            margin-bottom: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            font-size: 1em;
+        }
+
+        .log-input textarea {
+            width: 100%;
+            height: 100px;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            margin-bottom: 10px;
+            resize: vertical;
+            font-size: 1em;
+        }
+
+        .log-input button {
+            background: #1a73e8;
+            color: #fff;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1em;
+        }
+
+        .log-input button:hover {
+            background: #1557b0;
+        }
+
+        .log-display {
+            width: 100%;
+            max-width: 600px;
+            max-height: 400px;
+            overflow-y: auto;
+            border: 1px solid #ccc;
+            padding: 10px;
+            border-radius: 5px;
+            background: #fafafa;
+            margin-bottom: 20px;
+        }
+
+        .log-entry {
+            margin-bottom: 10px;
+            padding: 10px;
+            border-left: 3px solid #1a73e8;
+            background: #fff;
+            border-radius: 3px;
+            position: relative;
+        }
+
+        .log-entry p {
+            margin: 0;
+            font-size: 0.95em;
+        }
+
+        .log-entry .timestamp {
+            font-size: 0.85em;
+            color: #666;
+        }
+
+        .log-entry .edit-button {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: #1a73e8;
+            color: #fff;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 3px;
+            cursor: pointer;
+            font-size: 0.85em;
+        }
+
+        .log-entry .edit-button:hover {
+            background: #1557b0;
+        }
+
+        .edit-form {
+            display: none;
+            margin-top: 10px;
+        }
+
+        .edit-form select, .edit-form textarea {
+            width: 100%;
+            margin-bottom: 10px;
+        }
+
+        .edit-form button {
+            background: #1a73e8;
+            color: #fff;
+            padding: 5px 10px;
+            border: none;
+            border-radius: 3px;
+            cursor: pointer;
+        }
+
+        .edit-form button:hover {
+            background: #1557b0;
+        }
+
+        .export-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            justify-content: center;
+        }
+
+        .export-buttons button, .clear-button {
+            background: #1a73e8;
+            color: #fff;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1em;
+        }
+
+        .export-buttons button:hover, .clear-button:hover {
+            background: #1557b0;
+        }
+
+        .back-to-top {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: #1a73e8;
+            color: #fff;
+            padding: 10px 15px;
+            border-radius: 5px;
+            text-decoration: none;
+            font-size: 0.9em;
+            display: none;
+        }
+
+        .back-to-top:hover {
+            background: #1557b0;
+        }
+
+        @media (max-width: 600px) {
+            body {
+                padding: 10px;
+            }
+
+            h1 {
+                font-size: 2em;
+            }
+
+            h2 {
+                font-size: 1.5em;
+            }
+
+            h3 {
+                font-size: 1.2em;
+            }
+
+            .section, .log-section {
+                padding: 15px;
+            }
+
+            .log-input, .log-display {
+                max-width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <h1>Investigating a Compromised Mailbox</h1>
+    <p class="highlight">As an intelligence analyst, investigating a report of a compromised mailbox within the organization requires a structured, methodical process to verify the claim, assess the scope of the compromise, mitigate risks, and prevent future incidents. Below is a detailed explanation of what I would do, why I would investigate, and how I would conduct the investigation.</p>
+
+    <div class="section">
+        <h2>Why Investigate?</h2>
+        <p>A compromised mailbox poses significant risks to the organization, including:</p>
+        <ul>
+            <li><strong>Data Breaches</strong>: Sensitive information (e.g., intellectual property, personal data, or financial records) could be exposed.</li>
+            <li><strong>Unauthorized Access</strong>: Attackers could use the account to send malicious emails, impersonate the user, or access other systems.</li>
+            <li><strong>Reputation Damage</strong>: Phishing or fraudulent emails sent from a compromised account could harm the organization’s credibility.</li>
+            <li><strong>Lateral Attacks</strong>: The compromised mailbox could be a foothold for further attacks, such as spreading malware or escalating privileges.</li>
+            <li><strong>Compliance Violations</strong>: A breach could violate regulations like GDPR, HIPAA, or industry-specific standards, leading to legal and financial consequences.</li>
+        </ul>
+        <p>Prompt investigation is critical to contain the incident, minimize damage, and gather evidence for potential legal or forensic purposes.</p>
+    </div>
+
+    <div class="section">
+        <h2>What I Will Do</h2>
+        <p>The investigation process can be broken down into several phases: preparation, initial assessment, detailed investigation, containment, remediation, and reporting.</p>
+
+        <h3>1. Preparation</h3>
+        <p><strong>Objective</strong>: Gather initial information and set up the investigation framework.</p>
+        <ul>
+            <li><strong>Acknowledge the Report</strong>: Confirm receipt with the reporter, encouraging additional details.</li>
+            <li><strong>Document Initial Details</strong>: Record the email address, date/time of suspicious communication, recipients, and context.</li>
+            <li><strong>Engage Stakeholders</strong>: Notify the incident response team, IT/security team, and management.</li>
+            <li><strong>Establish a Secure Environment</strong>: Use a dedicated system to avoid contamination.</li>
+            <li><strong>Preserve Evidence</strong>: Log actions and preserve evidence forensically.</li>
+        </ul>
+        <p><strong>Why</strong>: Ensures a systematic investigation, minimizes disruption, and preserves evidence.</p>
+
+        <h3>2. Initial Assessment</h3>
+        <p><strong>Objective</strong>: Verify the report and determine the likelihood of a compromise.</p>
+        <ul>
+            <li><strong>Validate the Report</strong>: Confirm the email address and suspicious communication.</li>
+            <li><strong>Interview the Reporter</strong>: Clarify how the communication was identified as suspicious.</li>
+            <li><strong>Check for Indicators</strong>: Review email content, headers, and login history for signs of compromise.</li>
+            <li><strong>Assess Scope</strong>: Determine if the issue is isolated or part of a broader attack.</li>
+        </ul>
+        <p><strong>Why</strong>: Confirms the compromise and prioritizes next steps based on severity.</p>
+
+        <h3>3. Detailed Investigation</h3>
+        <p><strong>Objective</strong>: Identify the root cause, scope, and impact.</p>
+        <ul>
+            <li><strong>Analyze Email System Logs</strong>:
+                <ul>
+                    <li><strong>Access Logs</strong>: Check IP addresses, geolocations, and devices.</li>
+                    <li><strong>Activity Logs</strong>: Review sent emails, deleted items, or rule changes.</li>
+                    <li><strong>How</strong>: Use Microsoft 365 Security Center, Splunk, or SIEM systems.</li>
+                </ul>
+            </li>
+            <li><strong>Examine Suspicious Communication</strong>:
+                <ul>
+                    <li><strong>Email Headers</strong>: Confirm the email’s origin.</li>
+                    <li><strong>Content Analysis</strong>: Inspect for phishing indicators or malware in a sandbox.</li>
+                    <li><strong>Recipient Analysis</strong>: Identify all recipients.</li>
+                </ul>
+            </li>
+            <li><strong>Check for Credential Compromise</strong>:
+                <ul>
+                    <li>Reset passwords and enable MFA.</li>
+                    <li>Check for credential leaks using HaveIBeenPwned.</li>
+                    <li>Revoke active sessions.</li>
+                </ul>
+            </li>
+            <li><strong>Investigate Lateral Movement</strong>: Check for access to other systems.</li>
+            <li><strong>Correlate with Threat Intelligence</strong>: Compare IOCs with internal/external feeds.</li>
+        </ul>
+        <p><strong>How</strong>: Use email security tools, SIEM platforms, forensic tools, and threat intelligence sources.</p>
+        <p><strong>Why</strong>: Uncovers how the compromise occurred and whether it has spread.</p>
+
+        <h3>4. Containment</h3>
+        <p><strong>Objective</strong>: Prevent further damage while preserving evidence.</p>
+        <ul>
+            <li><strong>Short-Term</strong>: Suspend the account, remove malicious rules, quarantine emails.</li>
+            <li><strong>Long-Term</strong>: Implement network segmentation, update firewall rules, notify recipients.</li>
+        </ul>
+        <p><strong>Why</strong>: Stops the attack while allowing investigation to continue.</p>
+
+        <h3>5. Remediation</h3>
+        <p><strong>Objective</strong>: Eliminate the threat and prevent recurrence.</p>
+        <ul>
+            <li><strong>Eradicate</strong>: Remove malware, reset credentials, revoke tokens.</li>
+            <li><strong>Strengthen Controls</strong>: Enforce MFA, update email policies, conduct training.</li>
+            <li><strong>Patch Vulnerabilities</strong>: Apply patches, review access controls.</li>
+            <li><strong>Monitor</strong>: Set up alerts for similar activity.</li>
+        </ul>
+        <p><strong>Why</strong>: Eliminates the threat and prevents future incidents.</p>
+
+        <h3>6. Reporting and Lessons Learned</h3>
+        <p><strong>Objective</strong>: Document findings, communicate, and improve.</p>
+        <ul>
+            <li><strong>Internal Reporting</strong>: Prepare a report with timeline, root cause, actions, and recommendations.</li>
+            <li><strong>External Notification</strong>: Notify affected parties or regulators if required.</li>
+            <li><strong>Lessons Learned</strong>: Review gaps and update response plans.</li>
+        </ul>
+        <p><strong>Why</strong>: Ensures transparency, compliance, and continuous improvement.</p>
+    </div>
+
+    <div class="section">
+        <h2>How I Will Investigate</h2>
+        <p>The investigation leverages tools, processes, and collaboration:</p>
+        <ul>
+            <li><strong>Tools</strong>:
+                <ul>
+                    <li><strong>Email Security</strong>: Microsoft 365 Defender, Proofpoint, Mimecast.</li>
+                    <li><strong>SIEM</strong>: Splunk, QRadar, Elastic.</li>
+                    <li><strong>Forensic</strong>: Magnet AXIOM, EnCase, Autopsy.</li>
+                    <li><strong>Threat Intelligence</strong>: AlienVault OTX, VirusTotal.</li>
+                    <li><strong>Sandbox</strong>: JoeSandbox, Cuckoo, Any.Run.</li>
+                </ul>
+            </li>
+            <li><strong>Processes</strong>:
+                <ul>
+                    <li>Follow NIST Cybersecurity Framework.</li>
+                    <li>Adhere to chain-of-custody protocols.</li>
+                    <li>Use ticketing systems for tracking.</li>
+                </ul>
+            </li>
+            <li><strong>Collaboration</strong>:
+                <ul>
+                    <li>Work with IT for server access.</li>
+                    <li>Coordinate with security for containment.</li>
+                    <li>Consult legal/compliance teams.</li>
+                </ul>
+            </li>
+        </ul>
+    </div>
+
+    <div class="section">
+        <h2>Additional Considerations</h2>
+        <ul>
+            <li><strong>Urgency</strong>: Prioritize based on severity.</li>
+            <li><strong>Communication</strong>: Use clear language for stakeholders.</li>
+            <li><strong>Privacy/Compliance</strong>: Comply with data protection laws.</li>
+            <li><strong>Proactive Monitoring</strong>: Implement continuous monitoring post-incident.</li>
+        </ul>
+    </div>
+
+    <div class="section">
+        <h2>Summary</h2>
+        <p>Upon receiving a report of a compromised mailbox, I would:</p>
+        <ol>
+            <li>Acknowledge and document the report, engaging stakeholders.</li>
+            <li>Conduct an initial assessment to verify and assess scope.</li>
+            <li>Perform a detailed investigation using logs, email analysis, and threat intelligence.</li>
+            <li>Contain the incident by suspending the account and notifying recipients.</li>
+            <li>Remediate by resetting credentials, patching vulnerabilities, and strengthening controls.</li>
+            <li>Document findings, notify parties, and conduct a lessons-learned review.</li>
+        </ol>
+        <p>This approach ensures a thorough, efficient investigation that minimizes damage, preserves evidence, and strengthens security.</p>
+    </div>
+
+    <div class="log-section">
+        <h2>Investigation Log</h2>
+        <div class="log-input">
+            <select id="logType">
+                <option value="Action">Action</option>
+                <option value="Note">Note</option>
+            </select>
+            <textarea id="logContent" placeholder="Enter action or note..."></textarea>
+            <button onclick="addLogEntry()">Add Entry</button>
+        </div>
+        <div class="log-display" id="logDisplay"></div>
+        <div class="export-buttons">
+            <button onclick="exportToPNG()">Export to PNG</button>
+            <button onclick="exportToPDF()">Export to PDF</button>
+            <button onclick="exportToJSON()">Export to JSON</button>
+            <button class="clear-button" onclick="clearLog()">Clear Log</button>
+        </div>
+    </div>
+
+    <a href="#" class="back-to-top" onclick="window.scrollTo(0,0); return false;">Back to Top</a>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script>
+        const { jsPDF } = window.jspdf;
+        let logEntries = JSON.parse(localStorage.getItem('logEntries')) || [];
+
+        function saveToLocalStorage() {
+            localStorage.setItem('logEntries', JSON.stringify(logEntries));
+        }
+
+        function addLogEntry() {
+            const logType = document.getElementById('logType').value;
+            const logContent = document.getElementById('logContent').value.trim();
+            if (!logContent) return;
+
+            const timestamp = new Date().toLocaleString();
+            const entry = { id: Date.now(), type: logType, content: logContent, timestamp };
+            logEntries.push(entry);
+            saveToLocalStorage();
+            displayLogEntries();
+            document.getElementById('logContent').value = '';
+        }
+
+        function editLogEntry(id) {
+            const entryElement = document.getElementById(`entry-${id}`);
+            const form = entryElement.querySelector('.edit-form');
+            form.style.display = form.style.display === 'none' ? 'block' : 'none';
+        }
+
+        function saveEdit(id) {
+            const entryElement = document.getElementById(`entry-${id}`);
+            const newType = entryElement.querySelector('.edit-type').value;
+            const newContent = entryElement.querySelector('.edit-content').value.trim();
+            if (!newContent) return;
+
+            const index = logEntries.findIndex(entry => entry.id === id);
+            if (index !== -1) {
+                logEntries[index].type = newType;
+                logEntries[index].content = newContent;
+                logEntries[index].timestamp = new Date().toLocaleString();
+                saveToLocalStorage();
+                displayLogEntries();
+            }
+        }
+
+        function displayLogEntries() {
+            const logDisplay = document.getElementById('logDisplay');
+            logDisplay.innerHTML = logEntries.map(entry => `
+                <div class="log-entry" id="entry-${entry.id}">
+                    <p><strong>${entry.type}</strong>: ${entry.content}</p>
+                    <p class="timestamp">${entry.timestamp}</p>
+                    <button class="edit-button" onclick="editLogEntry(${entry.id})">Edit</button>
+                    <div class="edit-form">
+                        <select class="edit-type">
+                            <option value="Action" ${entry.type === 'Action' ? 'selected' : ''}>Action</option>
+                            <option value="Note" ${entry.type === 'Note' ? 'selected' : ''}>Note</option>
+                        </select>
+                        <textarea class="edit-content">${entry.content}</textarea>
+                        <button onclick="saveEdit(${entry.id})">Save</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function exportToPNG() {
+            const logDisplay = document.getElementById('logDisplay');
+            html2canvas(logDisplay).then(canvas => {
+                const link = document.createElement('a');
+                link.download = 'investigation_log.png';
+                link.href = canvas.toDataURL('image/png');
+                link.click();
+            });
+        }
+
+        function exportToPDF() {
+            const logDisplay = document.getElementById('logDisplay');
+            html2canvas(logDisplay).then(canvas => {
+                const imgData = canvas.toDataURL('image/png');
+                const pdf = new jsPDF();
+                const imgProps = pdf.getImageProperties(imgData);
+                const pdfWidth = pdf.internal.pageSize.getWidth();
+                const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+                pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+                pdf.save('investigation_log.pdf');
+            });
+        }
+
+        function exportToJSON() {
+            const dataStr = JSON.stringify(logEntries, null, 2);
+            const blob = new Blob([dataStr], { type: 'application/json' });
+            const link = document.createElement('a');
+            link.download = 'investigation_log.json';
+            link.href = URL.createObjectURL(blob);
+            link.click();
+        }
+
+        function clearLog() {
+            if (confirm('Are you sure you want to clear the log? This action cannot be undone.')) {
+                logEntries = [];
+                localStorage.removeItem('logEntries');
+                displayLogEntries();
+            }
+        }
+
+        window.onscroll = function() {
+            let backToTop = document.querySelector('.back-to-top');
+            if (document.body.scrollTop > 100 || document.documentElement.scrollTop > 100) {
+                backToTop.style.display = 'block';
+            } else {
+                backToTop.style.display = 'none';
+            }
+        };
+
+        // Load existing log entries on page load
+        displayLogEntries();
+    </script>
+</body>
+</html>
