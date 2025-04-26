@@ -207,10 +207,10 @@
 
       const getDurationText = (currentDate, previousDate) => {
         if (!previousDate) return 'N/A';
-        const diffTime = new Date(currentDate) - new Date(previousDate);
-        const minutes = Math.ceil(diffTime / (1000 * 60));
-        const hours = Math.ceil(diffTime / (1000 * 60 * 60));
-        const days = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        const diffTime = Math.abs(new Date(currentDate) - new Date(previousDate));
+        const minutes = Math.floor(diffTime / (1000 * 60));
+        const hours = Math.floor(diffTime / (1000 * 60 * 60));
+        const days = Math.floor(diffTime / (1000 * 60 * 60 * 24));
 
         if (minutes < 60) {
           return `${minutes} minute${minutes !== 1 ? 's' : ''}`;
@@ -560,7 +560,7 @@
               {/* Export Section */}
               <div className="border rounded-md p-4 bg-gray-50">
                 <h3 className="text-lg font-medium text-gray-800 mb-2">Export Timeline</h3>
-                <p className="text-sm text-gray-600 mb-4">Download your timeline as a JSON file.</p>
+                <p className="text含-sm text-gray-600 mb-4">Download your timeline as a JSON file.</p>
                 <button
                   onClick={exportToJSON}
                   className="w-full bg-green-600 text-white p-2 rounded-md hover:bg-green-700 transition duration-200"
