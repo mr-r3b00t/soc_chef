@@ -1,0 +1,603 @@
+<script type="text/javascript">
+        var gk_isXlsx = false;
+        var gk_xlsxFileLookup = {};
+        var gk_fileData = {};
+        function filledCell(cell) {
+          return cell !== '' && cell != null;
+        }
+        function loadFileData(filename) {
+        if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
+            try {
+                var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
+                var firstSheetName = workbook.SheetNames[0];
+                var worksheet = workbook.Sheets[firstSheetName];
+
+                // Convert sheet to JSON to filter blank rows
+                var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
+                // Filter out blank rows (rows where all cells are empty, null, or undefined)
+                var filteredData = jsonData.filter(row => row.some(filledCell));
+
+                // Heuristic to find the header row by ignoring rows with fewer filled cells than the next row
+                var headerRowIndex = filteredData.findIndex((row, index) =>
+                  row.filter(filledCell).length >= filteredData[index + 1]?.filter(filledCell).length
+                );
+                // Fallback
+                if (headerRowIndex === -1 || headerRowIndex > 25) {
+                  headerRowIndex = 0;
+                }
+
+                // Convert filtered JSON back to CSV
+                var csv = XLSX.utils.aoa_to_sheet(filteredData.slice(headerRowIndex)); // Create a new sheet from filtered array of arrays
+                csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
+                return csv;
+            } catch (e) {
+                console.error(e);
+                return "";
+            }
+        }
+        return gk_fileData[filename] || "";
+        }
+        </script><!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Interactive Timeline</title>
+  <script src="https://cdn.jsdelivr.net/npm/react@18.2.0/umd/react.production.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/react-dom@18.2.0/umd/react-dom.production.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@babel/standalone@7.22.9/babel.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 min-h-screen flex flex-col">
+  <div id="root" className="flex-grow"></div>
+  <script type="text/babel">
+    const { useState, useEffect } = React;
+    const { jsPDF } = window.jspdf;
+
+    const TimelineApp = () => {
+      const [activities, setActivities] = useState([]);
+      const [formData, setFormData] = useState({ date: '', description: '', image: '', attachments: [] });
+      const [editData, setEditData] = useState(null);
+
+      // Handle paste event for images
+      useEffect(() => {
+        const handlePaste = (e) => {
+          const items = e.clipboardData.items;
+          for (let item of items) {
+            if (item.type.startsWith('image/')) {
+              const file = item.getAsFile();
+              const reader = new FileReader();
+              reader.onload = () => {
+                if (editData) {
+                  setEditData({ ...editData, image: reader.result });
+                } else {
+                  setFormData({ ...formData, image: reader.result });
+                }
+              };
+              reader.readAsDataURL(file);
+            }
+          }
+        };
+        document.addEventListener('paste', handlePaste);
+        return () => document.removeEventListener('paste', handlePaste);
+      }, [editData, formData]);
+
+      const handleInputChange = (e) => {
+        const { name, value } = e.target;
+        setFormData({ ...formData, [name]: value });
+      };
+
+      const handleFileChange = (e) => {
+        const files = Array.from(e.target.files);
+        const newAttachments = [];
+        files.forEach(file => {
+          const reader = new FileReader();
+          reader.onload = () => {
+            newAttachments.push({ name: file.name, data: reader.result });
+            if (newAttachments.length === files.length) {
+              setFormData({ ...formData, attachments: [...formData.attachments, ...newAttachments] });
+            }
+          };
+          reader.readAsDataURL(file);
+        });
+      };
+
+      const handleSubmit = (e) => {
+        e.preventDefault();
+        if (formData.date && formData.description) {
+          setActivities([...activities, { ...formData, id: Date.now() }].sort((a, b) => new Date(a.date) - new Date(b.date)));
+          setFormData({ date: '', description: '', image: '', attachments: [] });
+        }
+      };
+
+      const handleDelete = (id) => {
+        setActivities(activities.filter(activity => activity.id !== id));
+      };
+
+      const handleEdit = (activity) => {
+        setEditData({ ...activity });
+      };
+
+      const handleEditChange = (e) => {
+        const { name, value } = e.target;
+        setEditData({ ...editData, [name]: value });
+      };
+
+      const handleEditFileChange = (e) => {
+        const files = Array.from(e.target.files);
+        const newAttachments = [];
+        files.forEach(file => {
+          const reader = new FileReader();
+          reader.onload = () => {
+            newAttachments.push({ name: file.name, data: reader.result });
+            if (newAttachments.length === files.length) {
+              setEditData({ ...editData, attachments: [...editData.attachments, ...newAttachments] });
+            }
+          };
+          reader.readAsDataURL(file);
+        });
+      };
+
+      const handleEditSubmit = (e) => {
+        e.preventDefault();
+        if (editData.date && editData.description) {
+          setActivities(
+            activities
+              .map(activity =>
+                activity.id === editData.id ? editData : activity
+              )
+              .sort((a, b) => new Date(a.date) - new Date(b.date))
+          );
+          setEditData(null);
+        }
+      };
+
+      const cancelEdit = () => {
+        setEditData(null);
+      };
+
+      const removeAttachment = (index, isEdit = false) => {
+        if (isEdit) {
+          setEditData({
+            ...editData,
+            attachments: editData.attachments.filter((_, i) => i !== index)
+          });
+        } else {
+          setFormData({
+            ...formData,
+            attachments: formData.attachments.filter((_, i) => i !== index)
+          });
+        }
+      };
+
+      const removeImage = (isEdit = false) => {
+        if (isEdit) {
+          setEditData({ ...editData, image: '' });
+        } else {
+          setFormData({ ...formData, image: '' });
+        }
+      };
+
+      const exportToJSON = () => {
+        const dataStr = JSON.stringify(activities, null, 2);
+        const blob = new Blob([dataStr], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = 'timeline.json';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+      };
+
+      const importFromJSON = (e) => {
+        const file = e.target.files[0];
+        if (file) {
+          const reader = new FileReader();
+          reader.onload = (event) => {
+            try {
+              const importedActivities = JSON.parse(event.target.result);
+              if (Array.isArray(importedActivities)) {
+                const validActivities = importedActivities.filter(activity =>
+                  activity.id && activity.date && activity.description
+                );
+                setActivities([...validActivities].sort((a, b) => new Date(a.date) - new Date(b.date)));
+              } else {
+                alert('Invalid JSON format: Must be an array of activities.');
+              }
+            } catch (error) {
+              alert('Error parsing JSON file.');
+            }
+          };
+          reader.readAsText(file);
+        }
+      };
+
+      const clearTimeline = () => {
+        if (window.confirm('Are you sure you want to clear the entire timeline? This action cannot be undone.')) {
+          setActivities([]);
+        }
+      };
+
+      const printToPDF = () => {
+        const doc = new jsPDF();
+        const pageWidth = doc.internal.pageSize.getWidth();
+        const pageHeight = doc.internal.pageSize.getHeight();
+        const marginLeft = 20;
+        const timelineLineX = marginLeft - 5; // Position for the vertical timeline line
+        let yOffset = 20;
+        const maxContentWidth = pageWidth - marginLeft - 10;
+
+        // Title
+        doc.setFontSize(20);
+        doc.setTextColor(31, 41, 55); // Gray-800 equivalent
+        doc.text('Interactive Timeline', marginLeft, yOffset);
+        yOffset += 15;
+
+        // Draw initial timeline line
+        doc.setLineWidth(1);
+        doc.setDrawColor(37, 99, 235); // Blue-600 equivalent
+        let lineEndY = yOffset;
+
+        activities.forEach((activity, index) => {
+          if (yOffset > pageHeight - 30) {
+            doc.line(timelineLineX, 20, timelineLineX, lineEndY); // Draw line for previous page
+            doc.addPage();
+            yOffset = 20;
+            lineEndY = yOffset;
+          }
+
+          // Draw timeline circle
+          doc.setFillColor(37, 99, 235); // Blue-600
+          doc.circle(timelineLineX, yOffset, 2, 'F');
+
+          // Date
+          doc.setFontSize(14);
+          doc.setTextColor(31, 41, 55); // Gray-800
+          doc.text(new Date(activity.date).toLocaleString(), marginLeft, yOffset);
+          yOffset += 10;
+
+          // Description
+          doc.setFontSize(12);
+          doc.setTextColor(75, 85, 99); // Gray-600
+          const descriptionLines = doc.splitTextToSize(activity.description, maxContentWidth);
+          doc.text(descriptionLines, marginLeft, yOffset);
+          yOffset += descriptionLines.length * 7 + 5;
+
+          // Image
+          if (activity.image) {
+            try {
+              const img = new Image();
+              img.src = activity.image;
+              const imgWidth = 50;
+              const imgHeight = 50;
+              if (yOffset + imgHeight > pageHeight - 20) {
+                doc.line(timelineLineX, 20, timelineLineX, lineEndY);
+                doc.addPage();
+                yOffset = 20;
+                lineEndY = yOffset;
+              }
+              doc.addImage(img, 'JPEG', marginLeft, yOffset, imgWidth, imgHeight);
+              yOffset += imgHeight + 5;
+            } catch (error) {
+              console.error('Error adding image to PDF:', error);
+            }
+          }
+
+          // Attachments
+          if (activity.attachments.length > 0) {
+            doc.setTextColor(55, 65, 81); // Gray-700
+            doc.text('Attachments:', marginLeft, yOffset);
+            yOffset += 7;
+            doc.setTextColor(59, 130, 246); // Blue-500
+            activity.attachments.forEach(attachment => {
+              if (yOffset > pageHeight - 20) {
+                doc.line(timelineLineX, 20, timelineLineX, lineEndY);
+                doc.addPage();
+                yOffset = 20;
+                lineEndY = yOffset;
+              }
+              const attachmentText = `- ${attachment.name}`;
+              const attachmentLines = doc.splitTextToSize(attachmentText, maxContentWidth - 5);
+              doc.text(attachmentLines, marginLeft + 5, yOffset);
+              yOffset += attachmentLines.length * 7;
+            });
+          }
+
+          yOffset += 10;
+          lineEndY = yOffset; // Update line end position
+        });
+
+        // Draw the final timeline line
+        doc.line(timelineLineX, 20, timelineLineX, lineEndY);
+
+        doc.save('timeline.pdf');
+      };
+
+      return (
+        <div className="container mx-auto p-4 max-w-3xl flex flex-col min-h-screen">
+          {/* Input Form */}
+          <div className="bg-white p-6 rounded-lg shadow-lg mb-8">
+            <h1 className="text-3xl font-bold text-center text-gray-800 mb-6">Interactive Timeline</h1>
+            <h2 className="text-xl font-semibold text-gray-700 mb-4">Add New Activity</h2>
+            <div className="space-y-4">
+              <input
+                type="datetime-local"
+                name="date"
+                value={formData.date}
+                onChange={handleInputChange}
+                className="w-full p-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                required
+              />
+              <textarea
+                name="description"
+                value={formData.description}
+                onChange={handleInputChange}
+                placeholder="Enter activity description"
+                className="w-full p-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                rows="4"
+                required
+              ></textarea>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Paste or Upload Image</label>
+                {formData.image && (
+                  <div className="relative">
+                    <img src={formData.image} alt="Pasted" className="max-w-full h-auto rounded-md mb-2" />
+                    <button
+                      onClick={() => removeImage()}
+                      className="absolute top-0 right-0 bg-red-500 text-white p-1 rounded-full"
+                    >
+                      X
+                    </button>
+                  </div>
+                )}
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => {
+                    const file = e.target.files[0];
+                    if (file) {
+                      const reader = new FileReader();
+                      reader.onload = () => setFormData({ ...formData, image: reader.result });
+                      reader.readAsDataURL(file);
+                    }
+                  }}
+                  className="w-full p-2 border rounded-md"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Attachments</label>
+                <input
+                  type="file"
+                  multiple
+                  onChange={handleFileChange}
+                  className="w-full p-2 border rounded-md"
+                />
+                {formData.attachments.length > 0 && (
+                  <ul className="mt-2">
+                    {formData.attachments.map((attachment, index) => (
+                      <li key={index} className="flex items-center">
+                        <a href={attachment.data} download={attachment.name} className="text-blue-500 hover:underline">
+                          {attachment.name}
+                        </a>
+                        <button
+                          onClick={() => removeAttachment(index)}
+                          className="ml-2 text-red-500 hover:text-red-700"
+                        >
+                          Remove
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+              <button
+                onClick={handleSubmit}
+                className="w-full bg-blue-600 text-white p-2 rounded-md hover:bg-blue-700 transition duration-200"
+              >
+                Add to Timeline
+              </button>
+            </div>
+          </div>
+
+          {/* Timeline Display */}
+          <div className="relative mb-8">
+            <h2 className="text-xl font-semibold text-gray-700 mb-4 text-center">Timeline</h2>
+            {activities.length === 0 ? (
+              <p className="text-center text-gray-500">No activities added yet.</p>
+            ) : (
+              <div className="relative border-l-4 border-blue-600">
+                {activities.map((activity) => (
+                  <div key={activity.id} className="mb-8 ml-6">
+                    <div className="absolute w-4 h-4 bg-blue-600 rounded-full -left-2.5 mt-1.5"></div>
+                    {editData && editData.id === activity.id ? (
+                      <div className="bg-white p-4 rounded-lg shadow-md">
+                        <input
+                          type="datetime-local"
+                          name="date"
+                          value={editData.date}
+                          onChange={handleEditChange}
+                          className="w-full p-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 mb-2"
+                          required
+                        />
+                        <textarea
+                          name="description"
+                          value={editData.description}
+                          onChange={handleEditChange}
+                          className="w-full p-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 mb-2"
+                          rows="4"
+                          required
+                        ></textarea>
+                        <div className="mb-2">
+                          <label className="block text-sm font-medium text-gray-700">Paste or Upload Image</label>
+                          {editData.image && (
+                            <div className="relative">
+                              <img src={editData.image} alt="Pasted" className="max-w-full h-auto rounded-md mb-2" />
+                              <button
+                                onClick={() => removeImage(true)}
+                                className="absolute top-0 right-0 bg-red-500 text-white p-1 rounded-full"
+                              >
+                                X
+                              </button>
+                            </div>
+                          )}
+                          <input
+                            type="file"
+                            accept="image/*"
+                            onChange={(e) => {
+                              const file = e.target.files[0];
+                              if (file) {
+                                const reader = new FileReader();
+                                reader.onload = () => setEditData({ ...editData, image: reader.result });
+                                reader.readAsDataURL(file);
+                              }
+                            }}
+                            className="w-full p-2 border rounded-md"
+                          />
+                        </div>
+                        <div className="mb-2">
+                          <label className="block text-sm font-medium text-gray-700">Attachments</label>
+                          <input
+                            type="file"
+                            multiple
+                            onChange={handleEditFileChange}
+                            className="w-full p-2 border rounded-md"
+                          />
+                          {editData.attachments.length > 0 && (
+                            <ul className="mt-2">
+                              {editData.attachments.map((attachment, index) => (
+                                <li key={index} className="flex items-center">
+                                  <a href={attachment.data} download={attachment.name} className="text-blue-500 hover:underline">
+                                    {attachment.name}
+                                  </a>
+                                  <button
+                                    onClick={() => removeAttachment(index, true)}
+                                    className="ml-2 text-red-500 hover:text-red-700"
+                                  >
+                                    Remove
+                                  </button>
+                                </li>
+                              ))}
+                            </ul>
+                          )}
+                        </div>
+                        <div className="flex space-x-2">
+                          <button
+                            onClick={handleEditSubmit}
+                            className="bg-green-600 text-white p-2 rounded-md hover:bg-green-700 transition duration-200"
+                          >
+                            Save
+                          </button>
+                          <button
+                            onClick={cancelEdit}
+                            className="bg-gray-600 text-white p-2 rounded-md hover:bg-gray-700 transition duration-200"
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="bg-white p-4 rounded-lg shadow-md hover:shadow-lg transition duration-200">
+                        <h3 className="text-lg font-semibold text-gray-800">
+                          {new Date(activity.date).toLocaleString()}
+                        </h3>
+                        <p className="text-gray-600 mt-2">{activity.description}</p>
+                        {activity.image && (
+                          <img src={activity.image} alt="Attached" className="max-w-full h-auto rounded-md mt-2" />
+                        )}
+                        {activity.attachments.length > 0 && (
+                          <div className="mt-2">
+                            <p className="text-sm font-medium text-gray-700">Attachments:</p>
+                            <ul>
+                              {activity.attachments.map((attachment, index) => (
+                                <li key={index}>
+                                  <a href={attachment.data} download={attachment.name} className="text-blue-500 hover:underline">
+                                    {attachment.name}
+                                  </a>
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+                        <div className="mt-2 flex space-x-2">
+                          <button
+                            onClick={() => handleEdit(activity)}
+                            className="text-blue-500 hover:text-blue-700 text-sm"
+                          >
+                            Edit
+                          </button>
+                          <button
+                            onClick={() => handleDelete(activity.id)}
+                            className="text-red-500 hover:text-red-700 text-sm"
+                          >
+                            Delete
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Manage Timeline Data */}
+          <div className="bg-white p-6 rounded-lg shadow-lg mt-auto">
+            <h2 className="text-xl font-semibold text-gray-700 mb-4">Manage Timeline Data</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Export Section */}
+              <div className="border rounded-md p-4 bg-gray-50">
+                <h3 className="text-lg font-medium text-gray-800 mb-2">Export Timeline</h3>
+                <p className="text-sm text-gray-600 mb-4">Download your timeline as a JSON file.</p>
+                <button
+                  onClick={exportToJSON}
+                  className="w-full bg-green-600 text-white p-2 rounded-md hover:bg-green-700 transition duration-200"
+                >
+                  Export to JSON
+                </button>
+              </div>
+              {/* Import Section */}
+              <div className="border rounded-md p-4 bg-gray-50">
+                <h3 className="text-lg font-medium text-gray-800 mb-2">Import Timeline</h3>
+                <p className="text-sm text-gray-600 mb-4">Upload a JSON file to load a timeline.</p>
+                <input
+                  type="file"
+                  accept=".json"
+                  onChange={importFromJSON}
+                  className="w-full p-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+              {/* Print to PDF Section */}
+              <div className="border rounded-md p-4 bg-gray-50">
+                <h3 className="text-lg font-medium text-gray-800 mb-2">Print Timeline</h3>
+                <p className="text-sm text-gray-600 mb-4">Generate a PDF of your timeline.</p>
+                <button
+                  onClick={printToPDF}
+                  className="w-full bg-purple-600 text-white p-2 rounded-md hover:bg-purple-700 transition duration-200"
+                >
+                  Print to PDF
+                </button>
+              </div>
+              {/* Clear Timeline Section */}
+              <div className="border rounded-md p-4 bg-gray-50">
+                <h3 className="text-lg font-medium text-gray-800 mb-2">Clear Timeline</h3>
+                <p className="text-sm text-gray-600 mb-4">Remove all activities from the timeline.</p>
+                <button
+                  onClick={clearTimeline}
+                  className="w-full bg-red-600 text-white p-2 rounded-md hover:bg-red-700 transition duration-200"
+                >
+                  Clear Timeline
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    };
+
+    ReactDOM.render(<TimelineApp />, document.getElementById('root'));
+  </script>
+</body>
+</html>
