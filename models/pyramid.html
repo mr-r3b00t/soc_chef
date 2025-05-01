@@ -1,0 +1,142 @@
+<script type="text/javascript">
+        var gk_isXlsx = false;
+        var gk_xlsxFileLookup = {};
+        var gk_fileData = {};
+        function filledCell(cell) {
+          return cell !== '' && cell != null;
+        }
+        function loadFileData(filename) {
+        if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
+            try {
+                var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
+                var firstSheetName = workbook.SheetNames[0];
+                var worksheet = workbook.Sheets[firstSheetName];
+
+                // Convert sheet to JSON to filter blank rows
+                var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
+                // Filter out blank rows (rows where all cells are empty, null, or undefined)
+                var filteredData = jsonData.filter(row => row.some(filledCell));
+
+                // Heuristic to find the header row by ignoring rows with fewer filled cells than the next row
+                var headerRowIndex = filteredData.findIndex((row, index) =>
+                  row.filter(filledCell).length >= filteredData[index + 1]?.filter(filledCell).length
+                );
+                // Fallback
+                if (headerRowIndex === -1 || headerRowIndex > 25) {
+                  headerRowIndex = 0;
+                }
+
+                // Convert filtered JSON back to CSV
+                var csv = XLSX.utils.aoa_to_sheet(filteredData.slice(headerRowIndex)); // Create a new sheet from filtered array of arrays
+                csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
+                return csv;
+            } catch (e) {
+                console.error(e);
+                return "";
+            }
+        }
+        return gk_fileData[filename] || "";
+        }
+        </script><!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pyramid of Pain - Indicators of Compromise (IoCs)</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <style>
+        body {
+            background-color: #1a1a1a;
+            font-family: 'Inter', sans-serif;
+            color: #ffffff;
+            margin: 0;
+            padding: 0;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .pyramid {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 1rem;
+            padding: 1rem;
+            width: 100%;
+            max-width: 700px;
+            margin: 1rem auto;
+        }
+        .level {
+            width: 100%;
+            padding: 1.25rem;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+            transition: transform 0.3s ease;
+        }
+        .level:hover {
+            transform: translateY(-5px);
+        }
+        .level h2 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 0.75rem;
+            color: #ffffff;
+        }
+        .level p {
+            font-size: 1rem;
+            line-height: 1.5;
+            color: #ffffff;
+        }
+        @media (max-width: 600px) {
+            .pyramid {
+                padding: 0.5rem;
+                margin: 0.5rem;
+            }
+            .level {
+                padding: 1rem;
+            }
+            .level h2 {
+                font-size: 1.25rem;
+            }
+            .level p {
+                font-size: 0.9rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="pyramid">
+        <h1 class="text-2xl font-bold text-center mb-6 text-white">Pyramid of Pain - IoCs</h1>
+
+        <div class="level bg-red-900">
+            <h2>TTPs (Tactics, Techniques, Procedures)</h2>
+            <p>Top of the pyramid, TTPs are attacker behaviors like spear-phishing or lateral movement. Disrupting these forces major strategy changes, making it highly impactful but challenging.</p>
+        </div>
+
+        <div class="level bg-red-800" style="width: 95%;">
+            <h2>Tools</h2>
+            <p>Software like Metasploit or custom malware. Blocking tools forces attackers to find or build new ones, which is resource-heavy.</p>
+        </div>
+
+        <div class="level bg-red-700" style="width: 90%;">
+            <h2>Network/Host Artifacts</h2>
+            <p>Traces like registry keys or network beacons. Tied to attacker infrastructure, these are harder to change.</p>
+        </div>
+
+        <div class="level bg-red-600" style="width: 85%;">
+            <h2>Domain Names</h2>
+            <p>Used for C2 or phishing. Blocking domains disrupts operations, though attackers can switch, incurring costs.</p>
+        </div>
+
+        <div class="level bg-red-500" style="width: 80%;">
+            <h2>IP Addresses</h2>
+            <p>Malicious infrastructure IPs. Easier to change than domains but still disruptive when blocked.</p>
+        </div>
+
+        <div class="level bg-red-400" style="width: 75%;">
+            <h2>Hash Values</h2>
+            <p>File hashes (MD5, SHA) of malicious files. Easiest to detect and block but simple for attackers to alter.</p>
+        </div>
+    </div>
+</body>
+</html>
