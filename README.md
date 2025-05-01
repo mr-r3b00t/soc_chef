@@ -43,6 +43,8 @@ Reactive Orgs that either do not have Policies, Processes and Procedures or ones
 
 🎨 [Diamond Model Creator](https://mr-r3b00t.github.io/soc_chef/processes/analysis/diamond_model.html)
 
+🎨 [Pyramid of Pain - IOCs ](https://mr-r3b00t.github.io/soc_chef/models/pyramid.html)
+
 ☕ [Buy me a coffee](https://buymeacoffee.com/mrr3b00t)
 
 
