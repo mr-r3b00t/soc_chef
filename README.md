@@ -45,10 +45,12 @@ Reactive Orgs that either do not have Policies, Processes and Procedures or ones
 
 🎨 [Pyramid of Pain - IOCs ](https://mr-r3b00t.github.io/soc_chef/models/pyramid.html)
 
+⚡️ [Incident Response Planning - Network Isolation Scnenario Examples](https://mr-r3b00t.github.io/soc_chef/processes/ir/network_isolation_scenario_examples.html)
+
 ☕ [Buy me a coffee](https://buymeacoffee.com/mrr3b00t)
 
 
 Copyright (c) Xservus Limited
 Created by mRr3b00t
 
-Version 0.23 - Experimental - Use at own risk
+Version 0.24 - Experimental - Use at own risk
