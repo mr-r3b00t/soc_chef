@@ -1,0 +1,259 @@
+<script type="text/javascript">
+        var gk_isXlsx = false;
+        var gk_xlsxFileLookup = {};
+        var gk_fileData = {};
+        function filledCell(cell) {
+          return cell !== '' && cell != null;
+        }
+        function loadFileData(filename) {
+        if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
+            try {
+                var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
+                var firstSheetName = workbook.SheetNames[0];
+                var worksheet = workbook.Sheets[firstSheetName];
+
+                // Convert sheet to JSON to filter blank rows
+                var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
+                // Filter out blank rows (rows where all cells are empty, null, or undefined)
+                var filteredData = jsonData.filter(row => row.some(filledCell));
+
+                // Heuristic to find the header row by ignoring rows with fewer filled cells than the next row
+                var headerRowIndex = filteredData.findIndex((row, index) =>
+                  row.filter(filledCell).length >= filteredData[index + 1]?.filter(filledCell).length
+                );
+                // Fallback
+                if (headerRowIndex === -1 || headerRowIndex > 25) {
+                  headerRowIndex = 0;
+                }
+
+                // Convert filtered JSON back to CSV
+                var csv = XLSX.utils.aoa_to_sheet(filteredData.slice(headerRowIndex)); // Create a new sheet from filtered array of arrays
+                csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
+                return csv;
+            } catch (e) {
+                console.error(e);
+                return "";
+            }
+        }
+        return gk_fileData[filename] || "";
+        }
+        </script><!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Attack Paths to Compromise AD, Backups, and Virtual Infrastructure</title>
+    <script src="https://visjs.github.io/vis-network/standalone/umd/vis-network.min.js"></script>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 0; padding: 20px; background-color: #f4f4f4; }
+        #network { width: 100%; height: 800px; border: 1px solid #ccc; background-color: #fff; }
+        h1 { 
+            text-align: center; 
+            color: #333; 
+            margin-top: 60px; /* Increased margin to avoid overlap with button */
+            margin-bottom: 20px;
+        }
+        #fullscreen-btn { 
+            position: fixed; 
+            top: 20px; 
+            right: 20px; 
+            padding: 10px 20px; 
+            background-color: #005580; 
+            color: white; 
+            border: none; 
+            border-radius: 5px; 
+            cursor: pointer; 
+            z-index: 1000; 
+        }
+        #fullscreen-btn:hover { background-color: #003366; }
+    </style>
+</head>
+<body>
+    <h1>Attack Paths from Initial Access to Compromise AD, Backups, and Virtual Infrastructure</h1>
+    <button id="fullscreen-btn">Toggle Fullscreen</button>
+    <div id="network"></div>
+
+    <script>
+        // Define nodes
+        const nodes = new vis.DataSet([
+            { id: 1, label: "External Attacker", group: "initial", title: "Starting point: An external attacker with no network access" },
+            { id: 2, label: "Domain User", group: "start", title: "Standard domain user on a PC domain member" },
+            { id: 3, label: "Local Admin", group: "escalation", title: "Local admin privileges on the PC" },
+            { id: 4, label: "Domain Admin", group: "ad", title: "Full control over Active Directory" },
+            { id: 5, label: "Active Directory", group: "ad", title: "Core AD infrastructure (Domain Controllers)" },
+            { id: 6, label: "Backups", group: "backups", title: "Backup systems storing AD and infrastructure data" },
+            { id: 7, label: "Virtual Infrastructure", group: "virtual", title: "VMware, Hyper-V, or other virtualization platforms" },
+            { id: 8, label: "Credentials (Cache)", group: "escalation", title: "Cached credentials on the PC" },
+            { id: 9, label: "Group Policy", group: "ad", title: "Group Policy Objects in AD" },
+            { id: 10, label: "ADCS", group: "ad", title: "Active Directory Certificate Services" },
+            { id: 11, label: "Service Accounts", group: "ad", title: "Service accounts in AD" },
+            { id: 12, label: "SYSVOL", group: "ad", title: "SYSVOL share containing scripts and policies" },
+            { id: 13, label: "Backup Server", group: "backups", title: "Server managing backup operations" },
+            { id: 14, label: "vCenter/ESXi", group: "virtual", title: "Virtualization management (e.g., VMware vCenter)" },
+            { id: 15, label: "Hypervisor Host", group: "virtual", title: "Individual hypervisor hosts (e.g., ESXi, Hyper-V)" },
+            { id: 16, label: "Network Shares", group: "escalation", title: "Accessible network shares containing sensitive data" },
+            { id: 17, label: "Compromised Credentials", group: "initial", title: "Valid credentials obtained through various methods" },
+            { id: 18, label: "VPN", group: "access", title: "Virtual Private Network for remote access" },
+            { id: 19, label: "RMM", group: "access", title: "Remote Monitoring and Management tools" },
+            { id: 20, label: "RDS/Citrix", group: "access", title: "Remote Desktop Services or Citrix Virtual Desktops" },
+            { id: 21, label: "Social Engineering", group: "initial", title: "Techniques manipulating human behavior to gain credentials" },
+            { id: 22, label: "Credential Theft", group: "initial", title: "Methods to steal credentials without direct user interaction" },
+            { id: 23, label: "Malware", group: "initial", title: "Malicious software to capture credentials" },
+            { id: 24, label: "Exploitation", group: "initial", title: "Exploiting vulnerabilities to gain credentials" }
+        ]);
+
+        // Define edges (attack paths)
+        const edges = new vis.DataSet([
+            // From External Attacker to Initial Access Categories
+            { from: 1, to: 21, label: "Social Engineering", title: "Use social engineering techniques to manipulate users" },
+            { from: 1, to: 22, label: "Credential Theft", title: "Steal credentials through non-interactive methods" },
+            { from: 1, to: 23, label: "Malware", title: "Deploy malware to capture credentials" },
+            { from: 1, to: 24, label: "Exploitation", title: "Exploit vulnerabilities to steal credentials" },
+
+            // From Social Engineering to Compromised Credentials
+            { from: 21, to: 17, label: "Phishing", title: "Send targeted phishing emails to trick staff into revealing credentials" },
+            { from: 21, to: 17, label: "Social Engineering (Helpdesk)", title: "Manipulate helpdesk staff to reset user passwords or provide credentials" },
+
+            // From Credential Theft to Compromised Credentials
+            { from: 22, to: 17, label: "Credential Stuffing", title: "Use leaked credentials from other breaches to attempt login" },
+            { from: 22, to: 17, label: "Buy Credentials", title: "Purchase stolen credentials from dark web marketplaces" },
+            { from: 22, to: 17, label: "Password Spraying", title: "Attempt common passwords across many accounts to avoid lockouts" },
+
+            // From Malware to Compromised Credentials
+            { from: 23, to: 17, label: "Keylogging", title: "Deploy malware to capture keystrokes and steal credentials" },
+
+            // From Exploitation to Compromised Credentials
+            { from: 24, to: 17, label: "Exploited Web Apps", title: "Exploit vulnerabilities in public-facing apps to steal credentials" },
+
+            // From Compromised Credentials to Network Access
+            { from: 17, to: 18, label: "VPN Access", title: "Use stolen credentials to authenticate via VPN" },
+            { from: 17, to: 19, label: "RMM Access", title: "Use stolen credentials to access RMM tools (e.g., ConnectWise, Kaseya)" },
+            { from: 17, to: 20, label: "RDS/Citrix Access", title: "Use stolen credentials to log into Remote Desktop Services or Citrix" },
+
+            // From Network Access to Domain User
+            { from: 18, to: 2, label: "Network Login", title: "Use VPN access to authenticate as a domain user on a PC" },
+            { from: 19, to: 2, label: "RMM Session", title: "Establish a remote session via RMM to act as a domain user" },
+            { from: 20, to: 2, label: "Desktop Access", title: "Access a virtual desktop or RDS session as a domain user" },
+
+            // From Domain User
+            { from: 2, to: 3, label: "Privilege Escalation", title: "Exploit UAC bypass, misconfigured permissions, or unpatched vulnerabilities to gain local admin" },
+            { from: 2, to: 8, label: "Credential Dumping", title: "Extract cached credentials using Mimikatz or similar tools" },
+            { from: 2, to: 9, label: "GPO Access", title: "Access Group Policy Preferences with weak permissions" },
+            { from: 2, to: 10, label: "ADCS Misconfig", title: "Exploit misconfigured ADCS templates for escalation" },
+            { from: 2, to: 11, label: "Kerberoasting", title: "Request service tickets and crack weak passwords offline" },
+            { from: 2, to: 12, label: "SYSVOL Access", title: "Access SYSVOL for scripts containing hardcoded credentials" },
+            { from: 2, to: 16, label: "Network Share Access", title: "Access shares with weak permissions containing credentials or scripts" },
+
+            // From Local Admin
+            { from: 3, to: 8, label: "Mimikatz", title: "Use Mimikatz to dump credentials from memory (LSASS)" },
+            { from: 3, to: 5, label: "Lateral Movement", title: "Use local admin to move to other systems (e.g., PsExec, WMI)" },
+            { from: 3, to: 13, label: "Backup Server Access", title: "Exploit local admin to access backup server" },
+            { from: 3, to: 14, label: "vCenter Access", title: "Use local admin to pivot to vCenter management" },
+
+            // From Credentials (Cache)
+            { from: 8, to: 4, label: "Pass-the-Hash", title: "Use NTLM hashes for pass-the-hash to gain domain admin" },
+            { from: 8, to: 5, label: "Pass-the-Ticket", title: "Use Kerberos tickets for pass-the-ticket attacks" },
+            { from: 8, to: 16, label: "Share Access", title: "Use credentials to access sensitive network shares" },
+
+            // From Group Policy
+            { from: 9, to: 4, label: "GPO Passwords", title: "Extract passwords from Group Policy Preferences (cPassword)" },
+            { from: 9, to: 5, label: "GPO Misconfig", title: "Exploit misconfigured GPOs to deploy malicious scripts" },
+
+            // From ADCS
+            { from: 10, to: 4, label: "Cert Escalation", title: "Enroll in privileged certificates to escalate to domain admin" },
+            { from: 10, to: 5, label: "Cert Theft", title: "Steal certificates for persistent AD access" },
+
+            // From Service Accounts
+            { from: 11, to: 4, label: "Privileged Account", title: "Compromise service accounts with domain admin privileges" },
+            { from: 11, to: 5, label: "Kerberos Attacks", title: "Use service accounts for Silver/Golden Ticket attacks" },
+
+            // From SYSVOL
+            { from: 12, to: 4, label: "Script Passwords", title: "Extract hardcoded passwords from SYSVOL scripts" },
+            { from: 12, to: 5, label: "Script Execution", title: "Modify SYSVOL scripts to execute malicious code" },
+
+            // From Network Shares
+            { from: 16, to: 4, label: "Credential Harvest", title: "Obtain privileged credentials from share contents" },
+            { from: 16, to: 13, label: "Backup Data", title: "Access backup data stored on shares" },
+            { from: 16, to: 14, label: "vCenter Creds", title: "Find virtualization credentials in share scripts" },
+
+            // From Active Directory
+            { from: 5, to: 4, label: "Full Control", title: "Compromise AD to gain domain admin privileges" },
+            { from: 5, to: 6, label: "Backup Access", title: "Use AD control to access backup systems" },
+            { from: 5, to: 7, label: "Virtual Infra Access", title: "Use AD control to access virtual infrastructure" },
+
+            // From Backup Server
+            { from: 13, to: 6, label: "Backup Compromise", title: "Access and manipulate backup data" },
+            { from: 13, to: 5, label: "AD Restore", title: "Restore AD from backups to extract credentials" },
+
+            // From vCenter/ESXi
+            { from: 14, to: 7, label: "Full Control", title: "Compromise vCenter to control virtual infrastructure" },
+            { from: 14, to: 15, label: "Host Access", title: "Use vCenter to access individual hypervisor hosts" },
+
+            // From Hypervisor Host
+            { from: 15, to: 7, label: "Host Compromise", title: "Directly compromise hypervisor hosts" }
+        ]);
+
+        // Create network
+        const container = document.getElementById('network');
+        const data = { nodes: nodes, edges: edges };
+        const options = {
+            nodes: {
+                shape: 'box',
+                font: { size: 14 },
+                color: {
+                    background: '#d3e7ff',
+                    border: '#005580',
+                    highlight: { background: '#ffcc00', border: '#cc9900' }
+                }
+            },
+            edges: {
+                arrows: 'to',
+                font: { align: 'middle' },
+                color: { color: '#005580', highlight: '#cc9900' }
+            },
+            groups: {
+                initial: { color: { background: '#ff6666', border: '#cc0000' } },
+                access: { color: { background: '#ff99cc', border: '#cc0066' } },
+                start: { color: { background: '#ff9999', border: '#cc0000' } },
+                escalation: { color: { background: '#ffcc99', border: '#cc6600' } },
+                ad: { color: { background: '#99ccff', border: '#0033cc' } },
+                backups: { color: { background: '#ccffcc', border: '#009900' } },
+                virtual: { color: { background: '#ffccff', border: '#990099' } }
+            },
+            layout: { hierarchical: { direction: 'UD', sortMethod: 'directed' } },
+            interaction: { hover: true, tooltipDelay: 200 },
+            physics: false
+        };
+
+        const network = new vis.Network(container, data, options);
+
+        // Fullscreen and fit functionality
+        const fullscreenBtn = document.getElementById('fullscreen-btn');
+        fullscreenBtn.addEventListener('click', () => {
+            if (!document.fullscreenElement && !document.webkitFullscreenElement && !document.msFullscreenElement) {
+                // Enter fullscreen
+                if (container.requestFullscreen) {
+                    container.requestFullscreen();
+                } else if (container.webkitRequestFullscreen) {
+                    container.webkitRequestFullscreen();
+                } else if (container.msRequestFullscreen) {
+                    container.msRequestFullscreen();
+                }
+                fullscreenBtn.textContent = 'Exit Fullscreen';
+            } else {
+                // Exit fullscreen
+                if (document.exitFullscreen) {
+                    document.exitFullscreen();
+                } else if (document.webkitExitFullscreen) {
+                    document.webkitExitFullscreen();
+                } else if (document.msExitFullscreen) {
+                    document.msExitFullscreen();
+                }
+                fullscreenBtn.textContent = 'Toggle Fullscreen';
+            }
+            // Fit the graph to the view
+            network.fit({ animation: true });
+        });
+    </script>
+</body>
+</html>
