@@ -446,7 +446,7 @@
                         <td>
                             <details>
                                 <summary>Rationale, Scope, and Justification</summary>
-                                <p class="mt-2 text-gray-700"><strong>Rationale:</strong> Network devices may use domain authentication, so local credentials prevent compromise. Segmentation and monitoring limit threats, and controller isolation (restricting ingress and egress) contains the primary threat.</p>
+                                <p class="mt-2 text-gray-700"><strong>Rationale:</strong> Network devices may use domain authentication, so local credentials prevent compromise. Segmentation and monitoring limit threats, and controller isolating (restricting ingress and egress) contains the primary threat.</p>
                                 <p class="mt-2 text-gray-700"><strong>Scope:</strong> Isolation includes the domain controller and network device authentication, with network-wide segmentation.</p>
                                 <p class="mt-2 text-gray-700"><strong>Justification:</strong> This proportionate approach addresses the critical threat while maintaining device functionality.</p>
                             </details>
@@ -456,6 +456,329 @@
                             <p class="text-gray-700"><strong>Rationale:</strong> A compromised domain controller risks exfiltration (outbound via devices) and threat actor control (inbound C2). Network-wide ingress/egress restrictions prevent both, ensuring safety with local credentials and segmentation.</p>
                             <p class="mt-2 text-gray-700"><strong>Scope:</strong> The rule applies to the entire network, enforced via firewall or router policies.</p>
                             <p class="mt-2 text-gray-700"><strong>Justification:</strong> The network-wide scope is necessary given the controller’s role, addressing both risks while preserving operations.</p>
+                        </td>
+                    </tr>
+
+                    <!-- Zero-Day Against Citrix/RDS/VMware View Logon Interface, No Patch -->
+                    <tr>
+                        <td>Zero-Day Against Citrix/RDS/VMware View Logon Interface, No Patch</td>
+                        <td>Managed PC</td>
+                        <td>
+                            <ul class="list-disc pl-5">
+                                <li>Isolate affected remote access server from the internet, restricting both ingress and egress.</li>
+                                <li>Disable public-facing logon interface temporarily.</li>
+                                <li>Monitor logs for exploit attempts.</li>
+                                <li>Implement network segmentation to protect internal systems.</li>
+                            </ul>
+                        </td>
+                        <td>
+                            <details>
+                                <summary>Rationale, Scope, and Justification</summary>
+                                <p class="mt-2 text-gray-700"><strong>Rationale:</strong> A zero-day exploit with no patch poses a severe risk of unauthorized access to the remote access server. Isolating the server (restricting ingress and egress) prevents threat actor control and exfiltration. Disabling the logon interface stops exploitation, and segmentation protects internal systems.</p>
+                                <p class="mt-2 text-gray-700"><strong>Scope:</strong> Isolation targets the remote access server and affected network segments, with minimal impact on managed PCs not using the service.</p>
+                                <p class="mt-2 text-gray-700"><strong>Justification:</strong> This aggressive approach is necessary due to the unmitigated vulnerability, balancing security with limited disruption via segmentation.</p>
+                            </details>
+                        </td>
+                        <td>Deny Both Ingress and Egress from the remote access server</td>
+                        <td>
+                            <p class="text-gray-700"><strong>Rationale:</strong> The zero-day risks both threat actor access (inbound exploitation) and exfiltration (outbound data if access is gained). Denying ingress and egress from the server prevents both while allowing internal operations to continue via other systems.</p>
+                            <p class="mt-2 text-gray-700"><strong>Scope:</strong> The rule applies to the remote access server, enforced via firewall or router policies.</p>
+                            <p class="mt-2 text-gray-700"><strong>Justification:</strong> Targeting the server is proportionate, addressing both risks without disrupting unaffected systems.</p>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>Zero-Day Against Citrix/RDS/VMware View Logon Interface, No Patch</td>
+                        <td>Unmanaged PC</td>
+                        <td>
+                            <ul class="list-disc pl-5">
+                                <li>Isolate affected remote access server from the internet, restricting both ingress and egress.</li>
+                                <li>Disable public-facing logon interface temporarily.</li>
+                                <li>Notify users on unmanaged devices to avoid accessing the service.</li>
+                                <li>Implement network segmentation to protect internal systems.</li>
+                            </ul>
+                        </td>
+                        <td>
+                            <details>
+                                <summary>Rationale, Scope, and Justification</summary>
+                                <p class="mt-2 text-gray-700"><strong>Rationale:</strong> Unmanaged PCs may attempt to access the vulnerable service, but the primary threat is at the server. Isolating the server (restricting ingress and egress) prevents exploitation, and disabling the logon interface stops attacks. User notifications reduce exposure, and segmentation protects internals.</p>
+                                <p class="mt-2 text-gray-700"><strong>Scope:</strong> Isolation targets the remote access server and network segments, with no direct impact on unmanaged PCs.</p>
+                                <p class="mt-2 text-gray-700"><strong>Justification:</strong> This strategy focuses on the vulnerable server, proportionate to the unmitigated zero-day threat.</p>
+                            </details>
+                        </td>
+                        <td>Deny Both Ingress and Egress from the remote access server</td>
+                        <td>
+                            <p class="text-gray-700"><strong>Rationale:</strong> The zero-day enables threat actor access (inbound) and potential exfiltration (outbound). Denying ingress and egress from the server blocks both risks, protecting unmanaged PC users indirectly.</p>
+                            <p class="mt-2 text-gray-700"><strong>Scope:</strong> The rule applies to the remote access server, enforced via firewall or router policies.</p>
+                            <p class="mt-2 text-gray-700"><strong>Justification:</strong> Server-specific restrictions are sufficient, avoiding broader disruption to unmanaged PCs.</p>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>Zero-Day Against Citrix/RDS/VMware View Logon Interface, No Patch</td>
+                        <td>Network Device</td>
+                        <td>
+                            <ul class="list-disc pl-5">
+                                <li>Isolate affected remote access server from the internet, restricting both ingress and egress.</li>
+                                <li>Disable public-facing logon interface temporarily.</li>
+                                <li>Restrict server management access to a secure VLAN.</li>
+                                <li>Monitor server logs for exploit attempts.</li>
+                            </ul>
+                        </td>
+                        <td>
+                            <details>
+                                <summary>Rationale, Scope, and Justification</summary>
+                                <p class="mt-2 text-gray-700"><strong>Rationale:</strong> The remote access server, a network device, is the primary target. Isolating it (restricting ingress and egress) prevents exploitation, and disabling the logon interface stops attacks. A secure VLAN protects management, and log monitoring detects threats.</p>
+                                <p class="mt-2 text-gray-700"><strong>Scope:</strong> Isolation targets the remote access server, with minimal network impact.</p>
+                                <p class="mt-2 text-gray-700"><strong>Justification:</strong> This focused approach mitigates the unmitigated zero-day risk without broad network disruption.</p>
+                            </details>
+                        </td>
+                        <td>Deny Both Ingress and Egress from the remote access server</td>
+                        <td>
+                            <p class="text-gray-700"><strong>Rationale:</strong> The zero-day risks threat actor access (inbound exploitation) and exfiltration (outbound data). Denying ingress and egress from the server prevents both, ensuring network safety.</p>
+                            <p class="mt-2 text-gray-700"><strong>Scope:</strong> The rule applies to the remote access server, enforced via firewall or router policies.</p>
+                            <p class="mt-2 text-gray-700"><strong>Justification:</strong> Server-specific restrictions address both risks, avoiding unnecessary network-wide measures.</p>
+                        </td>
+                    </tr>
+
+                    <!-- Zero-Day Against Citrix/RDS/VMware View Logon Interface, Patch Available -->
+                    <tr>
+                        <td>Zero-Day Against Citrix/RDS/VMware View Logon Interface, Patch Available</td>
+                        <td>Managed PC</td>
+                        <td>
+                            <ul class="list-disc pl-5">
+                                <li>Apply patch to remote access server immediately.</li>
+                                <li>Isolate server from the internet, restricting both ingress and egress, until patched.</li>
+                                <li>Monitor logs for exploit attempts during patching.</li>
+                                <li>Verify patch effectiveness post-deployment.</li>
+                            </ul>
+                        </td>
+                        <td>
+                            <details>
+                                <summary>Rationale, Scope, and Justification</summary>
+                                <p class="mt-2 text-gray-700"><strong>Rationale:</strong> A patch mitigates the zero-day, but immediate application is critical. Isolating the server (restricting ingress and egress) prevents exploitation during patching. Monitoring logs detects attempts, and verification ensures security.</p>
+                                <p class="mt-2 text-gray-700"><strong>Scope:</strong> Isolation targets the remote access server, with minimal impact on managed PCs.</p>
+                                <p class="mt-2 text-gray-700"><strong>Justification:</strong> This temporary isolation is proportionate, balancing security with minimal disruption until the patch is applied.</p>
+                            </details>
+                        </td>
+                        <td>Deny Both Ingress and Egress from the remote access server</td>
+                        <td>
+                            <p class="text-gray-700"><strong>Rationale:</strong> Until patched, the zero-day risks threat actor access (inbound) and exfiltration (outbound). Denying ingress and egress from the server prevents both during the patching window.</p>
+                            <p class="mt-2 text-gray-700"><strong>Scope:</strong> The rule applies to the remote access server, enforced via firewall or router policies.</p>
+                            <p class="mt-2 text-gray-700"><strong>Justification:</strong> Server-specific restrictions are sufficient, minimizing disruption while the patch is applied.</p>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>Zero-Day Against Citrix/RDS/VMware View Logon Interface, Patch Available</td>
+                        <td>Unmanaged PC</td>
+                        <td>
+                            <ul class="list-disc pl-5">
+                                <li>Apply patch to remote access server immediately.</li>
+                                <li>Isolate server from the internet, restricting both ingress and egress, until patched.</li>
+                                <li>Notify users on unmanaged devices to avoid accessing the service until patched.</li>
+                                <li>Monitor logs for exploit attempts during patching.</li>
+                            </ul>
+                        </td>
+                        <td>
+                            <details>
+                                <summary>Rationale, Scope, and Justification</summary>
+                                <p class="mt-2 text-gray-700"><strong>Rationale:</strong> The patch addresses the zero-day, but server isolation (restricting ingress and egress) is needed during application. User notifications reduce exposure, and log monitoring detects threats.</p>
+                                <p class="mt-2 text-gray-700"><strong>Scope:</strong> Isolation targets the remote access server, with no direct impact on unmanaged PCs.</p>
+                                <p class="mt-2 text-gray-700"><strong>Justification:</strong> This strategy focuses on the server, proportionate to the temporary risk until patched.</p>
+                            </details>
+                        </td>
+                        <td>Deny Both Ingress and Egress from the remote access server</td>
+                        <td>
+                            <p class="text-gray-700"><strong>Rationale:</strong> The zero-day risks threat actor access (inbound) and exfiltration (outbound) until patched. Denying ingress and egress from the server protects unmanaged PC users during patching.</p>
+                            <p class="mt-2 text-gray-700"><strong>Scope:</strong> The rule applies to the remote access server, enforced via firewall or router policies.</p>
+                            <p class="mt-2 text-gray-700"><strong>Justification:</strong> Server-specific restrictions are sufficient, avoiding broader disruption to unmanaged PCs.</p>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>Zero-Day Against Citrix/RDS/VMware View Logon Interface, Patch Available</td>
+                        <td>Network Device</td>
+                        <td>
+                            <ul class="list-disc pl-5">
+                                <li>Apply patch to remote access server immediately.</li>
+                                <li>Isolate server from the internet, restricting both ingress and egress, until patched.</li>
+                                <li>Restrict server management access to a secure VLAN.</li>
+                                <li>Monitor logs for exploit attempts during patching.</li>
+                            </ul>
+                        </td>
+                        <td>
+                            <details>
+                                <summary>Rationale, Scope, and Justification</summary>
+                                <p class="mt-2 text-gray-700"><strong>Rationale:</strong> The remote access server requires patching to mitigate the zero-day. Isolation (restricting ingress and egress) prevents exploitation during patching, and a secure VLAN protects management. Log monitoring detects threats.</p>
+                                <p class="mt-2 text-gray-700"><strong>Scope:</strong> Isolation targets the remote access server, with minimal network impact.</p>
+                                <p class="mt-2 text-gray-700"><strong>Justification:</strong> This focused approach mitigates the temporary risk until the patch is applied.</p>
+                            </details>
+                        </td>
+                        <td>Deny Both Ingress and Egress from the remote access server</td>
+                        <td>
+                            <p class="text-gray-700"><strong>Rationale:</strong> Until patched, the zero-day risks threat actor access (inbound) and exfiltration (outbound). Denying ingress and egress from the server ensures safety during patching.</p>
+                            <p class="mt-2 text-gray-700"><strong>Scope:</strong> The rule applies to the remote access server, enforced via firewall or router policies.</p>
+                            <p class="mt-2 text-gray-700"><strong>Justification:</strong> Server-specific restrictions address both risks, avoiding unnecessary network-wide measures.</p>
+                        </td>
+                    </tr>
+
+                    <!-- Single User Compromised, Threat Actor Logged into Environment -->
+                    <tr>
+                        <td>Single User Compromised, Threat Actor Logged into Environment</td>
+                        <td>Managed PC</td>
+                        <td>
+                            <ul class="list-disc pl-5">
+                                <li>Disable compromised user account.</li>
+                                <li>Force re-authentication for all Citrix/RDS/VMware View sessions.</li>
+                                <li>Isolate user’s device via EDR, restricting both ingress and egress.</li>
+                                <li>Monitor remote access server logs for suspicious activity.</li>
+                            </ul>
+                        </td>
+                        <td>
+                            <details>
+                                <summary>Rationale, Scope, and Justification</summary>
+                                <p class="mt-2 text-gray-700"><strong>Rationale:</strong> A compromised user account with active login risks unauthorized access. Disabling the account and forcing re-authentication terminate the threat actor’s session. EDR isolation (restricting ingress and egress) prevents further activity, and log monitoring detects related threats.</p>
+                                <p class="mt-2 text-gray-700"><strong>Scope:</strong> Isolation targets the user’s account and device, with minimal impact on other users.</p>
+                                <p class="mt-2 text-gray-700"><strong>Justification:</strong> This targeted approach addresses the specific compromise without disrupting the entire service.</p>
+                            </details>
+                        </td>
+                        <td>No</td>
+                        <td>
+                            <p class="text-gray-700"><strong>Rationale:</strong> Disabling the account and isolating the device (restricting ingress and egress) prevent threat actor access (C2) and exfiltration. The threat is limited to one user’s session.</p>
+                            <p class="mt-2 text-gray-700"><strong>Scope:</strong> No network-wide rule is applied; isolation is account- and device-specific.</p>
+                            <p class="mt-2 text-gray-700"><strong>Justification:</strong> Targeted measures suffice, avoiding disruptive network-wide restrictions.</p>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>Single User Compromised, Threat Actor Logged into Environment</td>
+                        <td>Unmanaged PC</td>
+                        <td>
+                            <ul class="list-disc pl-5">
+                                <li>Disable compromised user account.</li>
+                                <li>Block device IP/MAC from remote access service, restricting both ingress and egress.</li>
+                                <li>Force re-authentication for all Citrix/RDS/VMware View sessions.</li>
+                                <li>Notify user to secure their device.</li>
+                            </ul>
+                        </td>
+                        <td>
+                            <details>
+                                <summary>Rationale, Scope, and Justification</summary>
+                                <p class="mt-2 text-gray-700"><strong>Rationale:</strong> Unmanaged PCs require network-level blocking (IP/MAC) to restrict ingress (threat actor access) and egress (exfiltration). Disabling the account and forcing re-authentication terminate the session. User notification encourages cleanup.</p>
+                                <p class="mt-2 text-gray-700"><strong>Scope:</strong> Isolation targets the user’s account and device, with no broad service disruption.</p>
+                                <p class="mt-2 text-gray-700"><strong>Justification:</strong> This proportionate approach targets the specific threat without affecting other users.</p>
+                            </details>
+                        </td>
+                        <td>No</td>
+                        <td>
+                            <p class="text-gray-700"><strong>Rationale:</strong> Account disabling and device blocking (restricting ingress and egress) prevent threat actor access and exfiltration. The compromise is localized to one user’s device.</p>
+                            <p class="mt-2 text-gray-700"><strong>Scope:</strong> No network-wide rule is applied; isolation is account- and device-specific.</p>
+                            <p class="mt-2 text-gray-700"><strong>Justification:</strong> Targeted measures are sufficient, avoiding unnecessary network-wide restrictions.</p>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>Single User Compromised, Threat Actor Logged into Environment</td>
+                        <td>Network Device</td>
+                        <td>
+                            <ul class="list-disc pl-5">
+                                <li>Disable compromised user account.</li>
+                                <li>Isolate remote access server management interface, restricting both ingress and egress.</li>
+                                <li>Force re-authentication for all Citrix/RDS/VMware View sessions.</li>
+                                <li>Audit server logs for unauthorized changes.</li>
+                            </ul>
+                        </td>
+                        <td>
+                            <details>
+                                <summary>Rationale, Scope, and Justification</summary>
+                                <p class="mt-2 text-gray-700"><strong>Rationale:</strong> A compromised user account risks server access. Disabling the account and forcing re-authentication limit damage. Isolating the management interface (restricting ingress and egress) prevents tampering, and log audits detect compromise.</p>
+                                <p class="mt-2 text-gray-700"><strong>Scope:</strong> Isolation targets the user’s account and server management, with minimal user impact.</p>
+                                <p class="mt-2 text-gray-700"><strong>Justification:</strong> This balanced strategy addresses the threat without shutting down the service.</p>
+                            </details>
+                        </td>
+                        <td>No</td>
+                        <td>
+                            <p class="text-gray-700"><strong>Rationale:</strong> Account disabling and server management isolation (restricting ingress and egress) prevent threat actor control and exfiltration. The threat is confined to one user’s access.</p>
+                            <p class="mt-2 text-gray-700"><strong>Scope:</strong> No network-wide rule is applied; isolation is account- and server-specific.</p>
+                            <p class="mt-2 text-gray-700"><strong>Justification:</strong> Targeted measures suffice, avoiding disruptive network-wide restrictions.</p>
+                        </td>
+                    </tr>
+
+                    <!-- Single User Compromised, Threat Actor Logged In and Escalated to Local Admin -->
+                    <tr>
+                        <td>Single User Compromised, Threat Actor Logged In and Escalated to Local Admin</td>
+                        <td>Managed PC</td>
+                        <td>
+                            <ul class="list-disc pl-5">
+                                <li>Disable compromised user account.</li>
+                                <li>Isolate user’s device via EDR, restricting both ingress and egress.</li>
+                                <li>Force re-authentication for all Citrix/RDS/VMware View sessions.</li>
+                                <li>Implement network segmentation to limit lateral movement.</li>
+                                <li>Scan device for malware and privilege escalation artifacts.</li>
+                            </ul>
+                        </td>
+                        <td>
+                            <details>
+                                <summary>Rationale, Scope, and Justification</summary>
+                                <p class="mt-2 text-gray-700"><strong>Rationale:</strong> Local admin escalation increases the risk of lateral movement and exfiltration. Disabling the account and forcing re-authentication terminate the session. EDR isolation (restricting ingress and egress) prevents further activity, segmentation limits spread, and scanning detects threats.</p>
+                                <p class="mt-2 text-gray-700"><strong>Scope:</strong> Isolation targets the user’s account, device, and affected network segments.</p>
+                                <p class="mt-2 text-gray-700"><strong>Justification:</strong> This approach addresses the escalated threat without broad service disruption, proportionate to a single device.</p>
+                            </details>
+                        </td>
+                        <td>Deny Egress from the affected PC</td>
+                        <td>
+                            <p class="text-gray-700"><strong>Rationale:</strong> Local admin privileges heighten exfiltration risk (outbound data). Denying egress from the affected PC prevents data leaks, while device isolation restricts ingress (C2 access). Network-wide measures are excessive for a single device.</p>
+                            <p class="mt-2 text-gray-700"><strong>Scope:</strong> The rule applies to the affected managed PC, enforced via EDR or firewall rules targeting its IP/MAC.</p>
+                            <p class="mt-2 text-gray-700"><strong>Justification:</strong> Targeted egress restriction, combined with isolation, addresses both risks without disrupting other systems.</p>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>Single User Compromised, Threat Actor Logged In and Escalated to Local Admin</td>
+                        <td>Unmanaged PC</td>
+                        <td>
+                            <ul class="list-disc pl-5">
+                                <li>Disable compromised user account.</li>
+                                <li>Block device IP/MAC from network access, restricting both ingress and egress.</li>
+                                <li>Force re-authentication for all Citrix/RDS/VMware View sessions.</li>
+                                <li>Implement network segmentation to limit lateral movement.</li>
+                                <li>Notify user to secure their device.</li>
+                            </ul>
+                        </td>
+                        <td>
+                            <details>
+                                <summary>Rationale, Scope, and Justification</summary>
+                                <p class="mt-2 text-gray-700"><strong>Rationale:</strong> Local admin escalation on an unmanaged PC risks lateral movement and exfiltration. Disabling the account and forcing re-authentication stop the session. Network-level blocking (restricting ingress and egress) prevents activity, and segmentation limits spread.</p>
+                                <p class="mt-2 text-gray-700"><strong>Scope:</strong> Isolation targets the user’s account, device, and network segments.</p>
+                                <p class="mt-2 text-gray-700"><strong>Justification:</strong> This strategy addresses the escalated threat without broad disruption, suitable for a single device.</p>
+                            </details>
+                        </td>
+                        <td>Deny Egress from the affected PC</td>
+                        <td>
+                            <p class="text-gray-700"><strong>Rationale:</strong> Admin privileges increase exfiltration risk (outbound). Denying egress from the affected PC prevents data leaks, while device blocking restricts ingress (C2 access). Network-wide measures are disproportionate.</p>
+                            <p class="mt-2 text-gray-700"><strong>Scope:</strong> The rule applies to the affected unmanaged PC, enforced via IP/MAC filtering.</p>
+                            <p class="mt-2 text-gray-700"><strong>Justification:</strong> Targeted egress restriction, with isolation, addresses both risks without affecting other systems.</p>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>Single User Compromised, Threat Actor Logged In and Escalated to Local Admin</td>
+                        <td>Network Device</td>
+                        <td>
+                            <ul class="list-disc pl-5">
+                                <li>Disable compromised user account.</li>
+                                <li>Isolate remote access server management interface, restricting both ingress and egress.</li>
+                                <li>Force re-authentication for all Citrix/RDS/VMware View sessions.</li>
+                                <li>Audit server logs for unauthorized changes or privilege escalation.</li>
+                                <li>Implement network segmentation to limit lateral movement.</li>
+                            </ul>
+                        </td>
+                        <td>
+                            <details>
+                                <summary>Rationale, Scope, and Justification</summary>
+                                <p class="mt-2 text-gray-700"><strong>Rationale:</strong> Local admin escalation via the remote access server risks server compromise. Disabling the account and forcing re-authentication limit access. Isolating the management interface (restricting ingress and egress) prevents tampering, and segmentation limits spread.</p>
+                                <p class="mt-2 text-gray-700"><strong>Scope:</strong> Isolation targets the user’s account, server management, and network segments.</p>
+                                <p class="mt-2 text-gray-700"><strong>Justification:</strong> This approach addresses the escalated threat without shutting down the service, proportionate to a single user.</p>
+                            </details>
+                        </td>
+                        <td>Deny Egress from the remote access server</td>
+                        <td>
+                            <p class="text-gray-700"><strong>Rationale:</strong> Admin privileges on the server heighten exfiltration risk (outbound). Denying egress from the server prevents data leaks, while management isolation restricts ingress (C2 access). Network-wide measures are excessive.</p>
+                            <p class="mt-2 text-gray-700"><strong>Scope:</strong> The rule applies to the remote access server, enforced via server-specific firewall rules.</p>
+                            <p class="mt-2 text-gray-700"><strong>Justification:</strong> Server-specific egress restriction, with isolation, addresses both risks without broad disruption.</p>
                         </td>
                     </tr>
                 </tbody>
