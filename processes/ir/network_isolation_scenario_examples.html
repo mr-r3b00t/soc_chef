@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Intrusion Isolation Strategy</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        details summary {
+            cursor: pointer;
+            font-weight: bold;
+            color: #1f2937;
+        }
+        details[open] summary {
+            background-color: #f3f4f6;
+        }
+        table {
+            border-collapse: separate;
+            border-spacing: 0;
+            border-radius: 0.5rem;
+            overflow: hidden;
+        }
+        th, td {
+            border: 1px solid #e5e7eb;
+            padding: 1rem;
+        }
+        th {
+            background-color: #1f2937;
+            color: white;
+        }
+        tr:nth-child(even) {
+            background-color: #f9fafb;
+        }
+        @media (max-width: 768px) {
+            th, td {
+                font-size: 0.875rem;
+                padding: 0.5rem;
+            }
+        }
+    </style>
+</head>
+<body class="bg-gray-100 flex justify-center p-4">
+    <div class="max-w-7xl w-full bg-white shadow-lg rounded-lg p-6">
+        <h1 class="text-2xl font-bold text-gray-800 mb-4">Intrusion Isolation Strategy</h1>
+        <div class="overflow-x-auto">
+            <table class="w-full">
+                <thead>
+                    <tr>
+                        <th>Scenario</th>
+                        <th>Device Category</th>
+                        <th>Isolation Strategy</th>
+                        <th>Rationale, Scope, and Justification</th>
+                        <th>Isolate Entire Network</th>
+                        <th>Rationale for Network Isolation Choice</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- Single Device with Malware -->
+                    <tr>
+                        <td>Single Device with Malware</td>
+                        <td>Managed PC</td>
+                        <td>
+                            <ul class="list-disc pl-5">
+                                <li>Isolate device from network via endpoint management (e.g., EDR), restricting both ingress and egress.</li>
+                                <li>Disable network interfaces remotely.</li>
+                                <li>Quarantine device in a VLAN with no external access.</li>
+                                <li>Maintain log access for investigation.</li>
+                            </ul>
+                        </td>
+                        <td>
+                            <details>
+                                <summary>Rationale, Scope, and Justification</summary>
+                                <p class="mt-2 text-gray-700"><strong>Rationale:</strong> A single managed PC with malware poses a localized threat that could spread laterally or exfiltrate data. EDR tools enable precise isolation, restricting both ingress (threat actor control) and egress (data exfiltration). Disabling network interfaces and using a quarantine VLAN ensure no communication occurs, while logs support forensics.</p>
+                                <p class="mt-2 text-gray-700"><strong>Scope:</strong> Isolation is limited to the infected device, with no broader network impact needed.</p>
+                                <p class="mt-2 text-gray-700"><strong>Justification:</strong> This targeted approach is proportionate, minimizing disruption while addressing both exfiltration and threat actor access. Network-wide measures are overkill for a single device.</p>
+                            </details>
+                        </td>
+                        <td>No</td>
+                        <td>
+                            <p class="text-gray-700"><strong>Rationale:</strong> Device isolation via EDR and VLAN restricts both ingress (preventing threat actor C2 access) and egress (preventing data exfiltration). The threat is localized, with no evidence of network-wide compromise.</p>
+                            <p class="mt-2 text-gray-700"><strong>Scope:</strong> No network-wide rule is applied; isolation is device-specific.</p>
+                            <p class="mt-2 text-gray-700"><strong>Justification:</strong> Device-level isolation sufficiently mitigates both risks, making network-wide ingress/egress restrictions unnecessary and disruptive.</p>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>Single Device with Malware</td>
+                        <td>Unmanaged PC</td>
+                        <td>
+                            <ul class="list-disc pl-5">
+                                <li>Block device at network level (e.g., MAC address filtering), restricting both ingress and egress.</li>
+                                <li>Quarantine device in a restricted VLAN with no external access.</li>
+                                <li>Notify user to disconnect device from network.</li>
+                                <li>Restrict internet access for device IP/MAC.</li>
+                            </ul>
+                        </td>
+                        <td>
+                            <details>
+                                <summary>Rationale, Scope, and Justification</summary>
+                                <p class="mt-2 text-gray-700"><strong>Rationale:</strong> Unmanaged PCs lack centralized control, requiring network-level isolation. MAC/IP filtering restricts both ingress (threat actor control) and egress (data exfiltration). A restricted VLAN ensures isolation, and user notification encourages physical disconnection.</p>
+                                <p class="mt-2 text-gray-700"><strong>Scope:</strong> Isolation targets the single unmanaged device, with no organization-wide measures needed.</p>
+                                <p class="mt-2 text-gray-700"><strong>Justification:</strong> This strategy contains the threat without broad network changes, proportionate to a single-device issue.</p>
+                            </details>
+                        </td>
+                        <td>No</td>
+                        <td>
+                            <p class="text-gray-700"><strong>Rationale:</strong> Network-level blocking and VLAN quarantine restrict both ingress (C2 access) and egress (exfiltration) for the affected PC. The threat is confined to one device, with no network-wide impact.</p>
+                            <p class="mt-2 text-gray-700"><strong>Scope:</strong> No network-wide rule is applied; isolation is device-specific.</p>
+                            <p class="mt-2 text-gray-700"><strong>Justification:</strong> Device-level measures adequately address both risks, avoiding unnecessary network-wide restrictions.</p>
+                        </td>
+                    </tr>
+
+                    <!-- Multiple Devices with Malware -->
+                    <tr>
+                        <td>Multiple Devices with Malware</td>
+                        <td>Managed PC</td>
+                        <td>
+                            <ul class="list-disc pl-5">
+                                <li>Isolate all affected devices via EDR, restricting both ingress and egress.</li>
+                                <li>Place devices in a quarantine VLAN with no external access.</li>
+                                <li>Segment network to limit lateral movement.</li>
+                                <li>Scan all managed devices for similar indicators of compromise (IOCs).</li>
+                            </ul>
+                        </td>
+                        <td>
+                            <details>
+                                <summary>Rationale, Scope, and Justification</summary>
+                                <p class="mt-2 text-gray-700"><strong>Rationale:</strong> Multiple infected managed PCs suggest a coordinated attack or worm-like malware. EDR isolation restricts ingress (C2 access) and egress (exfiltration) for affected devices. A quarantine VLAN and network segmentation limit spread, and IOC scanning detects additional infections.</p>
+                                <p class="mt-2 text-gray-700"><strong>Scope:</strong> Isolation includes all infected devices and exposed segments, leaving unaffected segments operational.</p>
+                                <p class="mt-2 text-gray-700"><strong>Justification:</strong> This balanced approach targets affected devices and segments, avoiding disruption of unaffected systems while addressing widespread risks.</p>
+                            </details>
+                        </td>
+                        <td>Deny Both Ingress and Egress from all PCs</td>
+                        <td>
+                            <p class="text-gray-700"><strong>Rationale:</strong> Multiple infected PCs increase risks of data exfiltration (outbound to C2 servers) and threat actor control (inbound C2 communication). Device isolation covers known infections, but network-wide ingress/egress restrictions prevent undetected PCs from communicating externally.</p>
+                            <p class="mt-2 text-gray-700"><strong>Scope:</strong> The rule applies to all PCs (managed and unmanaged), enforced via firewall or router policies.</p>
+                            <p class="mt-2 text-gray-700"><strong>Justification:</strong> The broad scope is justified by the potential for undetected infections, balancing both risks without fully isolating the network.</p>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>Multiple Devices with Malware</td>
+                        <td>Unmanaged PC</td>
+                        <td>
+                            <ul class="list-disc pl-5">
+                                <li>Block all affected devices by MAC/IP at network level, restricting both ingress and egress.</li>
+                                <li>Place devices in a restricted VLAN with no external access.</li>
+                                <li>Broadcast user notifications to disconnect devices.</li>
+                                <li>Implement temporary network-wide ingress/egress filtering to block malicious traffic.</li>
+                            </ul>
+                        </td>
+                        <td>
+                            <details>
+                                <summary>Rationale, Scope, and Justification</summary>
+                                <p class="mt-2 text-gray-700"><strong>Rationale:</strong> Multiple unmanaged PCs with malware indicate a significant threat. MAC/IP blocking restricts ingress (C2 access) and egress (exfiltration). A restricted VLAN isolates devices, and network-wide filtering prevents external communication. User notifications encourage disconnection.</p>
+                                <p class="mt-2 text-gray-700"><strong>Scope:</strong> Isolation targets affected unmanaged devices, with temporary network-wide filtering.</p>
+                                <p class="mt-2 text-gray-700"><strong>Justification:</strong> This proportionate strategy focuses on affected devices while adding network-wide filtering to mitigate risks without full internet shutdown.</p>
+                            </details>
+                        </td>
+                        <td>Deny Both Ingress and Egress from all PCs</td>
+                        <td>
+                            <p class="text-gray-700"><strong>Rationale:</strong> Malware on multiple unmanaged PCs risks both exfiltration (outbound data) and threat actor control (inbound C2). Device blocking covers known infections, but network-wide ingress/egress restrictions ensure undetected devices are contained.</p>
+                            <p class="mt-2 text-gray-700"><strong>Scope:</strong> The rule applies to all PCs (managed and unmanaged), enforced via firewall or router policies.</p>
+                            <p class="mt-2 text-gray-700"><strong>Justification:</strong> The broad scope is appropriate for a spreading threat, addressing both risks while preserving some functionality.</p>
+                        </td>
+                    </tr>
+
+                    <!-- Firewall Compromised -->
+                    <tr>
+                        <td>Firewall Compromised</td>
+                        <td>Network Device</td>
+                        <td>
+                            <ul class="list-disc pl-5">
+                                <li>Disable external interfaces of the compromised firewall, restricting both ingress and egress.</li>
+                                <li>Route traffic through a backup firewall or temporary ruleset.</li>
+                                <li>Isolate firewall management interface in a restricted VLAN.</li>
+                                <li>Conduct forensic analysis offline.</li>
+                            </ul>
+                        </td>
+                        <td>
+                            <details>
+                                <summary>Rationale, Scope, and Justification</summary>
+                                <p class="mt-2 text-gray-700"><strong>Rationale:</strong> A compromised firewall threatens the entire network. Disabling external interfaces restricts ingress (threat actor control) and egress (potential exfiltration). A backup firewall maintains connectivity, and isolating the management interface prevents tampering.</p>
+                                <p class="mt-2 text-gray-700"><strong>Scope:</strong> Isolation targets the compromised firewall, with temporary traffic rerouting.</p>
+                                <p class="mt-2 text-gray-700"><strong>Justification:</strong> This proportionate approach isolates the critical device while maintaining functionality via backups, avoiding complete shutdown.</p>
+                            </details>
+                        </td>
+                        <td>Deny Both Ingress and Egress from the entire network</td>
+                        <td>
+                            <p class="text-gray-700"><strong>Rationale:</strong> A compromised firewall risks external threat actor control (ingress for manipulation) and potential exfiltration if misconfigured (egress). Network-wide ingress/egress restrictions ensure safety during rerouting to a backup firewall.</p>
+                            <p class="mt-2 text-gray-700"><strong>Scope:</strong> The rule applies to the entire network, enforced via the backup firewall or temporary ruleset.</p>
+                            <p class="mt-2 text-gray-700"><strong>Justification:</strong> The network-wide scope addresses both risks, aligning with the firewall’s critical role, while backups prevent total disruption.</p>
+                        </td>
+                    </tr>
+
+                    <!-- VPN User Identity Compromised -->
+                    <tr>
+                        <td>VPN User Identity Compromised</td>
+                        <td>Managed PC</td>
+                        <td>
+                            <ul class="list-disc pl-5">
+                                <li>Revoke compromised user’s VPN credentials.</li>
+                                <li>Force re-authentication for all VPN sessions.</li>
+                                <li>Monitor logs for suspicious activity from the user’s device.</li>
+                                <li>Isolate device via EDR, restricting both ingress and egress, if further compromise is detected.</li>
+                            </ul>
+                        </td>
+                        <td>
+                            <details>
+                                <summary>Rationale, Scope, and Justification</summary>
+                                <p class="mt-2 text-gray-700"><strong>Rationale:</strong> A compromised VPN user identity risks unauthorized access. Revoking credentials and forcing re-authentication prevent misuse. Monitoring logs detects threats, and device isolation (restricting ingress and egress) is a fallback for further compromise.</p>
+                                <p class="mt-2 text-gray-700"><strong>Scope:</strong> Isolation targets the user’s credentials and device, with minimal impact on others.</p>
+                                <p class="mt-2 text-gray-700"><strong>Justification:</strong> This strategy addresses the specific threat without disrupting the entire VPN or network, which would be excessive.</p>
+                            </details>
+                        </td>
+                        <td>No</td>
+                        <td>
+                            <p class="text-gray-700"><strong>Rationale:</strong> Revoking credentials prevents threat actor access, and device isolation (if needed) restricts both ingress (C2 access) and egress (exfiltration). The threat is limited to one user, with no network-wide impact.</p>
+                            <p class="mt-2 text-gray-700"><strong>Scope:</strong> No network-wide rule is applied; isolation is credential- and device-specific.</p>
+                            <p class="mt-2 text-gray-700"><strong>Justification:</strong> Credential revocation and targeted isolation suffice, avoiding disruptive network-wide restrictions.</p>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>VPN User Identity Compromised</td>
+                        <td>Unmanaged PC</td>
+                        <td>
+                            <ul class="list-disc pl-5">
+                                <li>Revoke compromised user’s VPN credentials.</li>
+                                <li>Block device IP/MAC from VPN access, restricting both ingress and egress.</li>
+                                <li>Force re-authentication for all VPN sessions.</li>
+                                <li>Notify user to secure their device.</li>
+                            </ul>
+                        </td>
+                        <td>
+                            <details>
+                                <summary>Rationale, Scope, and Justification</summary>
+                                <p class="mt-2 text-gray-700"><strong>Rationale:</strong> Unmanaged PCs require network-level blocking (IP/MAC) to restrict ingress (threat actor access) and egress (exfiltration). Revoking credentials and forcing re-authentication prevent further access. User notification encourages cleanup.</p>
+                                <p class="mt-2 text-gray-700"><strong>Scope:</strong> Isolation focuses on the user’s credentials and device, with no broad VPN disruption.</p>
+                                <p class="mt-2 text-gray-700"><strong>Justification:</strong> This proportionate approach targets the specific threat without affecting other VPN users.</p>
+                            </details>
+                        </td>
+                        <td>No</td>
+                        <td>
+                            <p class="text-gray-700"><strong>Rationale:</strong> Credential revocation and device blocking (restricting ingress and egress) prevent both threat actor access and exfiltration. The compromise is localized to one user’s device.</p>
+                            <p class="mt-2 text-gray-700"><strong>Scope:</strong> No network-wide rule is applied; isolation is credential- and device-specific.</p>
+                            <p class="mt-2 text-gray-700"><strong>Justification:</strong> Targeted measures are sufficient, avoiding unnecessary network-wide restrictions.</p>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>VPN User Identity Compromised</td>
+                        <td>Network Device</td>
+                        <td>
+                            <ul class="list-disc pl-5">
+                                <li>Revoke compromised user’s VPN credentials.</li>
+                                <li>Isolate VPN server management interface, restricting both ingress and egress.</li>
+                                <li>Force re-authentication for all VPN sessions.</li>
+                                <li>Audit VPN server logs for unauthorized changes.</li>
+                            </ul>
+                        </td>
+                        <td>
+                            <details>
+                                <summary>Rationale, Scope, and Justification</summary>
+                                <p class="mt-2 text-gray-700"><strong>Rationale:</strong> A compromised VPN user identity risks server access. Revoking credentials and forcing re-authentication limit damage. Isolating the management interface (restricting ingress and egress) prevents tampering, and log audits detect compromise.</p>
+                                <p class="mt-2 text-gray-700"><strong>Scope:</strong> Isolation targets the user’s credentials and VPN server management, with minimal user impact.</p>
+                                <p class="mt-2 text-gray-700"><strong>Justification:</strong> This balanced strategy addresses the threat without shutting down the VPN service.</p>
+                            </details>
+                        </td>
+                        <td>No</td>
+                        <td>
+                            <p class="text-gray-700"><strong>Rationale:</strong> Credential revocation and server management isolation (restricting ingress and egress) prevent both threat actor control and potential exfiltration via the server. The threat is confined to one user’s access.</p>
+                            <p class="mt-2 text-gray-700"><strong>Scope:</strong> No network-wide rule is applied; isolation is credential- and server-specific.</p>
+                            <p class="mt-2 text-gray-700"><strong>Justification:</strong> Targeted measures suffice, avoiding disruptive network-wide restrictions.</p>
+                        </td>
+                    </tr>
+
+                    <!-- Domain User Compromised -->
+                    <tr>
+                        <td>Domain User Compromised</td>
+                        <td>Managed PC</td>
+                        <td>
+                            <ul class="list-disc pl-5">
+                                <li>Disable compromised user account.</li>
+                                <li>Force password reset for the account.</li>
+                                <li>Isolate user’s device via EDR, restricting both ingress and egress.</li>
+                                <li>Monitor domain logs for suspicious activity.</li>
+                            </ul>
+                        </td>
+                        <td>
+                            <details>
+                                <summary>Rationale, Scope, and Justification</summary>
+                                <p class="mt-2 text-gray-700"><strong>Rationale:</strong> A compromised domain user account risks unauthorized access. Disabling the account and resetting the password prevent misuse. EDR isolation restricts ingress (threat actor control) and egress (exfiltration), and log monitoring detects related threats.</p>
+                                <p class="mt-2 text-gray-700"><strong>Scope:</strong> Isolation targets the user’s account and device, with no domain-wide impact.</p>
+                                <p class="mt-2 text-gray-700"><strong>Justification:</strong> This proportionate approach addresses the specific compromise without affecting other users.</p>
+                            </details>
+                        </td>
+                        <td>No</td>
+                        <td>
+                            <p class="text-gray-700"><strong>Rationale:</strong> Disabling the account and isolating the device (restricting ingress and egress) prevent both threat actor access and exfiltration. The threat is limited to one user’s account and device.</p>
+                            <p class="mt-2 text-gray-700"><strong>Scope:</strong> No network-wide rule is applied; isolation is account- and device-specific.</p>
+                            <p class="mt-2 text-gray-700"><strong>Justification:</strong> Targeted measures are sufficient, avoiding disruptive network-wide restrictions.</p>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>Domain User Compromised</td>
+                        <td>Unmanaged PC</td>
+                        <td>
+                            <ul class="list-disc pl-5">
+                                <li>Disable compromised user account.</li>
+                                <li>Block device IP/MAC from network access, restricting both ingress and egress.</li>
+                                <li>Force password reset for the account.</li>
+                                <li>Notify user to secure their device.</li>
+                            </ul>
+                        </td>
+                        <td>
+                            <details>
+                                <summary>Rationale, Scope, and Justification</summary>
+                                <p class="mt-2 text-gray-700"><strong>Rationale:</strong> Unmanaged PCs require network-level blocking to restrict ingress (threat actor access) and egress (exfiltration). Disabling the account and resetting the password prevent domain access. User notification encourages cleanup.</p>
+                                <p class="mt-2 text-gray-700"><strong>Scope:</strong> Isolation focuses on the user’s account and device, with no broader impact.</p>
+                                <p class="mt-2 text-gray-700"><strong>Justification:</strong> This strategy targets the specific threat without disrupting domain operations.</p>
+                            </details>
+                        </td>
+                        <td>No</td>
+                        <td>
+                            <p class="text-gray-700"><strong>Rationale:</strong> Account disabling and device blocking (restricting ingress and egress) prevent both threat actor access and exfiltration. The compromise is localized to one user’s device.</p>
+                            <p class="mt-2 text-gray-700"><strong>Scope:</strong> No network-wide rule is applied; isolation is account- and device-specific.</p>
+                            <p class="mt-2 text-gray-700"><strong>Justification:</strong> Targeted measures are sufficient, avoiding unnecessary network-wide restrictions.</p>
+                        </td>
+                    </tr>
+
+                    <!-- Domain Administrator Compromised -->
+                    <tr>
+                        <td>Domain Administrator Compromised</td>
+                        <td>Managed PC</td>
+                        <td>
+                            <ul class="list-disc pl-5">
+                                <li>Disable compromised admin account.</li>
+                                <li>Isolate admin’s device via EDR, restricting both ingress and egress.</li>
+                                <li>Force password resets for all admin accounts.</li>
+                                <li>Implement emergency network segmentation.</li>
+                            </ul>
+                        </td>
+                        <td>
+                            <details>
+                                <summary>Rationale, Scope, and Justification</summary>
+                                <p class="mt-2 text-gray-700"><strong>Rationale:</strong> A compromised domain admin account threatens the entire domain. Disabling the account and isolating the device (restricting ingress and egress) prevent further damage. Resetting admin passwords mitigates credential reuse, and segmentation limits lateral movement.</p>
+                                <p class="mt-2 text-gray-700"><strong>Scope:</strong> Isolation includes the admin’s account, device, and network segments.</p>
+                                <p class="mt-2 text-gray-700"><strong>Justification:</strong> This approach is necessary due to the high risk, balancing security and continuity with segmentation.</p>
+                            </details>
+                        </td>
+                        <td>Deny Both Ingress and Egress from all PCs</td>
+                        <td>
+                            <p class="text-gray-700"><strong>Rationale:</strong> An admin account’s privileges risk massive exfiltration (outbound data) and threat actor control (inbound C2). Device isolation and segmentation help, but network-wide ingress/egress restrictions prevent any PC from being exploited.</p>
+                            <p class="mt-2 text-gray-700"><strong>Scope:</strong> The rule applies to all PCs (managed and unmanaged), enforced via firewall or router policies.</p>
+                            <p class="mt-2 text-gray-700"><strong>Justification:</strong> The broad scope is justified by the admin’s access, addressing both risks while preserving some functionality.</p>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>Domain Administrator Compromised</td>
+                        <td>Unmanaged PC</td>
+                        <td>
+                            <ul class="list-disc pl-5">
+                                <li>Disable compromised admin account.</li>
+                                <li>Block device IP/MAC from network access, restricting both ingress and egress.</li>
+                                <li>Force password resets for all admin accounts.</li>
+                                <li>Implement emergency network segmentation.</li>
+                            </ul>
+                        </td>
+                        <td>
+                            <details>
+                                <summary>Rationale, Scope, and Justification</summary>
+                                <p class="mt-2 text-gray-700"><strong>Rationale:</strong> Unmanaged devices require network-level blocking to restrict ingress (threat actor access) and egress (exfiltration). The high risk of admin compromise necessitates segmentation and password resets.</p>
+                                <p class="mt-2 text-gray-700"><strong>Scope:</strong> Isolation targets the admin’s account, device, and network segments.</p>
+                                <p class="mt-2 text-gray-700"><strong>Justification:</strong> This proportionate strategy addresses the severe threat while maintaining some functionality.</p>
+                            </details>
+                        </td>
+                        <td>Deny Both Ingress and Egress from all PCs</td>
+                        <td>
+                            <p class="text-gray-700"><strong>Rationale:</strong> The admin account on an unmanaged PC risks exfiltration (outbound) and threat actor control (inbound). Device blocking and segmentation are insufficient alone; network-wide ingress/egress restrictions ensure containment.</p>
+                            <p class="mt-2 text-gray-700"><strong>Scope:</strong> The rule applies to all PCs (managed and unmanaged), enforced via firewall or router policies.</p>
+                            <p class="mt-2 text-gray-700"><strong>Justification:</strong> The broad scope is appropriate given the admin’s access, addressing both risks without full isolation.</p>
+                        </td>
+                    </tr>
+
+                    <!-- Domain Controller Compromised -->
+                    <tr>
+                        <td>Domain Controller Compromised</td>
+                        <td>Managed PC</td>
+                        <td>
+                            <ul class="list-disc pl-5">
+                                <li>Isolate domain controller from network, restricting both ingress and egress.</li>
+                                <li>Disable all non-essential domain accounts.</li>
+                                <li>Implement full network segmentation.</li>
+                                <li>Promote backup domain controller (if available).</li>
+                            </ul>
+                        </td>
+                        <td>
+                            <details>
+                                <summary>Rationale, Scope, and Justification</summary>
+                                <p class="mt-2 text-gray-700"><strong>Rationale:</strong> A compromised domain controller is catastrophic, controlling authentication and policies. Isolating it (restricting ingress and egress) prevents damage, disabling accounts limits access, and segmentation contains the threat. A backup controller restores functionality.</p>
+                                <p class="mt-2 text-gray-700"><strong>Scope:</strong> Isolation affects the domain controller, accounts, and network segments.</p>
+                                <p class="mt-2 text-gray-700"><strong>Justification:</strong> This aggressive approach is justified by the controller’s role, avoiding complete shutdown with a backup.</p>
+                            </details>
+                        </td>
+                        <td>Deny Both Ingress and Egress from the entire network</td>
+                        <td>
+                            <p class="text-gray-700"><strong>Rationale:</strong> A compromised domain controller risks massive exfiltration (outbound data) and threat actor control (inbound C2/exploitation). Network-wide ingress/egress restrictions prevent both while allowing internal operations with a backup controller.</p>
+                            <p class="mt-2 text-gray-700"><strong>Scope:</strong> The rule applies to the entire network, enforced via firewall or router policies.</p>
+                            <p class="mt-2 text-gray-700"><strong>Justification:</strong> The network-wide scope is necessary due to the controller’s critical role, addressing both risks without total isolation.</p>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>Domain Controller Compromised</td>
+                        <td>Unmanaged PC</td>
+                        <td>
+                            <ul class="list-disc pl-5">
+                                <li>Isolate domain controller from network, restricting both ingress and egress.</li>
+                                <li>Block all unmanaged devices from domain access, restricting both ingress and egress.</li>
+                                <li>Implement full network segmentation.</li>
+                                <li>Promote backup domain controller (if available).</li>
+                            </ul>
+                        </td>
+                        <td>
+                            <details>
+                                <summary>Rationale, Scope, and Justification</summary>
+                                <p class="mt-2 text-gray-700"><strong>Rationale:</strong> Unmanaged PCs are blocked (restricting ingress and egress) to prevent interaction with the compromised controller. Other steps mirror managed PCs due to the domain-wide threat.</p>
+                                <p class="mt-2 text-gray-700"><strong>Scope:</strong> Isolation includes the domain controller, unmanaged devices, and network segments.</p>
+                                <p class="mt-2 text-gray-700"><strong>Justification:</strong> This strategy contains the severe threat while maintaining functionality via a backup controller.</p>
+                            </details>
+                        </td>
+                        <td>Deny Both Ingress and Egress from the entire network</td>
+                        <td>
+                            <p class="text-gray-700"><strong>Rationale:</strong> The compromised controller and unmanaged devices risk exfiltration (outbound) and threat actor control (inbound). Network-wide ingress/egress restrictions prevent both while preserving internal operations.</p>
+                            <p class="mt-2 text-gray-700"><strong>Scope:</strong> The rule applies to the entire network, enforced via firewall or router policies.</p>
+                            <p class="mt-2 text-gray-700"><strong>Justification:</strong> The network-wide scope is justified by the catastrophic risk, avoiding complete isolation with a backup controller.</p>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>Domain Controller Compromised</td>
+                        <td>Network Device</td>
+                        <td>
+                            <ul class="list-disc pl-5">
+                                <li>Isolate domain controller from network, restricting both ingress and egress.</li>
+                                <li>Restrict network device authentication to local credentials.</li>
+                                <li>Implement full network segmentation.</li>
+                                <li>Monitor network device logs for suspicious activity.</li>
+                            </ul>
+                        </td>
+                        <td>
+                            <details>
+                                <summary>Rationale, Scope, and Justification</summary>
+                                <p class="mt-2 text-gray-700"><strong>Rationale:</strong> Network devices may use domain authentication, so local credentials prevent compromise. Segmentation and monitoring limit threats, and controller isolation (restricting ingress and egress) contains the primary threat.</p>
+                                <p class="mt-2 text-gray-700"><strong>Scope:</strong> Isolation includes the domain controller and network device authentication, with network-wide segmentation.</p>
+                                <p class="mt-2 text-gray-700"><strong>Justification:</strong> This proportionate approach addresses the critical threat while maintaining device functionality.</p>
+                            </details>
+                        </td>
+                        <td>Deny Both Ingress and Egress from the entire network</td>
+                        <td>
+                            <p class="text-gray-700"><strong>Rationale:</strong> A compromised domain controller risks exfiltration (outbound via devices) and threat actor control (inbound C2). Network-wide ingress/egress restrictions prevent both, ensuring safety with local credentials and segmentation.</p>
+                            <p class="mt-2 text-gray-700"><strong>Scope:</strong> The rule applies to the entire network, enforced via firewall or router policies.</p>
+                            <p class="mt-2 text-gray-700"><strong>Justification:</strong> The network-wide scope is necessary given the controller’s role, addressing both risks while preserving operations.</p>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</body>
+</html>
