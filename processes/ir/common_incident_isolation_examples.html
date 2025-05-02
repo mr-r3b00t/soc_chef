@@ -1,0 +1,678 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Intrusion Isolation Strategy for Top Cyber Incident Scenarios</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        details summary {
+            cursor: pointer;
+            font-weight: bold;
+            color: #1f2937;
+        }
+        details[open] summary {
+            background-color: #f3f4f6;
+        }
+        table {
+            border-collapse: separate;
+            border-spacing: 0;
+            border-radius: 0.5rem;
+            overflow: hidden;
+        }
+        th, td {
+            border: 1px solid #e5e7eb;
+            padding: 1rem;
+        }
+        th {
+            background-color: #1f2937;
+            color: white;
+        }
+        tr:nth-child(even) {
+            background-color: #f9fafb;
+        }
+        @media (max-width: 768px) {
+            th, td {
+                font-size: 0.875rem;
+                padding: 0.5rem;
+            }
+        }
+    </style>
+</head>
+<body class="bg-gray-100 flex justify-center p-4">
+    <div class="max-w-7xl w-full bg-white shadow-lg rounded-lg p-6">
+        <h1 class="text-2xl font-bold text-gray-800 mb-4">Intrusion Isolation Strategy for Top Cyber Incident Scenarios</h1>
+        <div class="overflow-x-auto">
+            <table class="w-full">
+                <thead>
+                    <tr>
+                        <th>Scenario</th>
+                        <th>Device Category</th>
+                        <th>Isolation Strategy</th>
+                        <th>Rationale, Scope, and Justification</th>
+                        <th>Isolate Entire Network</th>
+                        <th>Rationale for Network Isolation Choice</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- Phishing Attack Leading to Credential Theft -->
+                    <tr>
+                        <td>Phishing Attack Leading to Credential Theft</td>
+                        <td>Managed PC</td>
+                        <td>
+                            <ul class="list-disc pl-5">
+                                <li>Isolate affected user's device via EDR, restricting both ingress and egress.</li>
+                                <li>Reset compromised credentials and enforce MFA.</li>
+                                <li>Scan device for malware and indicators of compromise (IOCs).</li>
+                                <li>Monitor network for lateral movement attempts.</li>
+                            </ul>
+                        </td>
+                        <td>
+                            <details>
+                                <summary>Rationale, Scope, and Justification</summary>
+                                <p class="mt-2 text-gray-700"><strong>Rationale:</strong> Phishing attacks often lead to credential theft, enabling unauthorized access. Isolating the device prevents further exploitation, while credential reset and MFA mitigate ongoing risks.</p>
+                                <p class="mt-2 text-gray-700"><strong>Scope:</strong> Limited to the affected device and user account.</p>
+                                <p class="mt-2 text-gray-700"><strong>Justification:</strong> Targeted isolation minimizes disruption while addressing the breach effectively.</p>
+                            </details>
+                        </td>
+                        <td>No</td>
+                        <td>
+                            <p class="text-gray-700"><strong>Rationale:</strong> The threat is contained to a single device and user, not requiring network-wide isolation.</p>
+                            <p class="mt-2 text-gray-700"><strong>Scope:</strong> Device-specific containment.</p>
+                            <p class="mt-2 text-gray-700"><strong>Justification:</strong> Proportional response avoids unnecessary network impact.</p>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>Phishing Attack Leading to Credential Theft</td>
+                        <td>Unmanaged PC</td>
+                        <td>
+                            <ul class="list-disc pl-5">
+                                <li>Block device IP/MAC from network access, restricting both ingress and egress.</li>
+                                <li>Reset compromised credentials and enforce MFA.</li>
+                                <li>Notify user to secure their device.</li>
+                                <li>Monitor network for lateral movement attempts.</li>
+                            </ul>
+                        </td>
+                        <td>
+                            <details>
+                                <summary>Rationale, Scope, and Justification</summary>
+                                <p class="mt-2 text-gray-700"><strong>Rationale:</strong> Unmanaged devices lack direct control, necessitating network-level blocking to halt threats. Credential reset and MFA prevent further misuse.</p>
+                                <p class="mt-2 text-gray-700"><strong>Scope:</strong> Limited to the affected device and user account.</p>
+                                <p class="mt-2 text-gray-700"><strong>Justification:</strong> Targeted measures suffice for a single-device compromise.</p>
+                            </details>
+                        </td>
+                        <td>No</td>
+                        <td>
+                            <p class="text-gray-700"><strong>Rationale:</strong> Containment at the device level prevents escalation without network-wide measures.</p>
+                            <p class="mt-2 text-gray-700"><strong>Scope:</strong> Device-specific containment.</p>
+                            <p class="mt-2 text-gray-700"><strong>Justification:</strong> Efficient and proportionate response.</p>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>Phishing Attack Leading to Credential Theft</td>
+                        <td>Network Device</td>
+                        <td>
+                            <ul class="list-disc pl-5">
+                                <li>Not applicable (phishing targets user devices, not network devices).</li>
+                            </ul>
+                        </td>
+                        <td>
+                            <details>
+                                <summary>Rationale, Scope, and Justification</summary>
+                                <p class="mt-2 text-gray-700"><strong>Rationale:</strong> Phishing exploits human interaction, not network device vulnerabilities.</p>
+                                <p class="mt-2 text-gray-700"><strong>Scope:</strong> Not applicable.</p>
+                                <p class="mt-2 text-gray-700"><strong>Justification:</strong> No action needed for network devices.</p>
+                            </details>
+                        </td>
+                        <td>No</td>
+                        <td>
+                            <p class="text-gray-700"><strong>Rationale:</strong> No direct impact on network devices.</p>
+                            <p class="mt-2 text-gray-700"><strong>Scope:</strong> Not applicable.</p>
+                            <p class="mt-2 text-gray-700"><strong>Justification:</strong> No network isolation required.</p>
+                        </td>
+                    </tr>
+
+                    <!-- Ransomware Infection via Exploit Kit -->
+                    <tr>
+                        <td>Ransomware Infection via Exploit Kit</td>
+                        <td>Managed PC</td>
+                        <td>
+                            <ul class="list-disc pl-5">
+                                <li>Isolate infected device via EDR, restricting both ingress and egress.</li>
+                                <li>Quarantine device in a VLAN with no external access.</li>
+                                <li>Scan network for similar IOCs.</li>
+                                <li>Implement network segmentation.</li>
+                            </ul>
+                        </td>
+                        <td>
+                            <details>
+                                <summary>Rationale, Scope, and Justification</summary>
+                                <p class="mt-2 text-gray-700"><strong>Rationale:</strong> Ransomware spreads quickly; isolation and quarantine prevent further encryption and communication. Scanning and segmentation limit impact.</p>
+                                <p class="mt-2 text-gray-700"><strong>Scope:</strong> Infected device and related network segments.</p>
+                                <p class="mt-2 text-gray-700"><strong>Justification:</strong> Balances containment with minimal disruption.</p>
+                            </details>
+                        </td>
+                        <td>Deny Egress from all PCs</td>
+                        <td>
+                            <p class="text-gray-700"><strong>Rationale:</strong> Prevents ransomware from contacting C2 servers or exfiltrating data across all PCs.</p>
+                            <p class="mt-2 text-gray-700"><strong>Scope:</strong> All PCs, managed and unmanaged.</p>
+                            <p class="mt-2 text-gray-700"><strong>Justification:</strong> Broad egress denial mitigates undetected spread.</p>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>Ransomware Infection via Exploit Kit</td>
+                        <td>Unmanaged PC</td>
+                        <td>
+                            <ul class="list-disc pl-5">
+                                <li>Block infected device by MAC/IP, restricting both ingress and egress.</li>
+                                <li>Quarantine device in a restricted VLAN.</li>
+                                <li>Broadcast user notifications to disconnect devices.</li>
+                                <li>Implement temporary egress filtering.</li>
+                            </ul>
+                        </td>
+                        <td>
+                            <details>
+                                <summary>Rationale, Scope, and Justification</summary>
+                                <p class="mt-2 text-gray-700"><strong>Rationale:</strong> Network-level blocking and quarantine contain ransomware on unmanaged devices. Notifications and filtering enhance protection.</p>
+                                <p class="mt-2 text-gray-700"><strong>Scope:</strong> Infected device and temporary network measures.</p>
+                                <p class="mt-2 text-gray-700"><strong>Justification:</strong> Effective containment with limited scope.</p>
+                            </details>
+                        </td>
+                        <td>Deny Egress from all PCs</td>
+                        <td>
+                            <p class="text-gray-700"><strong>Rationale:</strong> Blocks C2 communication and data exfiltration across all PCs.</p>
+                            <p class="mt-2 text-gray-700"><strong>Scope:</strong> All PCs, managed and unmanaged.</p>
+                            <p class="mt-2 text-gray-700"><strong>Justification:</strong> Prevents escalation from unmanaged devices.</p>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>Ransomware Infection via Exploit Kit</td>
+                        <td>Network Device</td>
+                        <td>
+                            <ul class="list-disc pl-5">
+                                <li>Not applicable (ransomware targets user devices).</li>
+                            </ul>
+                        </td>
+                        <td>
+                            <details>
+                                <summary>Rationale, Scope, and Justification</summary>
+                                <p class="mt-2 text-gray-700"><strong>Rationale:</strong> Ransomware focuses on data-rich user devices, not network infrastructure.</p>
+                                <p class="mt-2 text-gray-700"><strong>Scope:</strong> Not applicable.</p>
+                                <p class="mt-2 text-gray-700"><strong>Justification:</strong> No action required for network devices.</p>
+                            </details>
+                        </td>
+                        <td>No</td>
+                        <td>
+                            <p class="text-gray-700"><strong>Rationale:</strong> No direct involvement of network devices.</p>
+                            <p class="mt-2 text-gray-700"><strong>Scope:</strong> Not applicable.</p>
+                            <p class="mt-2 text-gray-700"><strong>Justification:</strong> No network isolation needed.</p>
+                        </td>
+                    </tr>
+
+                    <!-- Insider Threat with Data Exfiltration -->
+                    <tr>
+                        <td>Insider Threat with Data Exfiltration</td>
+                        <td>Managed PC</td>
+                        <td>
+                            <ul class="list-disc pl-5">
+                                <li>Isolate insider's device via EDR, restricting both ingress and egress.</li>
+                                <li>Revoke credentials and access rights.</li>
+                                <li>Monitor DLP logs for exfiltration.</li>
+                                <li>Conduct forensic analysis.</li>
+                            </ul>
+                        </td>
+                        <td>
+                            <details>
+                                <summary>Rationale, Scope, and Justification</summary>
+                                <p class="mt-2 text-gray-700"><strong>Rationale:</strong> Insider threats require immediate containment; isolation and credential revocation stop further data loss. DLP and forensics provide evidence.</p>
+                                <p class="mt-2 text-gray-700"><strong>Scope:</strong> Insider's device and access privileges.</p>
+                                <p class="mt-2 text-gray-700"><strong>Justification:</strong> Targeted response limits damage effectively.</p>
+                            </details>
+                        </td>
+                        <td>Deny Egress from the affected PC</td>
+                        <td>
+                            <p class="text-gray-700"><strong>Rationale:</strong> Focuses on preventing data exfiltration, the primary insider risk.</p>
+                            <p class="mt-2 text-gray-700"><strong>Scope:</strong> Affected PC only.</p>
+                            <p class="mt-2 text-gray-700"><strong>Justification:</strong> Precise containment avoids broader impact.</p>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>Insider Threat with Data Exfiltration</td>
+                        <td>Unmanaged PC</td>
+                        <td>
+                            <ul class="list-disc pl-5">
+                                <li>Block device by MAC/IP, restricting both ingress and egress.</li>
+                                <li>Revoke credentials and access rights.</li>
+                                <li>Monitor DLP logs for exfiltration.</li>
+                                <li>Notify user to secure device.</li>
+                            </ul>
+                        </td>
+                        <td>
+                            <details>
+                                <summary>Rationale, Scope, and Justification</summary>
+                                <p class="mt-2 text-gray-700"><strong>Rationale:</strong> Network blocking and credential revocation halt exfiltration from unmanaged devices. DLP and notifications enhance response.</p>
+                                <p class="mt-2 text-gray-700"><strong>Scope:</strong> Insider's device and access privileges.</p>
+                                <p class="mt-2 text-gray-700"><strong>Justification:</strong> Targeted action addresses the threat efficiently.</p>
+                            </details>
+                        </td>
+                        <td>Deny Egress from the affected PC</td>
+                        <td>
+                            <p class="text-gray-700"><strong>Rationale:</strong> Prevents data exfiltration, the core insider threat.</p>
+                            <p class="mt-2 text-gray-700"><strong>Scope:</strong> Affected PC only.</p>
+                            <p class="mt-2 text-gray-700"><strong>Justification:</strong> Focused response minimizes disruption.</p>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>Insider Threat with Data Exfiltration</td>
+                        <td>Network Device</td>
+                        <td>
+                            <ul class="list-disc pl-5">
+                                <li>Not applicable (insider threats target user devices).</li>
+                            </ul>
+                        </td>
+                        <td>
+                            <details>
+                                <summary>Rationale, Scope, and Justification</summary>
+                                <p class="mt-2 text-gray-700"><strong>Rationale:</strong> Insiders exploit data on user devices, not network infrastructure.</p>
+                                <p class="mt-2 text-gray-700"><strong>Scope:</strong> Not applicable.</p>
+                                <p class="mt-2 text-gray-700"><strong>Justification:</strong> No action needed for network devices.</p>
+                            </details>
+                        </td>
+                        <td>No</td>
+                        <td>
+                            <p class="text-gray-700"><strong>Rationale:</strong> No direct impact on network devices.</p>
+                            <p class="mt-2 text-gray-700"><strong>Scope:</strong> Not applicable.</p>
+                            <p class="mt-2 text-gray-700"><strong>Justification:</strong> No network isolation required.</p>
+                        </td>
+                    </tr>
+
+                    <!-- Supply Chain Compromise -->
+                    <tr>
+                        <td>Supply Chain Compromise</td>
+                        <td>Managed PC</td>
+                        <td>
+                            <ul class="list-disc pl-5">
+                                <li>Isolate compromised software/update mechanism.</li>
+                                <li>Scan all managed devices for IOCs.</li>
+                                <li>Implement network segmentation.</li>
+                                <li>Monitor traffic for anomalies.</li>
+                            </ul>
+                        </td>
+                        <td>
+                            <details>
+                                <summary>Rationale, Scope, and Justification</summary>
+                                <p class="mt-2 text-gray-700"><strong>Rationale:</strong> Supply chain attacks affect multiple devices; isolation and scanning contain the spread, while segmentation and monitoring limit damage.</p>
+                                <p class="mt-2 text-gray-700"><strong>Scope:</strong> Compromised mechanism and affected devices.</p>
+                                <p class="mt-2 text-gray-700"><strong>Justification:</strong> Comprehensive response matches the attack's scale.</p>
+                            </details>
+                        </td>
+                        <td>Deny Both Ingress and Egress from all PCs</td>
+                        <td>
+                            <p class="text-gray-700"><strong>Rationale:</strong> Blocks both incoming exploitation and outgoing data theft across all PCs.</p>
+                            <p class="mt-2 text-gray-700"><strong>Scope:</strong> All PCs, managed and unmanaged.</p>
+                            <p class="mt-2 text-gray-700"><strong>Justification:</strong> Broad measures reflect the attack's potential reach.</p>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>Supply Chain Compromise</td>
+                        <td>Unmanaged PC</td>
+                        <td>
+                            <ul class="list-disc pl-5">
+                                <li>Block compromised software at network level.</li>
+                                <li>Notify users to avoid the software.</li>
+                                <li>Implement network segmentation.</li>
+                                <li>Monitor traffic for anomalies.</li>
+                            </ul>
+                        </td>
+                        <td>
+                            <details>
+                                <summary>Rationale, Scope, and Justification</summary>
+                                <p class="mt-2 text-gray-700"><strong>Rationale:</strong> Network blocking and user notifications limit exposure on unmanaged devices. Segmentation and monitoring contain threats.</p>
+                                <p class="mt-2 text-gray-700"><strong>Scope:</strong> Compromised mechanism and network segments.</p>
+                                <p class="mt-2 text-gray-700"><strong>Justification:</strong> Effective response without direct device control.</p>
+                            </details>
+                        </td>
+                        <td>Deny Both Ingress and Egress from all PCs</td>
+                        <td>
+                            <p class="text-gray-700"><strong>Rationale:</strong> Prevents exploitation and data loss across all PCs.</p>
+                            <p class="mt-2 text-gray-700"><strong>Scope:</strong> All PCs, managed and unmanaged.</p>
+                            <p class="mt-2 text-gray-700"><strong>Justification:</strong> Necessary due to potential widespread impact.</p>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>Supply Chain Compromise</td>
+                        <td>Network Device</td>
+                        <td>
+                            <ul class="list-disc pl-5">
+                                <li>Isolate compromised network device.</li>
+                                <li>Restrict management access to a secure VLAN.</li>
+                                <li>Monitor device logs.</li>
+                                <li>Implement network segmentation.</li>
+                            </ul>
+                        </td>
+                        <td>
+                            <details>
+                                <summary>Rationale, Scope, and Justification</summary>
+                                <p class="mt-2 text-gray-700"><strong>Rationale:</strong> Isolation and restricted access prevent further compromise. Monitoring and segmentation limit spread.</p>
+                                <p class="mt-2 text-gray-700"><strong>Scope:</strong> Compromised device and network segments.</p>
+                                <p class="mt-2 text-gray-700"><strong>Justification:</strong> Targeted response suits a single device breach.</p>
+                            </details>
+                        </td>
+                        <td>Deny Both Ingress and Egress from the compromised device</td>
+                        <td>
+                            <p class="text-gray-700"><strong>Rationale:</strong> Stops exploitation and communication from the device.</p>
+                            <p class="mt-2 text-gray-700"><strong>Scope:</strong> Compromised network device only.</p>
+                            <p class="mt-2 text-gray-700"><strong>Justification:</strong> Precise containment avoids broader impact.</p>
+                        </td>
+                    </tr>
+
+                    <!-- Advanced Persistent Threat (APT) with Lateral Movement -->
+                    <tr>
+                        <td>APT with Lateral Movement</td>
+                        <td>Managed PC</td>
+                        <td>
+                            <ul class="list-disc pl-5">
+                                <li>Isolate compromised devices via EDR, restricting both ingress and egress.</li>
+                                <li>Implement micro-segmentation.</li>
+                                <li>Scan network for APT IOCs.</li>
+                                <li>Monitor traffic for suspicious patterns.</li>
+                            </ul>
+                        </td>
+                        <td>
+                            <details>
+                                <summary>Rationale, Scope, and Justification</summary>
+                                <p class="mt-2 text-gray-700"><strong>Rationale:</strong> APTs require aggressive containment; isolation and micro-segmentation halt lateral movement. Scanning and monitoring detect persistence.</p>
+                                <p class="mt-2 text-gray-700"><strong>Scope:</strong> Compromised devices and network segments.</p>
+                                <p class="mt-2 text-gray-700"><strong>Justification:</strong> Matches the sophisticated nature of APTs.</p>
+                            </details>
+                        </td>
+                        <td>Deny Both Ingress and Egress from all PCs</td>
+                        <td>
+                            <p class="text-gray-700"><strong>Rationale:</strong> Prevents C2 communication and data theft across all PCs.</p>
+                            <p class="mt-2 text-gray-700"><strong>Scope:</strong> All PCs, managed and unmanaged.</p>
+                            <p class="mt-2 text-gray-700"><strong>Justification:</strong> Broad response counters APT persistence.</p>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>APT with Lateral Movement</td>
+                        <td>Unmanaged PC</td>
+                        <td>
+                            <ul class="list-disc pl-5">
+                                <li>Block compromised devices by MAC/IP, restricting both ingress and egress.</li>
+                                <li>Implement network segmentation.</li>
+                                <li>Broadcast user notifications.</li>
+                                <li>Monitor traffic for suspicious patterns.</li>
+                            </ul>
+                        </td>
+                        <td>
+                            <details>
+                                <summary>Rationale, Scope, and Justification</summary>
+                                <p class="mt-2 text-gray-700"><strong>Rationale:</strong> Network blocking and segmentation contain APTs on unmanaged devices. Notifications and monitoring enhance response.</p>
+                                <p class="mt-2 text-gray-700"><strong>Scope:</strong> Compromised devices and network segments.</p>
+                                <p class="mt-2 text-gray-700"><strong>Justification:</strong> Effective containment for APT threats.</p>
+                            </details>
+                        </td>
+                        <td>Deny Both Ingress and Egress from all PCs</td>
+                        <td>
+                            <p class="text-gray-700"><strong>Rationale:</strong> Blocks APT communication and exfiltration across all PCs.</p>
+                            <p class="mt-2 text-gray-700"><strong>Scope:</strong> All PCs, managed and unmanaged.</p>
+                            <p class="mt-2 text-gray-700"><strong>Justification:</strong> Necessary for APT's potential spread.</p>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>APT with Lateral Movement</td>
+                        <td>Network Device</td>
+                        <td>
+                            <ul class="list-disc pl-5">
+                                <li>Isolate compromised network device, restricting both ingress and egress.</li>
+                                <li>Restrict management access to a secure VLAN.</li>
+                                <li>Monitor device logs.</li>
+                                <li>Implement network segmentation.</li>
+                            </ul>
+                        </td>
+                        <td>
+                            <details>
+                                <summary>Rationale, Scope, and Justification</summary>
+                                <p class="mt-2 text-gray-700"><strong>Rationale:</strong> Isolation and restricted access stop APT control. Monitoring and segmentation limit impact.</p>
+                                <p class="mt-2 text-gray-700"><strong>Scope:</strong> Compromised device and network segments.</p>
+                                <p class="mt-2 text-gray-700"><strong>Justification:</strong> Targeted response fits a single device breach.</p>
+                            </details>
+                        </td>
+                        <td>Deny Both Ingress and Egress from the compromised device</td>
+                        <td>
+                            <p class="text-gray-700"><strong>Rationale:</strong> Prevents APT communication and control from the device.</p>
+                            <p class="mt-2 text-gray-700"><strong>Scope:</strong> Compromised network device only.</p>
+                            <p class="mt-2 text-gray-700"><strong>Justification:</strong> Precise containment avoids broader measures.</p>
+                        </td>
+                    </tr>
+
+                    <!-- DDoS Attack Targeting Critical Services -->
+                    <tr>
+                        <td>DDoS Attack Targeting Critical Services</td>
+                        <td>Managed PC</td>
+                        <td>
+                            <ul class="list-disc pl-5">
+                                <li>Not applicable (DDoS targets network services).</li>
+                            </ul>
+                        </td>
+                        <td>
+                            <details>
+                                <summary>Rationale, Scope, and Justification</summary>
+                                <p class="mt-2 text-gray-700"><strong>Rationale:</strong> DDoS attacks overwhelm services, not individual PCs.</p>
+                                <p class="mt-2 text-gray-700"><strong>Scope:</strong> Not applicable.</p>
+                                <p class="mt-2 text-gray-700"><strong>Justification:</strong> No action needed for managed PCs.</p>
+                            </details>
+                        </td>
+                        <td>No</td>
+                        <td>
+                            <p class="text-gray-700"><strong>Rationale:</strong> No direct impact on managed PCs.</p>
+                            <p class="mt-2 text-gray-700"><strong>Scope:</strong> Not applicable.</p>
+                            <p class="mt-2 text-gray-700"><strong>Justification:</strong> No network isolation required.</p>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>DDoS Attack Targeting Critical Services</td>
+                        <td>Unmanaged PC</td>
+                        <td>
+                            <ul class="list-disc pl-5">
+                                <li>Not applicable (DDoS targets network services).</li>
+                            </ul>
+                        </td>
+                        <td>
+                            <details>
+                                <summary>Rationale, Scope, and Justification</summary>
+                                <p class="mt-2 text-gray-700"><strong>Rationale:</strong> DDoS attacks focus on services, not individual PCs.</p>
+                                <p class="mt-2 text-gray-700"><strong>Scope:</strong> Not applicable.</p>
+                                <p class="mt-2 text-gray-700"><strong>Justification:</strong> No action needed for unmanaged PCs.</p>
+                            </details>
+                        </td>
+                        <td>No</td>
+                        <td>
+                            <p class="text-gray-700"><strong>Rationale:</strong> No direct impact on unmanaged PCs.</p>
+                            <p class="mt-2 text-gray-700"><strong>Scope:</strong> Not applicable.</p>
+                            <p class="mt-2 text-gray-700"><strong>Justification:</strong> No network isolation required.</p>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>DDoS Attack Targeting Critical Services</td>
+                        <td>Network Device</td>
+                        <td>
+                            <ul class="list-disc pl-5">
+                                <li>Implement rate limiting and traffic filtering.</li>
+                                <li>Isolate critical services in a protected segment.</li>
+                                <li>Monitor traffic for DDoS signatures.</li>
+                                <li>Engage mitigation services if needed.</li>
+                            </ul>
+                        </td>
+                        <td>
+                            <details>
+                                <summary>Rationale, Scope, and Justification</summary>
+                                <p class="mt-2 text-gray-700"><strong>Rationale:</strong> Rate limiting and filtering reduce DDoS impact. Isolation and monitoring protect services and detect attacks.</p>
+                                <p class="mt-2 text-gray-700"><strong>Scope:</strong> Affected services and network segments.</p>
+                                <p class="mt-2 text-gray-700"><strong>Justification:</strong> Mitigates disruption effectively.</p>
+                            </details>
+                        </td>
+                        <td>Deny Ingress from malicious sources</td>
+                        <td>
+                            <p class="text-gray-700"><strong>Rationale:</strong> Blocks incoming DDoS traffic from identified sources.</p>
+                            <p class="mt-2 text-gray-700"><strong>Scope:</strong> Entire network, targeting malicious IPs.</p>
+                            <p class="mt-2 text-gray-700"><strong>Justification:</strong> Reduces attack impact with minimal disruption.</p>
+                        </td>
+                    </tr>
+
+                    <!-- Zero-Day Exploit Against Public-Facing Application -->
+                    <tr>
+                        <td>Zero-Day Exploit Against Public-Facing Application</td>
+                        <td>Managed PC</td>
+                        <td>
+                            <ul class="list-disc pl-5">
+                                <li>Not applicable (zero-day targets servers).</li>
+                            </ul>
+                        </td>
+                        <td>
+                            <details>
+                                <summary>Rationale, Scope, and Justification</summary>
+                                <p class="mt-2 text-gray-700"><strong>Rationale:</strong> Zero-day exploits target public-facing applications, not PCs.</p>
+                                <p class="mt-2 text-gray-700"><strong>Scope:</strong> Not applicable.</p>
+                                <p class="mt-2 text-gray-700"><strong>Justification:</strong> No action needed for managed PCs.</p>
+                            </details>
+                        </td>
+                        <td>No</td>
+                        <td>
+                            <p class="text-gray-700"><strong>Rationale:</strong> No direct impact on managed PCs.</p>
+                            <p class="mt-2 text-gray-700"><strong>Scope:</strong> Not applicable.</p>
+                            <p class="mt-2 text-gray-700"><strong>Justification:</strong> No network isolation required.</p>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>Zero-Day Exploit Against Public-Facing Application</td>
+                        <td>Unmanaged PC</td>
+                        <td>
+                            <ul class="list-disc pl-5">
+                                <li>Not applicable (zero-day targets servers).</li>
+                            </ul>
+                        </td>
+                        <td>
+                            <details>
+                                <summary>Rationale, Scope, and Justification</summary>
+                                <p class="mt-2 text-gray-700"><strong>Rationale:</strong> Zero-day exploits focus on servers, not PCs.</p>
+                                <p class="mt-2 text-gray-700"><strong>Scope:</strong> Not applicable.</p>
+                                <p class="mt-2 text-gray-700"><strong>Justification:</strong> No action needed for unmanaged PCs.</p>
+                            </details>
+                        </td>
+                        <td>No</td>
+                        <td>
+                            <p class="text-gray-700"><strong>Rationale:</strong> No direct impact on unmanaged PCs.</p>
+                            <p class="mt-2 text-gray-700"><strong>Scope:</strong> Not applicable.</p>
+                            <p class="mt-2 text-gray-700"><strong>Justification:</strong> No network isolation required.</p>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>Zero-Day Exploit Against Public-Facing Application</td>
+                        <td>Network Device</td>
+                        <td>
+                            <ul class="list-disc pl-5">
+                                <li>Isolate affected server, restricting both ingress and egress.</li>
+                                <li>Disable vulnerable application temporarily.</li>
+                                <li>Monitor server logs.</li>
+                                <li>Implement network segmentation.</li>
+                            </ul>
+                        </td>
+                        <td>
+                            <details>
+                                <summary>Rationale, Scope, and Justification</summary>
+                                <p class="mt-2 text-gray-700"><strong>Rationale:</strong> Isolation and disabling the application stop zero-day exploitation. Monitoring and segmentation limit damage.</p>
+                                <p class="mt-2 text-gray-700"><strong>Scope:</strong> Affected server and network segments.</p>
+                                <p class="mt-2 text-gray-700"><strong>Justification:</strong> Aggressive response suits an unpatched vulnerability.</p>
+                            </details>
+                        </td>
+                        <td>Deny Both Ingress and Egress from the affected server</td>
+                        <td>
+                            <p class="text-gray-700"><strong>Rationale:</strong> Blocks exploitation and communication from the server.</p>
+                            <p class="mt-2 text-gray-700"><strong>Scope:</strong> Affected server only.</p>
+                            <p class="mt-2 text-gray-700"><strong>Justification:</strong> Targeted containment minimizes impact.</p>
+                        </td>
+                    </tr>
+
+                    <!-- Business Email Compromise (BEC) -->
+                    <tr>
+                        <td>Business Email Compromise (BEC)</td>
+                        <td>Managed PC</td>
+                        <td>
+                            <ul class="list-disc pl-5">
+                                <li>Isolate affected email account and device via EDR, restricting both ingress and egress.</li>
+                                <li>Reset credentials and enforce MFA.</li>
+                                <li>Monitor email logs.</li>
+                                <li>Notify finance/HR to verify transactions.</li>
+                            </ul>
+                        </td>
+                        <td>
+                            <details>
+                                <summary>Rationale, Scope, and Justification</summary>
+                                <p class="mt-2 text-gray-700"><strong>Rationale:</strong> Isolation and credential reset stop BEC fraud. Monitoring and notifications prevent financial loss.</p>
+                                <p class="mt-2 text-gray-700"><strong>Scope:</strong> Affected account and device.</p>
+                                <p class="mt-2 text-gray-700"><strong>Justification:</strong> Targeted response addresses the specific threat.</p>
+                            </details>
+                        </td>
+                        <td>No</td>
+                        <td>
+                            <p class="text-gray-700"><strong>Rationale:</strong> Containment at the account and device level suffices.</p>
+                            <p class="mt-2 text-gray-700"><strong>Scope:</strong> Device-specific containment.</p>
+                            <p class="mt-2 text-gray-700"><strong>Justification:</strong> Proportional response avoids network disruption.</p>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>Business Email Compromise (BEC)</td>
+                        <td>Unmanaged PC</td>
+                        <td>
+                            <ul class="list-disc pl-5">
+                                <li>Block device IP/MAC from email access, restricting both ingress and egress.</li>
+                                <li>Reset credentials and enforce MFA.</li>
+                                <li>Monitor email logs.</li>
+                                <li>Notify user to secure device.</li>
+                            </ul>
+                        </td>
+                        <td>
+                            <details>
+                                <summary>Rationale, Scope, and Justification</summary>
+                                <p class="mt-2 text-gray-700"><strong>Rationale:</strong> Network blocking and credential reset halt BEC on unmanaged devices. Monitoring and notifications mitigate risks.</p>
+                                <p class="mt-2 text-gray-700"><strong>Scope:</strong> Affected account and device.</p>
+                                <p class="mt-2 text-gray-700"><strong>Justification:</strong> Efficient response without broad impact.</p>
+                            </details>
+                        </td>
+                        <td>No</td>
+                        <td>
+                            <p class="text-gray-700"><strong>Rationale:</strong> Containment at the device level prevents escalation.</p>
+                            <p class="mt-2 text-gray-700"><strong>Scope:</strong> Device-specific containment.</p>
+                            <p class="mt-2 text-gray-700"><strong>Justification:</strong> Targeted measures suffice.</p>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>Business Email Compromise (BEC)</td>
+                        <td>Network Device</td>
+                        <td>
+                            <ul class="list-disc pl-5">
+                                <li>Not applicable (BEC targets email accounts).</li>
+                            </ul>
+                        </td>
+                        <td>
+                            <details>
+                                <summary>Rationale, Scope, and Justification</summary>
+                                <p class="mt-2 text-gray-700"><strong>Rationale:</strong> BEC exploits email systems, not network devices.</p>
+                                <p class="mt-2 text-gray-700"><strong>Scope:</strong> Not applicable.</p>
+                                <p class="mt-2 text-gray-700"><strong>Justification:</strong> No action needed for network devices.</p>
+                            </details>
+                        </td>
+                        <td>No</td>
+                        <td>
+                            <p class="text-gray-700"><strong>Rationale:</strong> No direct impact on network devices.</p>
+                            <p class="mt-2 text-gray-700"><strong>Scope:</strong> Not applicable.</p>
+                            <p class="mt-2 text-gray-700"><strong>Justification:</strong> No network isolation required.</p>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</body>
+</html>
