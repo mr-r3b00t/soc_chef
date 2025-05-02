@@ -1,0 +1,716 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Attack Paths to Compromise AD, Backups, and Virtual Infrastructure</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/vis-network/9.1.2/standalone/umd/vis-network.min.js" onerror="console.error('Failed to load Vis.js library')"></script>
+    <style>
+        body { 
+            font-family: Arial, sans-serif; 
+            margin: 0; 
+            background-color: #f4f4f4; 
+            display: flex; 
+            flex-direction: column; 
+            height: 100vh; 
+        }
+        .container { 
+            display: flex; 
+            flex: 1; 
+            overflow: hidden; 
+        }
+        #sidebar { 
+            width: 250px; 
+            background-color: #e8f0fe; 
+            border-right: 1px solid #ccc; 
+            padding: 20px; 
+            box-sizing: border-box; 
+            overflow-y: auto; 
+        }
+        #sidebar h2 { 
+            margin-top: 0; 
+            color: #333; 
+        }
+        .tab-buttons { 
+            display: flex; 
+            border-bottom: 1px solid #ccc; 
+            margin-bottom: 20px; 
+        }
+        .tab-button { 
+            flex: 1; 
+            padding: 10px; 
+            background-color: #d3e7ff; 
+            border: none; 
+            cursor: pointer; 
+            text-align: center; 
+            color: #005580; 
+            font-weight: bold; 
+        }
+        .tab-button.active { 
+            background-color: #005580; 
+            color: white; 
+        }
+        .tab-button:hover { 
+            background-color: #b0d4ff; 
+        }
+        .tab-content { 
+            display: none; 
+        }
+        .tab-content.active { 
+            display: block; 
+        }
+        #sidebar ul { 
+            list-style: none; 
+            padding: 0; 
+        }
+        #sidebar li { 
+            margin: 10px 0; 
+        }
+        #sidebar a { 
+            color: #005580; 
+            text-decoration: none; 
+        }
+        #sidebar a:hover { 
+            text-decoration: underline; 
+        }
+        .control-button { 
+            display: block; 
+            width: 100%; 
+            padding: 10px; 
+            margin: 10px 0; 
+            background-color: #005580; 
+            color: white; 
+            border: none; 
+            border-radius: 5px; 
+            cursor: pointer; 
+            text-align: center; 
+        }
+        .control-button:hover { 
+            background-color: #003366; 
+        }
+        #add-entity-form { 
+            display: flex; 
+            flex-direction: column; 
+        }
+        #add-entity-form label { 
+            margin: 10px 0 5px; 
+            color: #333; 
+        }
+        #add-entity-form input, 
+        #add-entity-form select { 
+            padding: 8px; 
+            margin-bottom: 10px; 
+            border: 1px solid #ccc; 
+            border-radius: 5px; 
+            width: 100%; 
+            box-sizing: border-box; 
+        }
+        #add-entity-form button { 
+            padding: 10px; 
+            background-color: #005580; 
+            color: white; 
+            border: none; 
+            border-radius: 5px; 
+            cursor: pointer; 
+        }
+        #add-entity-form button:hover { 
+            background-color: #003366; 
+        }
+        #network { 
+            flex: 1; 
+            height: 100%; 
+            border: 1px solid #ccc; 
+            background-color: #fff; 
+            position: relative; 
+        }
+        h1 { 
+            text-align: center; 
+            color: #333; 
+            margin: 60px 0 20px; 
+        }
+        #fullscreen-btn { 
+            position: fixed; 
+            top: 20px; 
+            right: 20px; 
+            padding: 10px 20px; 
+            background-color: #005580; 
+            color: white; 
+            border: none; 
+            border-radius: 5px; 
+            cursor: pointer; 
+            z-index: 1000; 
+        }
+        #fullscreen-btn:hover { 
+            background-color: #003366; 
+        }
+        #context-menu { 
+            position: absolute; 
+            background-color: #fff; 
+            border: 1px solid #ccc; 
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2); 
+            z-index: 1000; 
+            display: none; 
+        }
+        #context-menu ul { 
+            list-style: none; 
+            padding: 0; 
+            margin: 0; 
+        }
+        #context-menu li { 
+            padding: 10px 20px; 
+            cursor: pointer; 
+            color: #333; 
+        }
+        #context-menu li:hover { 
+            background-color: #f0f0f0; 
+        }
+        #import-json-input {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <h1>Attack Paths from Initial Access to Compromise AD, Backups, and Virtual Infrastructure</h1>
+    <button id="fullscreen-btn">Toggle Fullscreen</button>
+    <div id="context-menu">
+        <ul>
+            <li onclick="renameSelectedItem(event)">Rename</li>
+            <li onclick="startEdgeCreation(event)">Create Edge</li>
+            <li onclick="deleteSelectedItem(event)">Delete</li>
+        </ul>
+    </div>
+    <div class="container">
+        <div id="sidebar">
+            <div class="tab-buttons">
+                <button class="tab-button active" onclick="openTab('categories')">Categories</button>
+                <button class="tab-button" onclick="openTab('graph-control')">Graph Control</button>
+                <button class="tab-button" onclick="openTab('add-entity')">Add Entity</button>
+            </div>
+            <div id="categories" class="tab-content active">
+                <h2>Attack Path Categories</h2>
+                <ul>
+                    <li><a href="#initial">Initial Access</a></li>
+                    <li><a href="#access">Network Access</a></li>
+                    <li><a href="#escalation">Privilege Escalation</a></li>
+                    <li><a href="#ad">Active Directory Compromise</a></li>
+                    <li><a href="#backups">Backup Compromise</a></li>
+                    <li><a href="#virtual">Virtual Infrastructure Compromise</a></li>
+                </ul>
+            </div>
+            <div id="graph-control" class="tab-content">
+                <h2>Graph Controls</h2>
+                <button class="control-button" onclick="network && network.fit({ animation: true })">Fit to View</button>
+                <button class="control-button" onclick="network && network.setOptions({ physics: !network.physics.options.enabled })">
+                    Toggle Physics
+                </button>
+                <button class="control-button" onclick="network && network.moveTo({ position: { x: 0, y: 0 }, scale: 1, animation: true })">
+                    Reset Zoom
+                </button>
+                <button class="control-button" onclick="clearGraph()">Clear Graph</button>
+                <button class="control-button" onclick="exportToJson()">Export to JSON</button>
+                <button class="control-button" onclick="document.getElementById('import-json-input').click()">Import from JSON</button>
+                <input type="file" id="import-json-input" accept=".json" onchange="importFromJson(event)">
+            </div>
+            <div id="add-entity" class="tab-content">
+                <h2>Add New Entity</h2>
+                <form id="add-entity-form">
+                    <label for="entity-name">Entity Name:</label>
+                    <input type="text" id="entity-name" placeholder="Enter entity name" required>
+                    <label for="entity-category">Category:</label>
+                    <select id="entity-category" required>
+                        <option value="initial">Initial</option>
+                        <option value="access">Access</option>
+                        <option value="start">Start</option>
+                        <option value="escalation">Escalation</option>
+                        <option value="ad">AD</option>
+                        <option value="backups">Backups</option>
+                        <option value="virtual">Virtual</option>
+                    </select>
+                    <label for="link-to">Link To:</label>
+                    <select id="link-to" required>
+                        <option value="">Select an entity to link to</option>
+                    </select>
+                    <button type="submit">Add Entity</button>
+                </form>
+            </div>
+        </div>
+        <div id="network"></div>
+    </div>
+
+    <script>
+        window.onerror = function (msg, url, lineNo, columnNo, error) {
+            console.error("Uncaught script error:", { msg, url, lineNo, columnNo, error });
+            return false;
+        };
+
+        const nodes = new vis.DataSet([
+            { id: 1, label: "External Attacker", group: "initial", title: "Starting point: An external attacker with no network access" },
+            { id: 2, label: "Domain User", group: "start", title: "Standard domain user on a PC domain member" },
+            { id: 3, label: "Local Admin", group: "escalation", title: "Local admin privileges on the PC" },
+            { id: 4, label: "Domain Admin", group: "ad", title: "Full control over Active Directory" },
+            { id: 5, label: "Active Directory", group: "ad", title: "Core AD infrastructure (Domain Controllers)" },
+            { id: 6, label: "Backups", group: "backups", title: "Backup systems storing AD and infrastructure data" },
+            { id: 7, label: "Virtual Infrastructure", group: "virtual", title: "VMware, Hyper-V, or other virtualization platforms" },
+            { id: 8, label: "Credentials (Cache)", group: "escalation", title: "Cached credentials on the PC" },
+            { id: 9, label: "Group Policy", group: "ad", title: "Group Policy Objects in AD" },
+            { id: 10, label: "ADCS", group: "ad", title: "Active Directory Certificate Services" },
+            { id: 11, label: "Service Accounts", group: "ad", title: "Service accounts in AD" },
+            { id: 12, label: "SYSVOL", group: "ad", title: "SYSVOL share containing scripts and policies" },
+            { id: 13, label: "Backup Server", group: "backups", title: "Server managing backup operations" },
+            { id: 14, label: "vCenter/ESXi", group: "virtual", title: "Virtualization management (e.g., VMware vCenter)" },
+            { id: 15, label: "Hypervisor Host", group: "virtual", title: "Individual hypervisor hosts (e.g., ESXi, Hyper-V)" },
+            { id: 16, label: "Network Shares", group: "escalation", title: "Accessible network shares containing sensitive data" },
+            { id: 17, label: "Compromised Credentials", group: "initial", title: "Valid credentials obtained through various methods" },
+            { id: 18, label: "VPN", group: "access", title: "Virtual Private Network for remote access" },
+            { id: 19, label: "RMM", group: "access", title: "Remote Monitoring and Management tools" },
+            { id: 20, label: "RDS/Citrix", group: "access", title: "Remote Desktop Services or Citrix Virtual Desktops" },
+            { id: 21, label: "Social Engineering", group: "initial", title: "Techniques manipulating human behavior to gain credentials" },
+            { id: 22, label: "Credential Theft", group: "initial", title: "Methods to steal credentials without direct user interaction" },
+            { id: 23, label: "Malware", group: "initial", title: "Malicious software to capture credentials" },
+            { id: 24, label: "Exploitation", group: "initial", title: "Exploiting vulnerabilities to gain credentials" }
+        ]);
+
+        const edges = new vis.DataSet([
+            { from: 1, to: 21, label: "Social Engineering", title: "Use social engineering techniques to manipulate users" },
+            { from: 1, to: 22, label: "Credential Theft", title: "Steal credentials through non-interactive methods" },
+            { from: 1, to: 23, label: "Malware", title: "Deploy malware to capture credentials" },
+            { from: 1, to: 24, label: "Exploitation", title: "Exploit vulnerabilities to steal credentials" },
+            { from: 21, to: 17, label: "Phishing", title: "Send targeted phishing emails to trick staff into revealing credentials" },
+            { from: 21, to: 17, label: "Social Engineering (Helpdesk)", title: "Manipulate helpdesk staff to reset user passwords or provide credentials" },
+            { from: 22, to: 17, label: "Credential Stuffing", title: "Use leaked credentials from other breaches to attempt login" },
+            { from: 22, to: 17, label: "Buy Credentials", title: "Purchase stolen credentials from dark web marketplaces" },
+            { from: 22, to: 17, label: "Password Spraying", title: "Attempt common passwords across many accounts to avoid lockouts" },
+            { from: 23, to: 17, label: "Keylogging", title: "Deploy malware to capture keystrokes and steal credentials" },
+            { from: 24, to: 17, label: "Exploited Web Apps", title: "Exploit vulnerabilities in public-facing apps to steal credentials" },
+            { from: 17, to: 18, label: "VPN Access", title: "Use stolen credentials to authenticate via VPN" },
+            { from: 17, to: 19, label: "RMM Access", title: "Use stolen credentials to access RMM tools (e.g., ConnectWise, Kaseya)" },
+            { from: 17, to: 20, label: "RDS/Citrix Access", title: "Use stolen credentials to log into Remote Desktop Services or Citrix" },
+            { from: 18, to: 2, label: "Network Login", title: "Use VPN access to authenticate as a domain user on a PC" },
+            { from: 19, to: 2, label: "RMM Session", title: "Establish a remote session via RMM to act as a domain user" },
+            { from: 20, to: 2, label: "Desktop Access", title: "Access a virtual desktop or RDS session as a domain user" },
+            { from: 2, to: 3, label: "Privilege Escalation", title: "Exploit UAC bypass, misconfigured permissions, or unpatched vulnerabilities to gain local admin" },
+            { from: 2, to: 8, label: "Credential Dumping", title: "Extract cached credentials using Mimikatz or similar tools" },
+            { from: 2, to: 9, label: "GPO Access", title: "Access Group Policy Preferences with weak permissions" },
+            { from: 2, to: 10, label: "ADCS Misconfig", title: "Exploit misconfigured ADCS templates for escalation" },
+            { from: 2, to: 11, label: "Kerberoasting", title: "Request service tickets and crack weak passwords offline" },
+            { from: 2, to: 12, label: "SYSVOL Access", title: "Access SYSVOL for scripts containing hardcoded credentials" },
+            { from: 2, to: 16, label: "Network Share Access", title: "Access shares with weak permissions containing credentials or scripts" },
+            { from: 3, to: 8, label: "Mimikatz", title: "Use Mimikatz to dump credentials from memory (LSASS)" },
+            { from: 3, to: 5, label: "Lateral Movement", title: "Use local admin to move to other systems (e.g., PsExec, WMI)" },
+            { from: 3, to: 13, label: "Backup Server Access", title: "Exploit local admin to access backup server" },
+            { from: 3, to: 14, label: "vCenter Access", title: "Use local admin to pivot to vCenter management" },
+            { from: 8, to: 4, label: "Pass-the-Hash", title: "Use NTLM hashes for pass-the-hash to gain domain admin" },
+            { from: 8, to: 5, label: "Pass-the-Ticket", title: "Use Kerberos tickets for pass-the-ticket attacks" },
+            { from: 8, to: 16, label: "Share Access", title: "Use credentials to access sensitive network shares" },
+            { from: 9, to: 4, label: "GPO Passwords", title: "Extract passwords from Group Policy Preferences (cPassword)" },
+            { from: 9, to: 5, label: "GPO Misconfig", title: "Exploit misconfigured GPOs to deploy malicious scripts" },
+            { from: 10, to: 4, label: "Cert Escalation", title: "Enroll in privileged certificates to escalate to domain admin" },
+            { from: 10, to: 5, label: "Cert Theft", title: "Steal certificates for persistent AD access" },
+            { from: 11, to: 4, label: "Privileged Account", title: "Compromise service accounts with domain admin privileges" },
+            { from: 11, to: 5, label: "Kerberos Attacks", title: "Use service accounts for Silver/Golden Ticket attacks" },
+            { from: 12, to: 4, label: "Script Passwords", title: "Extract hardcoded passwords from SYSVOL scripts" },
+            { from: 12, to: 5, label: "Script Execution", title: "Modify SYSVOL scripts to execute malicious code" },
+            { from: 16, to: 4, label: "Credential Harvest", title: "Obtain privileged credentials from share contents" },
+            { from: 16, to: 13, label: "Backup Data", title: "Access backup data stored on shares" },
+            { from: 16, to: 14, label: "vCenter Creds", title: "Find virtualization credentials in share scripts" },
+            { from: 5, to: 4, label: "Full Control", title: "Compromise AD to gain domain admin privileges" },
+            { from: 5, to: 6, label: "Backup Access", title: "Use AD control to access backup systems" },
+            { from: 5, to: 7, label: "Virtual Infra Access", title: "Use AD control to access virtual infrastructure" },
+            { from: 13, to: 6, label: "Backup Compromise", title: "Access and manipulate backup data" },
+            { from: 13, to: 5, label: "AD Restore", title: "Restore AD from backups to extract credentials" },
+            { from: 14, to: 7, label: "Full Control", title: "Compromise vCenter to control virtual infrastructure" },
+            { from: 14, to: 15, label: "Host Access", title: "Use vCenter to access individual hypervisor hosts" },
+            { from: 15, to: 7, label: "Host Compromise", title: "Directly compromise hypervisor hosts" }
+        ]);
+
+        let network;
+        let selectedItem = null;
+        let edgeCreationMode = false;
+        let firstNodeId = null;
+        try {
+            if (!window.vis) throw new Error("Vis.js library not loaded");
+            const container = document.getElementById('network');
+            if (!container) throw new Error("Network container element not found");
+            const data = { nodes: nodes, edges: edges };
+            const options = {
+                nodes: {
+                    shape: 'box',
+                    font: { size: 14 },
+                    color: { background: '#d3e7ff', border: '#005580', highlight: { background: '#ffcc00', border: '#cc9900' } }
+                },
+                edges: {
+                    arrows: 'to',
+                    font: { align: 'middle' },
+                    color: { color: '#005580', highlight: '#cc9900' }
+                },
+                groups: {
+                    initial: { color: { background: '#ff6666', border: '#cc0000' } },
+                    access: { color: { background: '#ff99cc', border: '#cc0066' } },
+                    start: { color: { background: '#ff9999', border: '#cc0000' } },
+                    escalation: { color: { background: '#ffcc99', border: '#cc6600' } },
+                    ad: { color: { background: '#99ccff', border: '#0033cc' } },
+                    backups: { color: { background: '#ccffcc', border: '#009900' } },
+                    virtual: { color: { background: '#ffccff', border: '#990099' } }
+                },
+                layout: { hierarchical: { direction: 'UD', sortMethod: 'directed' } },
+                interaction: { dragNodes: true, hover: true, tooltipDelay: 200 },
+                physics: { 
+                    enabled: true,
+                    solver: 'forceAtlas2Based',
+                    forceAtlas2Based: { gravitationalConstant: -50, centralGravity: 0.01, springLength: 100, springConstant: 0.08 },
+                    stabilization: { iterations: 1000 }
+                }
+            };
+
+            network = new vis.Network(container, data, options);
+            console.log("Network initialized successfully");
+
+            network.on("oncontext", function (params) {
+                try {
+                    if (!params || !params.pointer || !params.pointer.DOM) {
+                        console.log("Invalid context event parameters");
+                        return;
+                    }
+                    params.event.preventDefault();
+                    const nodeId = network.getNodeAt(params.pointer.DOM);
+                    const edgeId = network.getEdgeAt(params.pointer.DOM);
+                    const contextMenu = document.getElementById('context-menu');
+                    if (!contextMenu) {
+                        console.warn("Context menu element not found");
+                        selectedItem = null;
+                        return;
+                    }
+                    if (nodeId) {
+                        if (edgeCreationMode) {
+                            if (firstNodeId === nodeId) {
+                                console.log("Cannot create edge from node to itself");
+                                edgeCreationMode = false;
+                                firstNodeId = null;
+                                return;
+                            }
+                            const label = prompt("Enter edge label:", "");
+                            if (label !== null && label.trim() !== "") {
+                                edges.add({
+                                    from: firstNodeId,
+                                    to: nodeId,
+                                    label: label.trim(),
+                                    title: `Connection: ${label.trim()}`,
+                                    arrows: 'to'
+                                });
+                                console.log("Edge created:", { from: firstNodeId, to: nodeId, label });
+                            }
+                            edgeCreationMode = false;
+                            firstNodeId = null;
+                        } else {
+                            selectedItem = { type: 'node', id: nodeId };
+                            contextMenu.style.display = 'block';
+                            contextMenu.style.left = `${params.event.pageX}px`;
+                            contextMenu.style.top = `${params.event.pageY}px`;
+                            console.log("Context menu opened for node:", nodeId);
+                        }
+                    } else if (edgeId) {
+                        selectedItem = { type: 'edge', id: edgeId };
+                        contextMenu.style.display = 'block';
+                        contextMenu.style.left = `${params.event.pageX}px`;
+                        contextMenu.style.top = `${params.event.pageY}px`;
+                        console.log("Context menu opened for edge:", edgeId);
+                    } else {
+                        console.log("No node or edge found at click position:", params.pointer.DOM);
+                        contextMenu.style.display = 'none';
+                        selectedItem = null;
+                    }
+                } catch (error) {
+                    console.error("Error handling context menu:", error);
+                    const contextMenu = document.getElementById('context-menu');
+                    if (contextMenu) contextMenu.style.display = 'none';
+                    selectedItem = null;
+                }
+            });
+
+            document.addEventListener('click', (event) => {
+                try {
+                    if (event.button === 0) {
+                        const contextMenu = document.getElementById('context-menu');
+                        if (contextMenu && !contextMenu.contains(event.target)) {
+                            contextMenu.style.display = 'none';
+                            selectedItem = null;
+                            console.log("Context menu hidden");
+                        }
+                    }
+                } catch (error) {
+                    console.error("Error hiding context menu:", error);
+                }
+            });
+
+            const contextMenuItems = document.querySelectorAll('#context-menu li');
+            contextMenuItems.forEach(item => {
+                item.addEventListener('click', (event) => {
+                    event.stopPropagation();
+                });
+            });
+        } catch (error) {
+            console.error("Error initializing network:", error);
+        }
+
+        function renameSelectedItem(event) {
+            event.stopPropagation();
+            try {
+                if (!selectedItem) {
+                    console.warn("No item selected for renaming");
+                    return;
+                }
+                if (selectedItem.type === 'node') {
+                    const node = nodes.get(selectedItem.id);
+                    if (!node) {
+                        console.warn("Selected node not found:", selectedItem.id);
+                        return;
+                    }
+                    const newLabel = prompt("Enter new node label:", node.label);
+                    if (newLabel !== null && newLabel.trim() !== "") {
+                        nodes.update({ id: selectedItem.id, label: newLabel.trim() });
+                        console.log("Node renamed:", { id: selectedItem.id, newLabel });
+                    }
+                } else if (selectedItem.type === 'edge') {
+                    const edge = edges.get(selectedItem.id);
+                    if (!edge) {
+                        console.warn("Selected edge not found:", selectedItem.id);
+                        return;
+                    }
+                    const newLabel = prompt("Enter new edge label:", edge.label);
+                    if (newLabel !== null && newLabel.trim() !== "") {
+                        edges.update({ id: selectedItem.id, label: newLabel.trim(), title: `Connection: ${newLabel.trim()}` });
+                        console.log("Edge renamed:", { id: selectedItem.id, newLabel });
+                    }
+                }
+                const contextMenu = document.getElementById('context-menu');
+                if (contextMenu) contextMenu.style.display = 'none';
+                selectedItem = null;
+            } catch (error) {
+                console.error("Error renaming item:", error);
+                const contextMenu = document.getElementById('context-menu');
+                if (contextMenu) contextMenu.style.display = 'none';
+                selectedItem = null;
+            }
+        }
+
+        function startEdgeCreation(event) {
+            event.stopPropagation();
+            try {
+                if (selectedItem && selectedItem.type === 'node') {
+                    edgeCreationMode = true;
+                    firstNodeId = selectedItem.id;
+                    console.log("Edge creation started from node:", firstNodeId);
+                } else {
+                    console.warn("No node selected for edge creation");
+                }
+                const contextMenu = document.getElementById('context-menu');
+                if (contextMenu) contextMenu.style.display = 'none';
+                selectedItem = null;
+            } catch (error) {
+                console.error("Error starting edge creation:", error);
+                const contextMenu = document.getElementById('context-menu');
+                if (contextMenu) contextMenu.style.display = 'none';
+                selectedItem = null;
+            }
+        }
+
+        function deleteSelectedItem(event) {
+            event.stopPropagation();
+            try {
+                if (!selectedItem) {
+                    console.warn("No item selected for deletion");
+                    return;
+                }
+                if (selectedItem.type === 'node') {
+                    const nodeId = selectedItem.id;
+                    nodes.remove({ id: nodeId });
+                    const connectedEdges = edges.get({
+                        filter: function (item) {
+                            return item.from === nodeId || item.to === nodeId;
+                        }
+                    });
+                    connectedEdges.forEach(edge => edges.remove({ id: edge.id }));
+                    console.log("Node deleted:", nodeId);
+                } else if (selectedItem.type === 'edge') {
+                    const edgeId = selectedItem.id;
+                    edges.remove({ id: edgeId });
+                    console.log("Edge deleted:", edgeId);
+                }
+                const contextMenu = document.getElementById('context-menu');
+                if (contextMenu) contextMenu.style.display = 'none';
+                selectedItem = null;
+            } catch (error) {
+                console.error("Error deleting item:", error);
+                const contextMenu = document.getElementById('context-menu');
+                if (contextMenu) contextMenu.style.display = 'none';
+                selectedItem = null;
+            }
+        }
+
+        function clearGraph() {
+            try {
+                nodes.clear();
+                edges.clear();
+                console.log("Graph cleared");
+            } catch (error) {
+                console.error("Error clearing graph:", error);
+            }
+        }
+
+        function exportToJson() {
+            try {
+                const graphData = {
+                    nodes: nodes.get(),
+                    edges: edges.get()
+                };
+                const jsonString = JSON.stringify(graphData, null, 2);
+                const blob = new Blob([jsonString], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'graph.json';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+                console.log("Graph exported to JSON");
+            } catch (error) {
+                console.error("Error exporting graph to JSON:", error);
+            }
+        }
+
+        function importFromJson(event) {
+            try {
+                const file = event.target.files[0];
+                if (!file) {
+                    console.warn("No file selected for import");
+                    return;
+                }
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    try {
+                        const graphData = JSON.parse(e.target.result);
+                        if (!graphData.nodes || !graphData.edges) {
+                            throw new Error("Invalid JSON format: missing nodes or edges");
+                        }
+                        nodes.clear();
+                        edges.clear();
+                        nodes.add(graphData.nodes);
+                        edges.add(graphData.edges);
+                        console.log("Graph imported from JSON");
+                        if (network) network.fit({ animation: true });
+                    } catch (error) {
+                        console.error("Error parsing JSON file:", error);
+                    }
+                };
+                reader.readAsText(file);
+                event.target.value = ''; // Reset file input
+            } catch (error) {
+                console.error("Error importing graph from JSON:", error);
+            }
+        }
+
+        const fullscreenBtn = document.getElementById('fullscreen-btn');
+        if (fullscreenBtn) {
+            fullscreenBtn.addEventListener('click', () => {
+                try {
+                    const container = document.getElementById('network');
+                    if (!container) throw new Error("Network container not found");
+                    if (!document.fullscreenElement && !document.webkitFullscreenElement && !document.msFullscreenElement) {
+                        if (container.requestFullscreen) container.requestFullscreen();
+                        else if (container.webkitRequestFullscreen) container.webkitRequestFullscreen();
+                        else if (container.msRequestFullscreen) container.msRequestFullscreen();
+                        fullscreenBtn.textContent = 'Exit Fullscreen';
+                    } else {
+                        if (document.exitFullscreen) document.exitFullscreen();
+                        else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
+                        else if (document.msExitFullscreen) document.msExitFullscreen();
+                        fullscreenBtn.textContent = 'Toggle Fullscreen';
+                    }
+                    if (network) network.fit({ animation: true });
+                } catch (error) {
+                    console.error("Error in fullscreen toggle:", error);
+                }
+            });
+        }
+
+        function openTab(tabName) {
+            try {
+                document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
+                document.querySelectorAll('.tab-button').forEach(button => button.classList.remove('active'));
+                const tabContent = document.getElementById(tabName);
+                if (tabContent) tabContent.classList.add('active');
+                const tabButton = document.querySelector(`.tab-button[onclick="openTab('${tabName}')"]`);
+                if (tabButton) tabButton.classList.add('active');
+                if (tabName === 'add-entity') updateLinkToDropdown();
+            } catch (error) {
+                console.error("Error in openTab:", error);
+            }
+        }
+
+        function updateLinkToDropdown() {
+            try {
+                const linkToSelect = document.getElementById('link-to');
+                if (!linkToSelect) throw new Error("Link-to select element not found");
+                linkToSelect.innerHTML = '<option value="">Select an entity to link to</option>';
+                nodes.get().forEach(node => {
+                    const option = document.createElement('option');
+                    option.value = node.id;
+                    option.textContent = node.label;
+                    linkToSelect.appendChild(option);
+                });
+            } catch (error) {
+                console.error("Error updating link-to dropdown:", error);
+            }
+        }
+
+        updateLinkToDropdown();
+
+        const addEntityForm = document.getElementById('add-entity-form');
+        if (addEntityForm) {
+            addEntityForm.addEventListener('submit', (event) => {
+                event.preventDefault();
+                try {
+                    const entityName = document.getElementById('entity-name').value.trim();
+                    const entityCategory = document.getElementById('entity-category').value;
+                    const linkToId = document.getElementById('link-to').value;
+                    if (!entityName || !linkToId) return;
+
+                    const existingIds = nodes.getIds();
+                    const newId = existingIds.length > 0 ? Math.max(...existingIds) + 1 : 1;
+                    const linkedNode = nodes.get(parseInt(linkToId));
+                    let linkedPosition = { x: 0, y: 0 };
+                    if (network) {
+                        const positions = network.getPositions([parseInt(linkToId)]);
+                        linkedPosition = positions[linkToId] || { x: 0, y: 0 };
+                    }
+
+                    nodes.add({
+                        id: newId,
+                        label: entityName,
+                        group: entityCategory,
+                        title: `New entity: ${entityName} in ${entityCategory} category`,
+                        x: linkedPosition.x + 100,
+                        y: linkedPosition.y + 50
+                    });
+
+                    edges.add({
+                        from: newId,
+                        to: parseInt(linkToId),
+                        label: "Connection",
+                        title: `Connection from ${entityName} to ${linkedNode.label}`,
+                        arrows: 'to'
+                    });
+
+                    document.getElementById('entity-name').value = '';
+                    document.getElementById('link-to').value = '';
+                    updateLinkToDropdown();
+                    if (network) network.fit({ animation: true });
+                } catch (error) {
+                    console.error("Error adding entity:", error);
+                }
+            });
+        }
+    </script>
+</body>
+</html>
