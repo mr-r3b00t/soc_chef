@@ -51,6 +51,9 @@ Reactive Orgs that either do not have Policies, Processes and Procedures or ones
 
 🎨 [Attack Tree](https://mr-r3b00t.github.io/soc_chef/processes/analysis/attack_tree.html)
 
+🎨 [MSP Harms and Countermeasures](https://mr-r3b00t.github.io/soc_chef/tools/msp_harms_risk_map.html)
+
+
 ☕ [Buy me a coffee](https://buymeacoffee.com/mrr3b00t)
 
 
