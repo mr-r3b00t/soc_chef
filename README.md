@@ -53,6 +53,8 @@ Reactive Orgs that either do not have Policies, Processes and Procedures or ones
 
 🎨 [MSP Harms and Countermeasures](https://mr-r3b00t.github.io/soc_chef/tools/msp_harms_risk_map.html)
 
+🎨 [Exernal - MSP Backup Services Assessment](https://mr-r3b00t.github.io/msp-assesment/)
+
 
 ☕ [Buy me a coffee](https://buymeacoffee.com/mrr3b00t)
 
