@@ -1,0 +1,406 @@
+<script type="text/javascript">
+        var gk_isXlsx = false;
+        var gk_xlsxFileLookup = {};
+        var gk_fileData = {};
+        function filledCell(cell) {
+          return cell !== '' && cell != null;
+        }
+        function loadFileData(filename) {
+        if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
+            try {
+                var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
+                var firstSheetName = workbook.SheetNames[0];
+                var worksheet = workbook.Sheets[firstSheetName];
+
+                // Convert sheet to JSON to filter blank rows
+                var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
+                // Filter out blank rows (rows where all cells are empty, null, or undefined)
+                var filteredData = jsonData.filter(row => row.some(filledCell));
+
+                // Heuristic to find the header row by ignoring rows with fewer filled cells than the next row
+                var headerRowIndex = filteredData.findIndex((row, index) =>
+                  row.filter(filledCell).length >= filteredData[index + 1]?.filter(filledCell).length
+                );
+                // Fallback
+                if (headerRowIndex === -1 || headerRowIndex > 25) {
+                  headerRowIndex = 0;
+                }
+
+                // Convert filtered JSON back to CSV
+                var csv = XLSX.utils.aoa_to_sheet(filteredData.slice(headerRowIndex)); // Create a new sheet from filtered array of arrays
+                csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
+                return csv;
+            } catch (e) {
+                console.error(e);
+                return "";
+            }
+        }
+        return gk_fileData[filename] || "";
+        }
+        </script><!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MSP Digital Services Harms with Countermeasures</title>
+    <script src="https://cdn.jsdelivr.net/npm/vis-network@9.1.9/dist/vis-network.min.js"></script>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <style>
+        body {
+            background-color: #1a202c;
+            color: #e2e8f0;
+            font-family: 'Arial', sans-serif;
+        }
+        #network {
+            width: 100%;
+            height: 800px;
+            background-color: #2d3748;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        h1 {
+            font-size: 2.5rem;
+            font-weight: bold;
+            text-align: center;
+            margin-bottom: 1rem;
+        }
+        #menu {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+            flex-wrap: wrap;
+            justify-content: center;
+            align-items: center;
+        }
+        .menu-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+    </style>
+</head>
+<body class="flex flex-col items-center justify-center min-h-screen p-4">
+    <h1>MSP Digital Services Harms by Category with Countermeasures</h1>
+    <div id="menu">
+        <div class="menu-item">
+            <input type="checkbox" id="serviceDeskToggle" checked>
+            <label for="serviceDeskToggle">Service Desk</label>
+        </div>
+        <div class="menu-item">
+            <input type="checkbox" id="networkingToggle" checked>
+            <label for="networkingToggle">Managed Networking</label>
+        </div>
+        <div class="menu-item">
+            <input type="checkbox" id="backupToggle" checked>
+            <label for="backupToggle">Managed Backup</label>
+        </div>
+        <div class="menu-item">
+            <input type="checkbox" id="serverToggle" checked>
+            <label for="serverToggle">Server Management</label>
+        </div>
+        <div class="menu-item">
+            <input type="checkbox" id="endpointToggle" checked>
+            <label for="endpointToggle">Endpoint Management</label>
+        </div>
+        <div class="menu-item">
+            <input type="checkbox" id="cloudToggle" checked>
+            <label for="cloudToggle">Cloud Management</label>
+        </div>
+        <div class="menu-item">
+            <input type="checkbox" id="cybersecurityToggle" checked>
+            <label for="cybersecurityToggle">Cybersecurity Services</label>
+        </div>
+        <div class="menu-item">
+            <input type="checkbox" id="countermeasureToggle" checked>
+            <label for="countermeasureToggle">Countermeasures</label>
+        </div>
+        <button id="zoomToFitButton" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">Zoom to Fit</button>
+    </div>
+    <div id="network"></div>
+
+    <script>
+        // Data for MSP digital services harms and countermeasures
+        const nodes = [
+            { id: 1, label: "MSP Service Harms", group: "root", color: "#e53e3e", level: 0 },
+            { id: 2, label: "Service Desk", group: "category", color: "#38a169", level: 1 },
+            { id: 3, label: "Managed Networking", group: "category", color: "#3182ce", level: 1 },
+            { id: 4, label: "Managed Backup", group: "category", color: "#d69e2e", level: 1 },
+            { id: 5, label: "Server Management", group: "category", color: "#9f7aea", level: 1 },
+            { id: 6, label: "Endpoint Management", group: "category", color: "#ed8936", level: 1 },
+            { id: 7, label: "Cloud Management", group: "category", color: "#e53e3e", level: 1 },
+            { id: 8, label: "Cybersecurity Services", group: "category", color: "#48bb78", level: 1 },
+            // Service Desk Harms
+            { id: 10, label: "Ticket Backlog", group: "harm", color: "#68d391", level: 2, category: "serviceDesk" },
+            { id: 11, label: "Slow Response Times", group: "harm", color: "#68d391", level: 2, category: "serviceDesk" },
+            { id: 12, label: "Miscommunication", group: "harm", color: "#68d391", level: 2, category: "serviceDesk" },
+            // Managed Networking Harms
+            { id: 13, label: "Network Downtime", group: "harm", color: "#63b3ed", level: 2, category: "networking" },
+            { id: 14, label: "Bandwidth Overload", group: "harm", color: "#63b3ed", level: 2, category: "networking" },
+            { id: 15, label: "Configuration Errors", group: "harm", color: "#63b3ed", level: 2, category: "networking" },
+            // Managed Backup Harms
+            { id: 16, label: "Backup Failures", group: "harm", color: "#ecc94b", level: 2, category: "backup" },
+            { id: 17, label: "Data Corruption", group: "harm", color: "#ecc94b", level: 2, category: "backup" },
+            { id: 18, label: "Slow Recovery", group: "harm", color: "#ecc94b", level: 2, category: "backup" },
+            // Server Management Harms
+            { id: 19, label: "Server Overload", group: "harm", color: "#b794f4", level: 2, category: "server" },
+            { id: 20, label: "Hardware Failure", group: "harm", color: "#b794f4", level: 2, category: "server" },
+            { id: 21, label: "Patch Delays", group: "harm", color: "#b794f4", level: 2, category: "server" },
+            // Endpoint Management Harms
+            { id: 22, label: "Malware Infection", group: "harm", color: "#f6ad55", level: 2, category: "endpoint" },
+            { id: 23, label: "Unpatched Devices", group: "harm", color: "#f6ad55", level: 2, category: "endpoint" },
+            { id: 24, label: "Device Misconfiguration", group: "harm", color: "#f6ad55", level: 2, category: "endpoint" },
+            // Cloud Management Harms
+            { id: 25, label: "Cloud Misconfiguration", group: "harm", color: "#feb2b2", level: 2, category: "cloud" },
+            { id: 26, label: "Data Breaches", group: "harm", color: "#feb2b2", level: 2, category: "cloud" },
+            { id: 27, label: "Service Outages", group: "harm", color: "#feb2b2", level: 2, category: "cloud" },
+            // Cybersecurity Services Harms
+            { id: 28, label: "Ransomware Attacks", group: "harm", color: "#9ae6b4", level: 2, category: "cybersecurity" },
+            { id: 29, label: "Phishing Breaches", group: "harm", color: "#9ae6b4", level: 2, category: "cybersecurity" },
+            { id: 30, label: "DDoS Attacks", group: "harm", color: "#9ae6b4", level: 2, category: "cybersecurity" },
+            { id: 31, label: "Insider Threats", group: "harm", color: "#9ae6b4", level: 2, category: "cybersecurity" },
+            { id: 32, label: "Zero-Day Exploits", group: "harm", color: "#9ae6b4", level: 2, category: "cybersecurity" },
+            { id: 33, label: "Credential Stuffing", group: "harm", color: "#9ae6b4", level: 2, category: "cybersecurity" },
+            { id: 34, label: "Supply Chain Attacks", group: "harm", color: "#9ae6b4", level: 2, category: "cybersecurity" },
+            // Countermeasure nodes with categories
+            { id: 50, label: "Automated Ticketing", group: "countermeasure", color: "#48bb78", level: 3, categories: ["serviceDesk"] },
+            { id: 51, label: "SLA Monitoring", group: "countermeasure", color: "#48bb78", level: 3, categories: ["serviceDesk"] },
+            { id: 52, label: "Staff Training", group: "countermeasure", color: "#48bb78", level: 3, categories: ["serviceDesk", "cybersecurity"] },
+            { id: 53, label: "Network Redundancy", group: "countermeasure", color: "#48bb78", level: 3, categories: ["networking"] },
+            { id: 54, label: "Traffic Management", group: "countermeasure", color: "#48bb78", level: 3, categories: ["networking"] },
+            { id: 55, label: "Configuration Audits", group: "countermeasure", color: "#48bb78", level: 3, categories: ["networking", "cloud", "endpoint"] },
+            { id: 56, label: "Backup Verification", group: "countermeasure", color: "#48bb78", level: 3, categories: ["backup"] },
+            { id: 57, label: "Data Integrity Checks", group: "countermeasure", color: "#48bb78", level: 3, categories: ["backup"] },
+            { id: 58, label: "Fast Recovery Protocols", group: "countermeasure", color: "#48bb78", level: 3, categories: ["backup"] },
+            { id: 59, label: "Load Balancing", group: "countermeasure", color: "#48bb78", level: 3, categories: ["server"] },
+            { id: 60, label: "Hardware Monitoring", group: "countermeasure", color: "#48bb78", level: 3, categories: ["server"] },
+            { id: 61, label: "Patch Management", group: "countermeasure", color: "#48bb78", level: 3, categories: ["server", "endpoint"] },
+            { id: 62, label: "Endpoint Protection", group: "countermeasure", color: "#48bb78", level: 3, categories: ["endpoint", "cybersecurity"] },
+            { id: 63, label: "Device Hardening", group: "countermeasure", color: "#48bb78", level: 3, categories: ["endpoint"] },
+            { id: 64, label: "Cloud Security Policies", group: "countermeasure", color: "#48bb78", level: 3, categories: ["cloud"] },
+            { id: 65, label: "Encryption Standards", group: "countermeasure", color: "#48bb78", level: 3, categories: ["cloud", "cybersecurity"] },
+            { id: 66, label: "High Availability", group: "countermeasure", color: "#48bb78", level: 3, categories: ["cloud"] },
+            { id: 67, label: "Intrusion Detection", group: "countermeasure", color: "#48bb78", level: 3, categories: ["cybersecurity"] },
+            { id: 68, label: "Email Filtering", group: "countermeasure", color: "#48bb78", level: 3, categories: ["cybersecurity"] },
+            { id: 69, label: "DDoS Mitigation", group: "countermeasure", color: "#48bb78", level: 3, categories: ["cybersecurity"] },
+            { id: 70, label: "Insider Threat Monitoring", group: "countermeasure", color: "#48bb78", level: 3, categories: ["cybersecurity"] },
+            { id: 71, label: "Vulnerability Management", group: "countermeasure", color: "#48bb78", level: 3, categories: ["cybersecurity"] },
+            { id: 72, label: "Multi-Factor Authentication", group: "countermeasure", color: "#48bb78", level: 3, categories: ["cybersecurity"] },
+            { id: 73, label: "Vendor Risk Management", group: "countermeasure", color: "#48bb78", level: 3, categories: ["cybersecurity"] }
+        ];
+
+        const edges = [
+            { from: 1, to: 2 },
+            { from: 1, to: 3 },
+            { from: 1, to: 4 },
+            { from: 1, to: 5 },
+            { from: 1, to: 6 },
+            { from: 1, to: 7 },
+            { from: 1, to: 8 },
+            // Service Desk Connections
+            { from: 2, to: 10 },
+            { from: 2, to: 11 },
+            { from: 2, to: 12 },
+            // Managed Networking Connections
+            { from: 3, to: 13 },
+            { from: 3, to: 14 },
+            { from: 3, to: 15 },
+            // Managed Backup Connections
+            { from: 4, to: 16 },
+            { from: 4, to: 17 },
+            { from: 4, to: 18 },
+            // Server Management Connections
+            { from: 5, to: 19 },
+            { from: 5, to: 20 },
+            { from: 5, to: 21 },
+            // Endpoint Management Connections
+            { from: 6, to: 22 },
+            { from: 6, to: 23 },
+            { from: 6, to: 24 },
+            // Cloud Management Connections
+            { from: 7, to: 25 },
+            { from: 7, to: 26 },
+            { from: 7, to: 27 },
+            // Cybersecurity Services Connections
+            { from: 8, to: 28 },
+            { from: 8, to: 29 },
+            { from: 8, to: 30 },
+            { from: 8, to: 31 },
+            { from: 8, to: 32 },
+            { from: 8, to: 33 },
+            { from: 8, to: 34 },
+            // Countermeasure Connections
+            { from: 10, to: 50 }, // Ticket Backlog -> Automated Ticketing
+            { from: 10, to: 51 }, // Ticket Backlog -> SLA Monitoring
+            { from: 11, to: 51 }, // Slow Response Times -> SLA Monitoring
+            { from: 11, to: 50 }, // Slow Response Times -> Automated Ticketing
+            { from: 12, to: 52 }, // Miscommunication -> Staff Training
+            { from: 12, to: 51 }, // Miscommunication -> SLA Monitoring
+            { from: 13, to: 53 }, // Network Downtime -> Network Redundancy
+            { from: 13, to: 54 }, // Network Downtime -> Traffic Management
+            { from: 14, to: 54 }, // Bandwidth Overload -> Traffic Management
+            { from: 15, to: 55 }, // Configuration Errors -> Configuration Audits
+            { from: 16, to: 56 }, // Backup Failures -> Backup Verification
+            { from: 16, to: 57 }, // Backup Failures -> Data Integrity Checks
+            { from: 17, to: 57 }, // Data Corruption -> Data Integrity Checks
+            { from: 18, to: 58 }, // Slow Recovery -> Fast Recovery Protocols
+            { from: 19, to: 59 }, // Server Overload -> Load Balancing
+            { from: 19, to: 60 }, // Server Overload -> Hardware Monitoring
+            { from: 20, to: 60 }, // Hardware Failure -> Hardware Monitoring
+            { from: 21, to: 61 }, // Patch Delays -> Patch Management
+            { from: 22, to: 62 }, // Malware Infection -> Endpoint Protection
+            { from: 22, to: 67 }, // Malware Infection -> Intrusion Detection
+            { from: 23, to: 61 }, // Unpatched Devices -> Patch Management
+            { from: 23, to: 71 }, // Unpatched Devices -> Vulnerability Management
+            { from: 24, to: 63 }, // Device Misconfiguration -> Device Hardening
+            { from: 25, to: 64 }, // Cloud Misconfiguration -> Cloud Security Policies
+            { from: 25, to: 55 }, // Cloud Misconfiguration -> Configuration Audits
+            { from: 26, to: 65 }, // Data Breaches -> Encryption Standards
+            { from: 26, to: 67 }, // Data Breaches -> Intrusion Detection
+            { from: 27, to: 66 }, // Service Outages -> High Availability
+            { from: 27, to: 53 }, // Service Outages -> Network Redundancy
+            { from: 28, to: 67 }, // Ransomware Attacks -> Intrusion Detection
+            { from: 28, to: 56 }, // Ransomware Attacks -> Backup Verification
+            { from: 28, to: 57 }, // Ransomware Attacks -> Data Integrity Checks
+            { from: 28, to: 65 }, // Ransomware Attacks -> Encryption Standards
+            { from: 28, to: 72 }, // Ransomware Attacks -> Multi-Factor Authentication
+            { from: 28, to: 71 }, // Ransomware Attacks -> Vulnerability Management
+            { from: 28, to: 70 }, // Ransomware Attacks -> Insider Threat Monitoring
+            { from: 29, to: 68 }, // Phishing Breaches -> Email Filtering
+            { from: 29, to: 52 }, // Phishing Breaches -> Staff Training
+            { from: 29, to: 72 }, // Phishing Breaches -> Multi-Factor Authentication
+            { from: 29, to: 67 }, // Phishing Breaches -> Intrusion Detection
+            { from: 30, to: 69 }, // DDoS Attacks -> DDoS Mitigation
+            { from: 31, to: 70 }, // Insider Threats -> Insider Threat Monitoring
+            { from: 31, to: 52 }, // Insider Threats -> Staff Training
+            { from: 31, to: 72 }, // Insider Threats -> Multi-Factor Authentication
+            { from: 32, to: 71 }, // Zero-Day Exploits -> Vulnerability Management
+            { from: 32, to: 67 }, // Zero-Day Exploits -> Intrusion Detection
+            { from: 33, to: 72 }, // Credential Stuffing -> Multi-Factor Authentication
+            { from: 33, to: 67 }, // Credential Stuffing -> Intrusion Detection
+            { from: 34, to: 73 }, // Supply Chain Attacks -> Vendor Risk Management
+            { from: 34, to: 67 }, // Supply Chain Attacks -> Intrusion Detection
+            { from: 34, to: 71 }  // Supply Chain Attacks -> Vulnerability Management
+        ];
+
+        // Create a network
+        const container = document.getElementById('network');
+        const data = { nodes: new vis.DataSet(nodes), edges: new vis.DataSet(edges) };
+        const options = {
+            nodes: {
+                shape: 'dot',
+                size: 20,
+                font: { size: 14, color: '#ffffff' },
+                borderWidth: 2,
+                shadow: true
+            },
+            edges: {
+                width: 2,
+                color: { color: '#a0aec0', highlight: '#e53e3e' },
+                arrows: { to: { enabled: true, scaleFactor: 0.5 } },
+                smooth: { type: 'continuous' }
+            },
+            layout: {
+                hierarchical: {
+                    direction: 'UD',
+                    sortMethod: 'directed',
+                    levelSeparation: 150,
+                    nodeSpacing: 100
+                }
+            },
+            physics: {
+                enabled: false
+            },
+            interaction: {
+                hover: true,
+                zoomView: true,
+                dragView: true
+            }
+        };
+
+        const network = new vis.Network(container, data, options);
+
+        // Menu toggle functionality
+        const toggles = {
+            serviceDesk: document.getElementById('serviceDeskToggle'),
+            networking: document.getElementById('networkingToggle'),
+            backup: document.getElementById('backupToggle'),
+            server: document.getElementById('serverToggle'),
+            endpoint: document.getElementById('endpointToggle'),
+            cloud: document.getElementById('cloudToggle'),
+            cybersecurity: document.getElementById('cybersecurityToggle'),
+            countermeasure: document.getElementById('countermeasureToggle')
+        };
+
+        const categoryNodes = {
+            serviceDesk: [2, 10, 11, 12],
+            networking: [3, 13, 14, 15],
+            backup: [4, 16, 17, 18],
+            server: [5, 19, 20, 21],
+            endpoint: [6, 22, 23, 24],
+            cloud: [7, 25, 26, 27],
+            cybersecurity: [8, 28, 29, 30, 31, 32, 33, 34]
+        };
+
+        const countermeasureNodes = [
+            50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73
+        ];
+
+        function updateVisibility() {
+            const categoryToggles = {
+                serviceDesk: toggles.serviceDesk.checked,
+                networking: toggles.networking.checked,
+                backup: toggles.backup.checked,
+                server: toggles.server.checked,
+                endpoint: toggles.endpoint.checked,
+                cloud: toggles.cloud.checked,
+                cybersecurity: toggles.cybersecurity.checked
+            };
+            const countermeasureVisible = toggles.countermeasure.checked;
+
+            // Update node visibility
+            const visibleNodes = new Set([1]); // Always include root
+            Object.keys(categoryNodes).forEach(category => {
+                if (categoryToggles[category]) {
+                    categoryNodes[category].forEach(nodeId => visibleNodes.add(nodeId));
+                }
+            });
+
+            // Update countermeasure visibility
+            nodes.forEach(node => {
+                if (node.group === "countermeasure") {
+                    const anyCategoryVisible = node.categories.some(cat => categoryToggles[cat]);
+                    if (countermeasureVisible && anyCategoryVisible) {
+                        visibleNodes.add(node.id);
+                    }
+                }
+            });
+
+            // Update nodes
+            data.nodes.update(nodes.map(node => ({
+                id: node.id,
+                hidden: !visibleNodes.has(node.id)
+            })));
+
+            // Update edges
+            const visibleEdges = edges.filter(edge => 
+                visibleNodes.has(edge.from) && visibleNodes.has(edge.to)
+            );
+            data.edges.clear();
+            data.edges.add(visibleEdges);
+        }
+
+        Object.values(toggles).forEach(toggle => {
+            toggle.addEventListener('change', updateVisibility);
+        });
+
+        // Initial visibility update
+        updateVisibility();
+
+        // Zoom to Fit button functionality
+        const zoomToFitButton = document.getElementById('zoomToFitButton');
+        zoomToFitButton.addEventListener('click', () => {
+            network.fit({ animation: { duration: 1000, easingFunction: 'easeInOutQuad' } });
+        });
+    </script>
+</body>
+</html>
