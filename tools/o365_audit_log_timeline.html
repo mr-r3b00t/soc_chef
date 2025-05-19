@@ -1,0 +1,814 @@
+<script type="text/javascript">
+        var gk_isXlsx = false;
+        var gk_xlsxFileLookup = {};
+        var gk_fileData = {};
+        function filledCell(cell) {
+          return cell !== '' && cell != null;
+        }
+        function loadFileData(filename) {
+        if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
+            try {
+                var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
+                var firstSheetName = workbook.SheetNames[0];
+                var worksheet = workbook.Sheets[firstSheetName];
+
+                // Convert sheet to JSON to filter blank rows
+                var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
+                // Filter out blank rows (rows where all cells are empty, null, or undefined)
+                var filteredData = jsonData.filter(row => row.some(filledCell));
+
+                // Heuristic to find the header row by ignoring rows with fewer filled cells than the next row
+                var headerRowIndex = filteredData.findIndex((row, index) =>
+                  row.filter(filledCell).length >= filteredData[index + 1]?.filter(filledCell).length
+                );
+                // Fallback
+                if (headerRowIndex === -1 || headerRowIndex > 25) {
+                  headerRowIndex = 0;
+                }
+
+                // Convert filtered JSON back to CSV
+                var csv = XLSX.utils.aoa_to_sheet(filteredData.slice(headerRowIndex)); // Create a new sheet from filtered array of arrays
+                csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
+                return csv;
+            } catch (e) {
+                console.error(e);
+                return "";
+            }
+        }
+        return gk_fileData[filename] || "";
+        }
+        </script><!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Email Events Timeline Tool</title>
+  <!-- Tailwind CSS via CDN for styling -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- PapaParse for CSV parsing -->
+  <script src="https://unpkg.com/papaparse@latest/papaparse.min.js"></script>
+  <!-- Vis.js for timeline visualization -->
+  <link href="https://unpkg.com/vis-timeline@7.7.2/dist/vis-timeline-graph2d.min.css" rel="stylesheet">
+  <script src="https://unpkg.com/vis-timeline@7.7.2/dist/vis-timeline-graph2d.min.js"></script>
+  <style>
+    #timeline {
+      height: 500px;
+      border: 1px solid #e2e8f0;
+      border-radius: 0.5rem;
+    }
+    #errorLog {
+      white-space: pre-wrap;
+      font-family: monospace;
+    }
+    .highlighted-event {
+      border: 2px solid #FFFF00 !important; /* Yellow border */
+      background-color: #FFFFCC !important; /* Light yellow background */
+    }
+    .vis-time-axis .vis-current-time {
+      background-color: #FF0000 !important; /* Red bar for current time */
+      width: 2px !important;
+    }
+  </style>
+</head>
+<body class="bg-gray-100 font-sans">
+  <div class="container mx-auto p-4">
+    <h1 class="text-3xl font-bold text-gray-800 mb-6">Email Events Timeline Tool</h1>
+
+    <!-- Tabs for File Import, Timeline, and Filters -->
+    <div class="mb-4">
+      <ul class="flex border-b border-gray-200">
+        <li class="mr-1">
+          <button id="importTab" class="inline-block py-2 px-4 text-blue-600 font-semibold border-b-2 border-blue-600">File Import</button>
+        </li>
+        <li class="mr-1">
+          <button id="timelineTab" class="inline-block py-2 px-4 text-gray-600 font-semibold">Timeline</button>
+        </li>
+        <li class="mr-1">
+          <button id="filtersTab" class="inline-block py-2 px-4 text-gray-600 font-semibold">Filters</button>
+        </li>
+      </ul>
+    </div>
+
+    <!-- File Import Tab Content -->
+    <div id="importContent" class="bg-white p-6 rounded-lg shadow">
+      <h2 class="text-xl font-semibold text-gray-800 mb-4">Import CSV File</h2>
+      <input type="file" id="csvFileInput" accept=".csv" class="mb-4 p-2 border rounded">
+      <button id="loadCsvButton" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">Load CSV</button>
+      <p id="importStatus" class="mt-4 text-gray-600"></p>
+      <div id="errorLog" class="mt-2 text-red-600 hidden"></div>
+    </div>
+
+    <!-- Timeline Tab Content -->
+    <div id="timelineContent" class="hidden bg-white p-6 rounded-lg shadow">
+      <h2 class="text-xl font-semibold text-gray-800 mb-4">Email Events Timeline</h2>
+      <div class="mb-4">
+        <button id="zoomToFirstButton" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 mr-2">Zoom to First Event</button>
+        <button id="zoomToPreviousButton" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 mr-2">Zoom to Previous Event</button>
+        <button id="zoomToNextButton" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">Zoom to Next Event</button>
+      </div>
+      <div id="timeline"></div>
+      <div id="eventDetails" class="mt-4 p-4 bg-gray-100 rounded-lg hidden">
+        <h3 class="text-lg font-semibold text-gray-800 mb-2">Selected Event Details</h3>
+        <p id="eventSequence" class="text-sm text-gray-700"></p>
+        <p id="eventFrom" class="text-sm text-gray-700"></p>
+        <p id="eventTo" class="text-sm text-gray-700"></p>
+        <p id="eventSubject" class="text-sm text-gray-700"></p>
+        <p id="eventTime" class="text-sm text-gray-700"></p>
+      </div>
+    </div>
+
+    <!-- Filters Tab Content -->
+    <div id="filtersContent" class="hidden bg-white p-6 rounded-lg shadow">
+      <h2 class="text-xl font-semibold text-gray-800 mb-4">Timeline Filters</h2>
+      <div class="mb-4">
+        <label for="timezoneOffset" class="block text-sm font-medium text-gray-700">Timezone Offset</label>
+        <select id="timezoneOffset" class="mt-1 p-2 border rounded w-full max-w-xs">
+          <option value="0">UTC</option>
+          <option value="1">BST (UTC+1)</option>
+          <option value="-12">UTC-12</option>
+          <option value="-11">UTC-11</option>
+          <option value="-10">UTC-10</option>
+          <option value="-9">UTC-9</option>
+          <option value="-8">UTC-8</option>
+          <option value="-7">UTC-7</option>
+          <option value="-6">UTC-6</option>
+          <option value="-5">UTC-5</option>
+          <option value="-4">UTC-4</option>
+          <option value="-3">UTC-3</option>
+          <option value="-2">UTC-2</option>
+          <option value="-1">UTC-1</option>
+          <option value="2">UTC+2</option>
+          <option value="3">UTC+3</option>
+          <option value="4">UTC+4</option>
+          <option value="5">UTC+5</option>
+          <option value="6">UTC+6</option>
+          <option value="7">UTC+7</option>
+          <option value="8">UTC+8</option>
+          <option value="9">UTC+9</option>
+          <option value="10">UTC+10</option>
+          <option value="11">UTC+11</option>
+          <option value="12">UTC+12</option>
+        </select>
+      </div>
+      <div class="mb-4">
+        <label for="startDate" class="block text-sm font-medium text-gray-700">Start Date (YYYY-MM-DD)</label>
+        <input type="date" id="startDate" class="mt-1 p-2 border rounded w-full max-w-xs" placeholder="YYYY-MM-DD">
+      </div>
+      <div class="mb-4">
+        <label for="endDate" class="block text-sm font-medium text-gray-700">End Date (YYYY-MM-DD)</label>
+        <input type="date" id="endDate" class="mt-1 p-2 border rounded w-full max-w-xs" placeholder="YYYY-MM-DD">
+      </div>
+      <button id="applyFiltersButton" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">Apply Filters</button>
+      <p id="filterStatus" class="mt-4 text-gray-600">Current timezone: UTC | Date range: All</p>
+      <p class="mt-2 text-sm text-gray-500">Note: BST (UTC+1) applies from March 30 to October 26, 2025. Enter dates in YYYY-MM-DD format.</p>
+    </div>
+  </div>
+
+  <script>
+    // Tab switching
+    const importTab = document.getElementById('importTab');
+    const timelineTab = document.getElementById('timelineTab');
+    const filtersTab = document.getElementById('filtersTab');
+    const importContent = document.getElementById('importContent');
+    const timelineContent = document.getElementById('timelineContent');
+    const filtersContent = document.getElementById('filtersContent');
+
+    function switchTab(activeTab, activeContent) {
+      [importTab, timelineTab, filtersTab].forEach(tab => {
+        tab.classList.remove('text-blue-600', 'border-blue-600');
+        tab.classList.add('text-gray-600');
+      });
+      [importContent, timelineContent, filtersContent].forEach(content => {
+        content.classList.add('hidden');
+      });
+      activeTab.classList.add('text-blue-600', 'border-blue-600');
+      activeTab.classList.remove('text-gray-600');
+      activeContent.classList.remove('hidden');
+    }
+
+    importTab.addEventListener('click', () => switchTab(importTab, importContent));
+    timelineTab.addEventListener('click', () => switchTab(timelineTab, timelineContent));
+    filtersTab.addEventListener('click', () => switchTab(filtersTab, filtersContent));
+
+    // Parse various timestamp formats
+    function parseTimestamp(timestamp) {
+      if (!timestamp) {
+        console.warn('Timestamp is null or empty');
+        return null;
+      }
+
+      console.log('Raw timestamp input:', JSON.stringify(timestamp));
+
+      let cleaned = timestamp.trim().replace(/^['"]|['"]$/g, '').replace(/\s+/g, ' ').replace(/[,;.]/g, '');
+
+      const monthNames = {
+        'jan': 1, 'january': 1, 'feb': 2, 'february': 2, 'mar': 3, 'march': 3,
+        'apr': 4, 'april': 4, 'may': 5, 'jun': 6, 'june': 6, 'jul': 7, 'july': 7,
+        'aug': 8, 'august': 8, 'sep': 9, 'september': 9, 'oct': 10, 'october': 10,
+        'nov': 11, 'november': 11, 'dec': 12, 'december': 12
+      };
+
+      let regex = /^(\d{1,2})\/(\d{1,2})\/(\d{4})\s+(\d{1,2}):(\d{2})(?::(\d{2}))?$/;
+      let match = cleaned.match(regex);
+      if (match) {
+        const [_, day, month, year, hours, minutes, seconds] = match.map(Number);
+        if (month < 1 || month > 12 || day < 1 || day > 31 || hours > 23 || minutes > 59) {
+          console.warn(`Out-of-range values in ${cleaned}: day=${day}, month=${month}, hours=${hours}, minutes=${minutes}`);
+          return null;
+        }
+        const parsedDate = new Date(year, month - 1, day, hours, minutes, seconds || 0);
+        if (isNaN(parsedDate)) {
+          console.warn(`Invalid Date from ${cleaned}`);
+          return null;
+        }
+        return parsedDate;
+      }
+
+      regex = /^(\d{1,2})\s+([A-Za-z]+)\s+(\d{4})\s+(\d{1,2}):(\d{2})(?::(\d{2}))?$/i;
+      match = cleaned.match(regex);
+      if (match) {
+        const [_, day, monthStr, year, hours, minutes, seconds] = match;
+        const month = monthNames[monthStr.toLowerCase()];
+        if (!month) {
+          console.warn(`Invalid month name '${monthStr}' in ${cleaned}`);
+          return null;
+        }
+        if (day < 1 || day > 31 || hours > 23 || minutes > 59) {
+          console.warn(`Out-of-range values in ${cleaned}: day=${day}, month=${monthStr}, hours=${hours}, minutes=${minutes}`);
+          return null;
+        }
+        const parsedDate = new Date(Number(year), month - 1, Number(day), Number(hours), Number(minutes), Number(seconds) || 0);
+        if (isNaN(parsedDate)) {
+          console.warn(`Invalid Date from ${cleaned}`);
+          return null;
+        }
+        return parsedDate;
+      }
+
+      const parsedDate = new Date(Date.parse(cleaned));
+      if (!isNaN(parsedDate)) {
+        console.log(`Fallback parse succeeded for ${cleaned}`);
+        return parsedDate;
+      }
+
+      console.warn(`Failed to parse timestamp: ${cleaned}`);
+      return null;
+    }
+
+    // Check if a date is in BST period (March 30 to October 26, 2025)
+    function isBST(date) {
+      const year = date.getFullYear();
+      const bstStart = new Date(year, 2, 30); // March 30, 2025
+      const bstEnd = new Date(year, 9, 26); // October 26, 2025
+      return date >= bstStart && date <= bstEnd;
+    }
+
+    // Validate non-empty string
+    function isValidNonEmptyString(value) {
+      const isValid = typeof value === 'string' && value.trim().length > 0 && value.trim() !== '""';
+      console.log(`Validating string: value="${value}" (type: ${typeof value}), isValid=${isValid}`);
+      return isValid;
+    }
+
+    // CSV file input and processing
+    const csvFileInput = document.getElementById('csvFileInput');
+    const loadCsvButton = document.getElementById('loadCsvButton');
+    const importStatus = document.getElementById('importStatus');
+    const errorLog = document.getElementById('errorLog');
+    let emailData = [];
+
+    loadCsvButton.addEventListener('click', () => {
+      const file = csvFileInput.files[0];
+      if (!file) {
+        importStatus.textContent = 'Please select a CSV file.';
+        errorLog.classList.add('hidden');
+        return;
+      }
+
+      importStatus.textContent = 'Loading...';
+      errorLog.classList.add('hidden');
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        let text = e.target.result;
+        if (text.startsWith('\uFEFF')) {
+          text = text.slice(1);
+        }
+        Papa.parse(text, {
+          header: true,
+          skipEmptyLines: 'greedy',
+          dynamicTyping: false,
+          transformHeader: header => header.trim().replace(/^"|"$/g, ''),
+          transform: (value) => {
+            if (value === null || value === undefined || value === '' || value.trim() === '""') {
+              console.log(`Transforming value: "${value}" -> null`);
+              return null;
+            }
+            const cleaned = value.trim().replace(/^"|"$/g, '');
+            console.log(`Transforming value: "${value}" -> "${cleaned}"`);
+            return cleaned === '' ? null : cleaned;
+          },
+          complete: results => {
+            console.log('Raw parsed rows:', results.data);
+            const requiredHeaders = ['Timestamp', 'SenderFromAddress', 'RecipientEmailAddress'];
+            const headers = results.meta.fields || [];
+            const missingHeaders = requiredHeaders.filter(h => !headers.includes(h));
+            if (missingHeaders.length > 0) {
+              importStatus.textContent = `Error: Missing required headers: ${missingHeaders.join(', ')}`;
+              errorLog.classList.add('hidden');
+              return;
+            }
+
+            const errors = [];
+            emailData = results.data.filter((row, index) => {
+              console.log(`Validating row ${index}:`, {
+                Timestamp: row.Timestamp,
+                SenderFromAddress: row.SenderFromAddress,
+                RecipientEmailAddress: row.RecipientEmailAddress
+              });
+              if (!row.Timestamp) {
+                errors.push(`Row ${index} ${JSON.stringify(row)}: Missing Timestamp`);
+                return false;
+              }
+              if (!isValidNonEmptyString(row.SenderFromAddress)) {
+                errors.push(`Row ${index} ${JSON.stringify(row)}: Missing or invalid SenderFromAddress (value: "${row.SenderFromAddress}")`);
+                return false;
+              }
+              if (!isValidNonEmptyString(row.RecipientEmailAddress)) {
+                errors.push(`Row ${index} ${JSON.stringify(row)}: Missing or invalid RecipientEmailAddress (value: "${row.RecipientEmailAddress}")`);
+                return false;
+              }
+              const parsedTime = parseTimestamp(row.Timestamp);
+              if (!parsedTime) {
+                errors.push(`Row ${index} ${JSON.stringify(row)}: Invalid timestamp: ${row.Timestamp}`);
+                return false;
+              }
+              row.parsedTimestamp = parsedTime; // Store parsed timestamp
+              return true;
+            });
+
+            importStatus.textContent = `Loaded ${emailData.length} valid email events.`;
+            if (emailData.length === 0) {
+              importStatus.textContent += ' No valid events found. Ensure CSV has valid Timestamp, SenderFromAddress, and RecipientEmailAddress. Check error log and console.';
+            }
+            if (errors.length > 0) {
+              errorLog.textContent = `Errors encountered:\n${errors.join('\n')}`;
+              errorLog.classList.remove('hidden');
+            }
+            renderTimeline();
+          },
+          error: err => {
+            importStatus.textContent = `Error loading CSV: ${err.message}`;
+            errorLog.textContent = `PapaParse error: ${err.message}`;
+            errorLog.classList.remove('hidden');
+            console.error('PapaParse error:', err);
+          }
+        });
+      };
+      reader.onerror = function() {
+        importStatus.textContent = 'Error reading file.';
+        errorLog.classList.add('hidden');
+      };
+      reader.readAsText(file);
+    });
+
+    // Filters and timeline handling
+    const timezoneOffsetSelect = document.getElementById('timezoneOffset');
+    const startDateInput = document.getElementById('startDate');
+    const endDateInput = document.getElementById('endDate');
+    const applyFiltersButton = document.getElementById('applyFiltersButton');
+    const zoomToFirstButton = document.getElementById('zoomToFirstButton');
+    const zoomToPreviousButton = document.getElementById('zoomToPreviousButton');
+    const zoomToNextButton = document.getElementById('zoomToNextButton');
+    const filterStatus = document.getElementById('filterStatus');
+    const eventDetails = document.getElementById('eventDetails');
+    const eventSequence = document.getElementById('eventSequence');
+    const eventFrom = document.getElementById('eventFrom');
+    const eventTo = document.getElementById('eventTo');
+    const eventSubject = document.getElementById('eventSubject');
+    const eventTime = document.getElementById('eventTime');
+    let currentTimezoneOffset = 0; // Default to UTC
+    let startDate = null; // No start date filter by default
+    let endDate = null; // No end date filter by default
+    let timelineInstance = null; // Store the Vis.js timeline instance
+    let currentEventId = null; // Track the current event for navigation
+
+    applyFiltersButton.addEventListener('click', () => {
+      currentTimezoneOffset = Number(timezoneOffsetSelect.value);
+      startDate = startDateInput.value ? new Date(startDateInput.value + 'T00:00:00Z') : null;
+      endDate = endDateInput.value ? new Date(endDateInput.value + 'T23:59:59Z') : null;
+
+      // Validate date range
+      if (startDate && endDate && startDate > endDate) {
+        filterStatus.textContent = 'Error: Start date cannot be after end date.';
+        return;
+      }
+
+      const timezoneText = `Current timezone: ${currentTimezoneOffset >= 0 ? '+' : ''}${currentTimezoneOffset} hours from UTC${currentTimezoneOffset === 1 ? ' (BST)' : ''}`;
+      const dateRangeText = startDate || endDate ? ` | Date range: ${startDate ? startDate.toISOString().split('T')[0] : 'Any'} to ${endDate ? endDate.toISOString().split('T')[0] : 'Any'}` : ' | Date range: All';
+      filterStatus.textContent = timezoneText + dateRangeText;
+
+      // Reset current event and event details on filter change
+      currentEventId = null;
+      eventDetails.classList.add('hidden');
+      eventSequence.textContent = '';
+      eventFrom.textContent = '';
+      eventTo.textContent = '';
+      eventSubject.textContent = '';
+      eventTime.textContent = '';
+      renderTimeline();
+    });
+
+    // Render timeline with Vis.js
+    function renderTimeline() {
+      const container = document.getElementById('timeline');
+
+      // Clear existing timeline instance and content
+      if (timelineInstance) {
+        timelineInstance.destroy();
+        timelineInstance = null;
+      }
+      container.innerHTML = '';
+
+      const items = emailData.map((row, index) => {
+        const originalTimestamp = row.parsedTimestamp;
+        if (!originalTimestamp) {
+          console.warn(`Skipping row ${index}: No valid parsed timestamp`);
+          return null;
+        }
+
+        // Strict validation for From and To
+        if (!isValidNonEmptyString(row.SenderFromAddress) || !isValidNonEmptyString(row.RecipientEmailAddress)) {
+          console.warn(`Skipping row ${index}: Invalid From or To data`, {
+            SenderFromAddress: row.SenderFromAddress,
+            RecipientEmailAddress: row.RecipientEmailAddress
+          });
+          return null;
+        }
+
+        // Debug row data
+        console.log(`Rendering row ${index}:`, {
+          SenderFromAddress: row.SenderFromAddress,
+          RecipientEmailAddress: row.RecipientEmailAddress,
+          Subject: row.Subject,
+          Timestamp: row.Timestamp,
+          ParsedTimestamp: originalTimestamp
+        });
+
+        // Apply timezone offset
+        const adjustedTimestamp = new Date(originalTimestamp.getTime() + currentTimezoneOffset * 60 * 60 * 1000);
+
+        // Apply date range filter
+        if (startDate && adjustedTimestamp < startDate) {
+          console.log(`Row ${index} filtered out: Timestamp ${adjustedTimestamp} before start date ${startDate}`);
+          return null;
+        }
+        if (endDate && adjustedTimestamp > endDate) {
+          console.log(`Row ${index} filtered out: Timestamp ${adjustedTimestamp} after end date ${endDate}`);
+          return null;
+        }
+
+        // Check if the original timestamp is in BST period
+        const isInBST = isBST(originalTimestamp);
+        const bstNote = isInBST ? ' (Detected as BST period)' : '';
+
+        // Format content with guaranteed From and To
+        const content = `
+          <div class="text-sm">
+            <strong>From:</strong> ${row.SenderFromAddress}<br>
+            <strong>To:</strong> ${row.RecipientEmailAddress}<br>
+            <strong>Subject:</strong> ${row.Subject || 'No Subject'}<br>
+            <strong>Time:</strong> ${adjustedTimestamp.toLocaleString('en-GB', { timeZone: 'UTC' })}${bstNote}
+          </div>
+        `;
+
+        // Use adjusted timestamp for tooltip and event details
+        const tooltipTimestamp = adjustedTimestamp.toLocaleString('en-GB', {
+          day: '2-digit',
+          month: '2-digit',
+          year: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit',
+          second: '2-digit',
+          hour12: false
+        }).replace(',', '');
+
+        return {
+          id: index,
+          content: content,
+          start: adjustedTimestamp,
+          title: `From: ${row.SenderFromAddress} | To: ${row.RecipientEmailAddress} | Subject: ${row.Subject || 'No Subject'} | Time: ${tooltipTimestamp}${bstNote}`,
+          from: row.SenderFromAddress,
+          to: row.RecipientEmailAddress,
+          subject: row.Subject || 'No Subject',
+          time: tooltipTimestamp + bstNote
+        };
+      }).filter(item => item !== null)
+        .sort((a, b) => a.start - b.start) // Sort by adjustedTimestamp ascending
+        .map((item, seqIndex) => ({
+          ...item,
+          sequence: seqIndex + 1 // Assign sequence starting at 1 based on chronological order
+        }));
+
+      if (items.length === 0) {
+        container.innerHTML = '<p class="text-gray-600">No valid events to display. Please check the CSV file, error log, or date range filters.</p>';
+        zoomToFirstButton.disabled = true;
+        zoomToPreviousButton.disabled = true;
+        zoomToNextButton.disabled = true;
+        currentEventId = null;
+        eventDetails.classList.add('hidden');
+        eventSequence.textContent = '';
+        eventFrom.textContent = '';
+        eventTo.textContent = '';
+        eventSubject.textContent = '';
+        eventTime.textContent = '';
+        return;
+      }
+
+      zoomToFirstButton.disabled = false;
+      zoomToPreviousButton.disabled = items.length <= 1; // Disable if one event
+      zoomToNextButton.disabled = items.length <= 1; // Disable if one event
+      currentEventId = null; // Reset on new render
+      eventDetails.classList.add('hidden'); // Hide event details initially
+
+      const options = {
+        height: '100%',
+        zoomable: true,
+        moveable: true,
+        margin: { 
+          item: { horizontal: 20, vertical: 40 }, // Increased vertical margin for centering
+          axis: 10
+        },
+        showCurrentTime: true, // Enable red current time bar
+        min: new Date(2025, 0, 1), // Jan 1, 2025
+        max: new Date(2026, 0, 1), // Jan 1, 2026
+        zoomMin: 1000 * 60 * 60, // 1 hour
+        align: 'center' // Center items vertically
+      };
+
+      timelineInstance = new vis.Timeline(container, items, options);
+
+      // Remove any existing event listeners to prevent duplicates
+      zoomToFirstButton.removeEventListener('click', zoomToFirstHandler);
+      zoomToPreviousButton.removeEventListener('click', zoomToPreviousHandler);
+      zoomToNextButton.removeEventListener('click', zoomToNextHandler);
+
+      // Zoom to first event handler with highlight, event details, and current time bar
+      function zoomToFirstHandler() {
+        if (!timelineInstance || items.length === 0) {
+          console.log('No events to zoom to or timeline instance missing');
+          return;
+        }
+
+        // Find the first event (earliest timestamp)
+        const firstEvent = items.reduce((earliest, item) => {
+          return !earliest || item.start < earliest.start ? item : earliest;
+        }, null);
+
+        if (firstEvent) {
+          console.log('Zooming and highlighting first event:', {
+            id: firstEvent.id,
+            sequence: firstEvent.sequence,
+            start: firstEvent.start,
+            content: firstEvent.content
+          });
+
+          // Zoom to the event (center on timestamp, ±1 hour window)
+          const windowSize = 2 * 60 * 60 * 1000; // 2 hours in milliseconds
+          timelineInstance.setWindow(
+            new Date(firstEvent.start.getTime() - windowSize / 2),
+            new Date(firstEvent.start.getTime() + windowSize / 2)
+          );
+
+          // Highlight the event
+          const eventElement = document.querySelector(`.vis-item[data-id="${firstEvent.id}"]`);
+          if (eventElement) {
+            eventElement.classList.add('highlighted-event');
+            console.log(`Highlighted event ${firstEvent.id} in yellow`);
+            // Remove highlight after 3 seconds
+            setTimeout(() => {
+              eventElement.classList.remove('highlighted-event');
+              console.log(`Removed yellow highlight from event ${firstEvent.id}`);
+            }, 3000);
+          } else {
+            console.warn(`Could not find event element for ID ${firstEvent.id}`);
+          }
+
+          // Update event details section
+          eventSequence.textContent = `Sequence Number: ${firstEvent.sequence}`;
+          eventFrom.textContent = `From: ${firstEvent.from}`;
+          eventTo.textContent = `To: ${firstEvent.to}`;
+          eventSubject.textContent = `Subject: ${firstEvent.subject}`;
+          eventTime.textContent = `Time: ${firstEvent.time}`;
+          eventDetails.classList.remove('hidden');
+
+          // Ensure current time bar is visible
+          timelineInstance.setCurrentTime(new Date());
+
+          // Set current event to first event
+          currentEventId = firstEvent.id;
+          zoomToPreviousButton.disabled = true; // No previous event
+          zoomToNextButton.disabled = items.length <= 1 || !items.some(item => item.start > firstEvent.start);
+        } else {
+          console.warn('No valid first event found');
+          eventDetails.classList.add('hidden');
+        }
+      }
+
+      // Zoom to previous event handler with highlight, event details, and current time bar
+      function zoomToPreviousHandler() {
+        if (!timelineInstance || items.length === 0) {
+          console.log('No events to zoom to or timeline instance missing');
+          return;
+        }
+
+        // If no current event, default to the last event
+        if (currentEventId === null) {
+          const lastEvent = items.reduce((latest, item) => {
+            return !latest || item.start > latest.start ? item : latest;
+          }, null);
+          if (lastEvent) {
+            currentEventId = lastEvent.id;
+          } else {
+            console.warn('No valid events to set as current');
+            eventDetails.classList.add('hidden');
+            return;
+          }
+        }
+
+        // Find the current event
+        let currentEvent = items.find(item => item.id === currentEventId);
+        if (!currentEvent) {
+          console.warn(`Current event ID ${currentEventId} not found, resetting to last event`);
+          currentEvent = items.reduce((latest, item) => {
+            return !latest || item.start > latest.start ? item : latest;
+          }, null);
+          if (currentEvent) {
+            currentEventId = currentEvent.id;
+          } else {
+            console.warn('No valid events to set as current');
+            eventDetails.classList.add('hidden');
+            return;
+          }
+        }
+
+        // Find the previous event (latest timestamp before current event)
+        const previousEvent = items
+          .filter(item => item.start < currentEvent.start)
+          .reduce((latest, item) => {
+            return !latest || item.start > latest.start ? item : latest;
+          }, null);
+
+        if (previousEvent) {
+          console.log('Zooming and highlighting previous event:', {
+            id: previousEvent.id,
+            sequence: previousEvent.sequence,
+            start: previousEvent.start,
+            content: previousEvent.content
+          });
+
+          // Zoom to the event (center on timestamp, ±1 hour window)
+          const windowSize = 2 * 60 * 60 * 1000; // 2 hours in milliseconds
+          timelineInstance.setWindow(
+            new Date(previousEvent.start.getTime() - windowSize / 2),
+            new Date(previousEvent.start.getTime() + windowSize / 2)
+          );
+
+          // Highlight the event
+          const eventElement = document.querySelector(`.vis-item[data-id="${previousEvent.id}"]`);
+          if (eventElement) {
+            eventElement.classList.add('highlighted-event');
+            console.log(`Highlighted event ${previousEvent.id} in yellow`);
+            // Remove highlight after 3 seconds
+            setTimeout(() => {
+              eventElement.classList.remove('highlighted-event');
+              console.log(`Removed yellow highlight from event ${previousEvent.id}`);
+            }, 3000);
+          } else {
+            console.warn(`Could not find event element for ID ${previousEvent.id}`);
+          }
+
+          // Update event details section
+          eventSequence.textContent = `Sequence Number: ${previousEvent.sequence}`;
+          eventFrom.textContent = `From: ${previousEvent.from}`;
+          eventTo.textContent = `To: ${previousEvent.to}`;
+          eventSubject.textContent = `Subject: ${previousEvent.subject}`;
+          eventTime.textContent = `Time: ${previousEvent.time}`;
+          eventDetails.classList.remove('hidden');
+
+          // Ensure current time bar is visible
+          timelineInstance.setCurrentTime(new Date());
+
+          // Update current event
+          currentEventId = previousEvent.id;
+          zoomToPreviousButton.disabled = !items.some(item => item.start < previousEvent.start);
+          zoomToNextButton.disabled = false; // Enable next button
+        } else {
+          console.log('No previous event found');
+          zoomToPreviousButton.disabled = true;
+          eventDetails.classList.add('hidden');
+        }
+      }
+
+      // Zoom to next event handler with highlight, event details, and current time bar
+      function zoomToNextHandler() {
+        if (!timelineInstance || items.length === 0) {
+          console.log('No events to zoom to or timeline instance missing');
+          return;
+        }
+
+        // If no current event, default to the first event
+        if (currentEventId === null) {
+          const firstEvent = items.reduce((earliest, item) => {
+            return !earliest || item.start < earliest.start ? item : earliest;
+          }, null);
+          if (firstEvent) {
+            currentEventId = firstEvent.id;
+          } else {
+            console.warn('No valid events to set as current');
+            eventDetails.classList.add('hidden');
+            return;
+          }
+        }
+
+        // Find the current event
+        let currentEvent = items.find(item => item.id === currentEventId);
+        if (!currentEvent) {
+          console.warn(`Current event ID ${currentEventId} not found, resetting to first event`);
+          currentEvent = items.reduce((earliest, item) => {
+            return !earliest || item.start < earliest.start ? item : earliest;
+          }, null);
+          if (currentEvent) {
+            currentEventId = currentEvent.id;
+          } else {
+            console.warn('No valid events to set as current');
+            eventDetails.classList.add('hidden');
+            return;
+          }
+        }
+
+        // Find the next event (earliest timestamp after current event)
+        const nextEvent = items
+          .filter(item => item.start > currentEvent.start)
+          .reduce((earliest, item) => {
+            return !earliest || item.start < earliest.start ? item : earliest;
+          }, null);
+
+        if (nextEvent) {
+          console.log('Zooming and highlighting next event:', {
+            id: nextEvent.id,
+            sequence: nextEvent.sequence,
+            start: nextEvent.start,
+            content: nextEvent.content
+          });
+
+          // Zoom to the event (center on timestamp, ±1 hour window)
+          const windowSize = 2 * 60 * 60 * 1000; // 2 hours in milliseconds
+          timelineInstance.setWindow(
+            new Date(nextEvent.start.getTime() - windowSize / 2),
+            new Date(nextEvent.start.getTime() + windowSize / 2)
+          );
+
+          // Highlight the event
+          const eventElement = document.querySelector(`.vis-item[data-id="${nextEvent.id}"]`);
+          if (eventElement) {
+            eventElement.classList.add('highlighted-event');
+            console.log(`Highlighted event ${nextEvent.id} in yellow`);
+            // Remove highlight after 3 seconds
+            setTimeout(() => {
+              eventElement.classList.remove('highlighted-event');
+              console.log(`Removed yellow highlight from event ${nextEvent.id}`);
+            }, 3000);
+          } else {
+            console.warn(`Could not find event element for ID ${nextEvent.id}`);
+          }
+
+          // Update event details section
+          eventSequence.textContent = `Sequence Number: ${nextEvent.sequence}`;
+          eventFrom.textContent = `From: ${nextEvent.from}`;
+          eventTo.textContent = `To: ${nextEvent.to}`;
+          eventSubject.textContent = `Subject: ${nextEvent.subject}`;
+          eventTime.textContent = `Time: ${nextEvent.time}`;
+          eventDetails.classList.remove('hidden');
+
+          // Ensure current time bar is visible
+          timelineInstance.setCurrentTime(new Date());
+
+          // Update current event
+          currentEventId = nextEvent.id;
+          zoomToPreviousButton.disabled = !items.some(item => item.start < nextEvent.start);
+          zoomToNextButton.disabled = !items.some(item => item.start > nextEvent.start);
+        } else {
+          console.log('No next event found');
+          zoomToNextButton.disabled = true;
+          eventDetails.classList.add('hidden');
+        }
+      }
+
+      // Attach event listeners
+      zoomToFirstButton.addEventListener('click', zoomToFirstHandler);
+      zoomToPreviousButton.addEventListener('click', zoomToPreviousHandler);
+      zoomToNextButton.addEventListener('click', zoomToNextHandler);
+    }
+  </script>
+</body>
+</html>
