@@ -59,6 +59,8 @@ Reactive Orgs that either do not have Policies, Processes and Procedures or ones
 
 🎨 [IPv4 and v6 to KQL Array](https://mr-r3b00t.github.io/soc_chef/tools/ip_to_kql_array.html)
 
+🎨 [DNS to KQL Array](https://mr-r3b00t.github.io/soc_chef/tools/tools/dns_to_kql_array.html)
+
 
 🎨 [Exernal - MSP Backup Services Assessment](https://mr-r3b00t.github.io/msp-assesment/)
 
