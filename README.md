@@ -53,7 +53,7 @@ Reactive Orgs that either do not have Policies, Processes and Procedures or ones
 
 🎨 [MSP Harms and Countermeasures](https://mr-r3b00t.github.io/soc_chef/tools/msp_harms_risk_map.html)
 
-🎨 [Email address to KQL Array](https://mr-r3b00t.github.io/tools/email_to_kql_array.html)
+🎨 [Email address to KQL Array](https://mr-r3b00t.github.io/soc_chef/tools/email_to_kql_array.html)
 
 🎨 [Exernal - MSP Backup Services Assessment](https://mr-r3b00t.github.io/msp-assesment/)
 
