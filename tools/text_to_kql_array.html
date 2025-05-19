@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Text Splitter</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 min-h-screen flex flex-col items-center justify-center p-4">
+    <div class="bg-white rounded-lg shadow-xl p-6 w-full max-w-2xl">
+        <h1 class="text-2xl font-bold text-gray-800 mb-4">Text Splitter</h1>
+        <textarea 
+            id="inputText" 
+            class="w-full h-40 p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 mb-4 resize-none"
+            placeholder="Paste your text here..."
+        ></textarea>
+        <button 
+            onclick="processText()"
+            class="w-full bg-blue-600 text-white py-2 rounded-md hover:bg-blue-700 transition duration-200"
+        >
+            Process Text
+        </button>
+        <div id="output" class="mt-4 p-3 bg-gray-50 border border-gray-200 rounded-md text-gray-700"></div>
+        <button 
+            onclick="copyToClipboard()"
+            class="mt-2 w-full bg-green-600 text-white py-2 rounded-md hover:bg-green-700 transition duration-200"
+        >
+            Copy to Clipboard
+        </button>
+    </div>
+    <footer class="mt-4 text-gray-600 text-sm">
+        &copy; xservus limited
+    </footer>
+
+    <script>
+        function processText() {
+            const input = document.getElementById('inputText').value;
+            // Split by whitespace and newlines, filter out empty strings
+            const words = input.split(/\s+/)
+                .filter(word => word.trim() !== '')
+                .map(word => `"${word.trim()}"`);
+            // Join with commas
+            const result = words.join(',');
+            // Display result or empty message
+            document.getElementById('output').innerText = 
+                result || 'No valid words found.';
+        }
+
+        function copyToClipboard() {
+            const outputText = document.getElementById('output').innerText;
+            if (outputText && outputText !== 'No valid words found.') {
+                navigator.clipboard.writeText(outputText)
+                    .then(() => {
+                        alert('Copied to clipboard!');
+                    })
+                    .catch(() => {
+                        alert('Failed to copy to clipboard.');
+                    });
+            } else {
+                alert('Nothing to copy!');
+            }
+        }
+    </script>
+</body>
+</html>
