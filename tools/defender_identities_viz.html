@@ -1,0 +1,1096 @@
+<script type="text/javascript">
+        var gk_isXlsx = false;
+        var gk_xlsxFileLookup = {};
+        var gk_fileData = {};
+        function filledCell(cell) {
+          return cell !== '' && cell != null;
+        }
+        function loadFileData(filename) {
+        if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
+            try {
+                var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
+                var firstSheetName = workbook.SheetNames[0];
+                var worksheet = workbook.Sheets[firstSheetName];
+
+                // Convert sheet to JSON to filter blank rows
+                var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
+                // Filter out blank rows (rows where all cells are empty, null, or undefined)
+                var filteredData = jsonData.filter(row => row.some(filledCell));
+
+                // Heuristic to find the header row by ignoring rows with fewer filled cells than the next row
+                var headerRowIndex = filteredData.findIndex((row, index) =>
+                  row.filter(filledCell).length >= filteredData[index + 1]?.filter(filledCell).length
+                );
+                // Fallback
+                if (headerRowIndex === -1 || headerRowIndex > 25) {
+                  headerRowIndex = 0;
+                }
+
+                // Convert filtered JSON back to CSV
+                var csv = XLSX.utils.aoa_to_sheet(filteredData.slice(headerRowIndex)); // Create a new sheet from filtered array of arrays
+                csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
+                return csv;
+            } catch (e) {
+                console.error(e);
+                return "";
+            }
+        }
+        return gk_fileData[filename] || "";
+        }
+        </script><!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CSV Entity Viewer</title>
+    <script src="https://unpkg.com/vis-network@9.1.2/standalone/umd/vis-network.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        #csvInput {
+            margin-bottom: 10px;
+        }
+        #progressContainer {
+            margin-bottom: 20px;
+        }
+        #progressBar {
+            width: 100%;
+        }
+        .table-container {
+            max-height: 300px;
+            overflow-y: auto;
+            margin-bottom: 20px;
+        }
+        #entityTable {
+            border-collapse: collapse;
+            width: 100%;
+        }
+        #entityTable th, #entityTable td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        #entityTable th {
+            background-color: #f2f2f2;
+            position: sticky;
+            top: 0;
+            z-index: 1;
+        }
+        #entityTable input[type="text"] {
+            width: 100%;
+            box-sizing: border-box;
+            padding: 4px;
+            font-size: 12px;
+        }
+        #network {
+            width: 100%;
+            height: 400px;
+            border: 1px solid #ddd;
+            position: relative;
+        }
+        #network:fullscreen {
+            height: 100%;
+            background: #fff;
+        }
+        #error {
+            color: red;
+            margin-bottom: 10px;
+        }
+        #controls {
+            margin-bottom: 10px;
+        }
+        #controls button, #controls select {
+            margin-right: 10px;
+            padding: 5px 10px;
+        }
+        #entityTypeControls, #valueFilterControls {
+            margin-top: 10px;
+        }
+        #entityTypeControls label, #valueFilterControls label {
+            margin-right: 15px;
+            font-size: 12px;
+        }
+        #valueFilterControls select {
+            width: 150px;
+            height: 100px;
+            font-size: 12px;
+        }
+        #callout, #summaryCallout {
+            display: none;
+            position: absolute;
+            background: rgba(255, 255, 255, 0.9);
+            border: 1px solid #333;
+            border-radius: 4px;
+            padding: 10px;
+            z-index: 1000;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+            font-size: 12px;
+            max-width: 300px;
+        }
+        #summaryCallout {
+            position: fixed;
+            top: 150px;
+            left: 20px;
+        }
+    </style>
+</head>
+<body>
+    <h1>CSV Entity Viewer</h1>
+    <input type="file" id="csvInput" accept=".csv">
+    <div id="progressContainer">
+        <progress id="progressBar" value="0" max="100"></progress>
+    </div>
+    <div id="error"></div>
+    <div class="table-container">
+        <table id="entityTable">
+            <thead>
+                <tr>
+                    <th><input type="text" class="filter-input" data-column="0" placeholder="Filter Display Name"></th>
+                    <th><input type="text" class="filter-input" data-column="1" placeholder="Filter Domain"></th>
+                    <th><input type="text" class="filter-input" data-column="2" placeholder="Filter Type"></th>
+                    <th><input type="text" class="filter-input" data-column="3" placeholder="Filter Source"></th>
+                    <th><input type="text" class="filter-input" data-column="4" placeholder="Filter UPN"></th>
+                    <th><input type="text" class="filter-input" data-column="5" placeholder="Filter Criticality Level"></th>
+                    <th><input type="text" class="filter-input" data-column="6" placeholder="Filter Account Status"></th>
+                </tr>
+                <tr>
+                    <th>Display Name</th>
+                    <th>Domain</th>
+                    <th>Type</th>
+                    <th>Source</th>
+                    <th>UPN</th>
+                    <th>Criticality Level</th>
+                    <th>Account Status</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
+    <div id="controls">
+        <button id="pauseButton">Pause</button>
+        <button id="resetButton">Reset</button>
+        <button id="physicsButton">Pause Physics</button>
+        <button id="zoomFitButton">Zoom to Fit</button>
+        <button id="summaryButton">Summary</button>
+        <button id="exportJsonButton">Export to JSON</button>
+        <button id="fullscreenButton">Full Screen</button>
+        <button id="minimizeButton" style="display: none;">Minimize</button>
+        <select id="layoutSelect">
+            <option value="barnes-hut">Barnes-Hut</option>
+            <option value="hierarchical">Hierarchical</option>
+            <option value="random">Random</option>
+            <option value="organic">Organic</option>
+        </select>
+        <div id="entityTypeControls">
+            <label><input type="checkbox" class="entity-type-filter" data-type="displayName" checked> Display Name</label>
+            <label><input type="checkbox" class="entity-type-filter" data-type="domain" checked> Domain</label>
+            <label><input type="checkbox" class="entity-type-filter" data-type="type" checked> Type</label>
+            <label><input type="checkbox" class="entity-type-filter" data-type="source" checked> Source</label>
+            <label><input type="checkbox" class="entity-type-filter" data-type="upn" checked> UPN</label>
+            <label><input type="checkbox" class="entity-type-filter" data-type="criticalityLevel" checked> Criticality Level</label>
+            <label><input type="checkbox" class="entity-type-filter" data-type="accountStatus" checked> Account Status</label>
+        </div>
+        <div id="valueFilterControls">
+            <button id="resetFiltersButton">Reset Filters</button>
+            <label><input type="checkbox" id="showBlanksOnly"> Show Blanks Only</label>
+            <label>Show Domains: <select multiple class="value-filter" data-group="domain"></select></label>
+            <label>Show Types: <select multiple class="value-filter" data-group="type"></select></label>
+            <label>Show Sources: <select multiple class="value-filter" data-group="source"></select></label>
+            <label>Show Criticality Levels: <select multiple class="value-filter" data-group="criticalityLevel"></select></label>
+            <label>Show Account Statuses: <select multiple class="value-filter" data-group="accountStatus"></select></label>
+        </div>
+    </div>
+    <div id="network">
+        <div id="callout"></div>
+    </div>
+    <div id="summaryCallout"></div>
+
+    <script>
+        let isPaused = false;
+        let isProcessing = false;
+        let physicsPaused = false;
+        let summaryVisible = false;
+        let network = null;
+        let nodes = null;
+        let edges = null;
+        let allNodes = [];
+        let allEdges = [];
+        let valueLists = {
+            domain: new Set(),
+            type: new Set(),
+            source: new Set(),
+            criticalityLevel: new Set(),
+            accountStatus: new Set()
+        };
+
+        // Define global constants for entity and attribute groups
+        const entityGroups = ['displayName', 'upn'];
+        const attributeGroups = ['domain', 'type', 'source', 'criticalityLevel', 'accountStatus'];
+
+        // Handle CSV file input and controls
+        document.getElementById('csvInput')?.addEventListener('change', handleFileSelect);
+        document.getElementById('pauseButton')?.addEventListener('click', togglePause);
+        document.getElementById('resetButton')?.addEventListener('click', resetVisualization);
+        document.getElementById('physicsButton')?.addEventListener('click', togglePhysics);
+        document.getElementById('zoomFitButton')?.addEventListener('click', zoomToFit);
+        document.getElementById('summaryButton')?.addEventListener('click', toggleSummary);
+        document.getElementById('exportJsonButton')?.addEventListener('click', exportToJson);
+        document.getElementById('resetFiltersButton')?.addEventListener('click', resetValueFilters);
+        document.getElementById('fullscreenButton')?.addEventListener('click', toggleFullScreen);
+        document.getElementById('minimizeButton')?.addEventListener('click', toggleFullScreen);
+        document.addEventListener('fullscreenchange', handleFullScreenChange);
+        document.addEventListener('click', handleOutsideClick);
+
+        // Add event listeners for filters
+        document.querySelectorAll('.filter-input').forEach(input => {
+            input.addEventListener('input', filterTable);
+        });
+        document.querySelectorAll('.entity-type-filter').forEach(checkbox => {
+            checkbox.addEventListener('change', filterGraphByEntityTypes);
+        });
+        document.querySelectorAll('.value-filter').forEach(select => {
+            select.addEventListener('change', filterGraphByEntityTypes);
+        });
+        document.getElementById('showBlanksOnly')?.addEventListener('change', filterGraphByEntityTypes);
+
+        // Handle table filters
+        function filterTable() {
+            try {
+                const tbody = document.querySelector('#entityTable tbody');
+                if (!tbody) {
+                    console.warn('Table body not found');
+                    return;
+                }
+                const rows = tbody.querySelectorAll('tr');
+                const filters = Array.from(document.querySelectorAll('.filter-input')).map(input => input.value.toLowerCase());
+
+                rows.forEach(row => {
+                    const cells = row.querySelectorAll('td');
+                    let showRow = true;
+
+                    filters.forEach((filter, index) => {
+                        if (filter && cells[index] && !cells[index].textContent.toLowerCase().includes(filter)) {
+                            showRow = false;
+                        }
+                    });
+
+                    row.style.display = showRow ? '' : 'none';
+                });
+            } catch (error) {
+                console.error('Error in filterTable:', error);
+                document.getElementById('error').textContent = 'Error filtering table: ' + error.message;
+            }
+        }
+
+        // Export filtered graph to JSON
+        function exportToJson() {
+            try {
+                if (!nodes || !edges || nodes.length === 0) {
+                    console.warn('No graph data available to export');
+                    document.getElementById('error').textContent = 'Error: No graph data available to export';
+                    return;
+                }
+
+                const graphData = {
+                    nodes: nodes.get().map(node => ({
+                        id: node.id,
+                        label: node.label,
+                        group: node.group,
+                        color: node.color,
+                        size: node.size
+                    })),
+                    edges: edges.get().map(edge => ({
+                        from: edge.from,
+                        to: edge.to
+                    }))
+                };
+
+                const jsonString = JSON.stringify(graphData, null, 2);
+                const blob = new Blob([jsonString], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'graph_data.json';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+
+                console.debug('Exported graph data to JSON:', graphData);
+            } catch (error) {
+                console.error('Error exporting to JSON:', error);
+                document.getElementById('error').textContent = 'Error exporting to JSON: ' + error.message;
+            }
+        }
+
+        // Populate value filter dropdowns
+        function populateValueFilters() {
+            try {
+                document.querySelectorAll('.value-filter').forEach(select => {
+                    const group = select.dataset.group;
+                    const values = Array.from(valueLists[group]).sort((a, b) => a === '' ? -1 : b === '' ? 1 : a.localeCompare(b));
+                    select.innerHTML = values.map(value => `<option value="${value}">${value === '' ? '[Blank]' : value}</option>`).join('');
+                });
+                console.debug('Value filters populated:', Object.keys(valueLists).map(group => ({ [group]: Array.from(valueLists[group]) })));
+            } catch (error) {
+                console.error('Error in populateValueFilters:', error);
+                document.getElementById('error').textContent = 'Error populating value filters: ' + error.message;
+            }
+        }
+
+        // Update graph layout
+        function updateLayout() {
+            try {
+                if (!network) {
+                    console.debug('Network not initialized, skipping layout update');
+                    return;
+                }
+                const layoutSelect = document.getElementById('layoutSelect');
+                if (!layoutSelect) {
+                    console.warn('Layout select element not found');
+                    return;
+                }
+                const layoutType = layoutSelect.value;
+                let options = {
+                    nodes: { shape: 'dot', font: { size: 12 } },
+                    edges: { width: 2 }
+                };
+
+                if (layoutType === 'hierarchical') {
+                    options.layout = {
+                        hierarchical: {
+                            direction: 'UD',
+                            sortMethod: 'directed'
+                        }
+                    };
+                    options.physics = false;
+                } else if (layoutType === 'random') {
+                    options.layout = { randomSeed: 42 };
+                    options.physics = false;
+                } else if (layoutType === 'organic') {
+                    options.physics = physicsPaused ? false : {
+                        stabilization: true,
+                        barnesHut: {
+                            gravitationalConstant: -5000,
+                            springLength: 150,
+                            springConstant: 0.04
+                        }
+                    };
+                    options.layout = { hierarchical: false };
+                } else {
+                    options.physics = physicsPaused ? false : { stabilization: true };
+                    options.layout = { hierarchical: false };
+                }
+
+                network.setOptions(options);
+                console.debug('Layout updated:', { layoutType });
+            } catch (error) {
+                console.error('Error in updateLayout:', error);
+                document.getElementById('error').textContent = 'Error updating layout: ' + error.message;
+            }
+        }
+
+        // Handle entity type and value filters
+        function filterGraphByEntityTypes() {
+            try {
+                console.debug('Starting filterGraphByEntityTypes', { allNodesLength: allNodes.length, allEdgesLength: allEdges.length });
+                
+                if (allNodes.length === 0 || allEdges.length === 0) {
+                    console.debug('No nodes or edges available for filtering');
+                    document.getElementById('error').textContent = '';
+                    if (nodes && edges) {
+                        nodes.clear();
+                        edges.clear();
+                    }
+                    return;
+                }
+
+                // Get visible entity types from checkboxes
+                const visibleTypes = new Set(Array.from(document.querySelectorAll('.entity-type-filter'))
+                    .filter(checkbox => checkbox.checked)
+                    .map(checkbox => checkbox.dataset.type));
+
+                // Get selected values from dropdowns and Show Blanks Only
+                const shownValues = {};
+                document.querySelectorAll('.value-filter').forEach(select => {
+                    const group = select.dataset.group;
+                    shownValues[group] = Array.from(select.selectedOptions).map(option => option.value);
+                });
+                const showBlanksOnly = document.getElementById('showBlanksOnly')?.checked || false;
+
+                // Define visible entity types
+                const visibleEntityTypes = entityGroups.filter(g => visibleTypes.has(g));
+
+                // Compute the final set of entity IDs, respecting visible entity types
+                let entityIds = new Set();
+                const filterGroups = attributeGroups.filter(g => shownValues[g] && shownValues[g].length > 0);
+
+                if (filterGroups.length > 0 || showBlanksOnly) {
+                    let tempEntityIds = null;
+                    // Handle each attribute group with selected values
+                    for (const group of filterGroups) {
+                        // Find attribute nodes matching selected values
+                        let selectedAttrNodes = allNodes.filter(n => n.group === group && shownValues[group].includes(n.label));
+                        // If Show Blanks Only is checked, include blank nodes
+                        if (showBlanksOnly) {
+                            const blankNodes = allNodes.filter(n => n.group === group && n.label === '');
+                            selectedAttrNodes = selectedAttrNodes.concat(blankNodes);
+                        }
+                        const selectedAttrIds = new Set(selectedAttrNodes.map(n => n.id));
+                        // Find entities with edges to these attribute nodes, restricted to visible entity types
+                        const groupEntityIds = new Set(
+                            allEdges
+                                .filter(edge => selectedAttrIds.has(edge.to))
+                                .map(edge => edge.from)
+                                .filter(id => {
+                                    const node = allNodes.find(n => n.id === id);
+                                    return node && visibleEntityTypes.includes(node.group);
+                                })
+                        );
+                        if (tempEntityIds === null) {
+                            tempEntityIds = groupEntityIds;
+                        } else {
+                            tempEntityIds = new Set([...tempEntityIds].filter(x => groupEntityIds.has(x)));
+                        }
+                    }
+                    // If Show Blanks Only is checked and no values selected, include entities connected to blank nodes
+                    if (showBlanksOnly && filterGroups.length === 0) {
+                        for (const group of attributeGroups) {
+                            const blankNodes = allNodes.filter(n => n.group === group && n.label === '');
+                            const blankAttrIds = new Set(blankNodes.map(n => n.id));
+                            const groupEntityIds = new Set(
+                                allEdges
+                                    .filter(edge => blankAttrIds.has(edge.to))
+                                    .map(edge => edge.from)
+                                    .filter(id => {
+                                        const node = allNodes.find(n => n.id === id);
+                                        return node && visibleEntityTypes.includes(node.group);
+                                    })
+                            );
+                            if (tempEntityIds === null) {
+                                tempEntityIds = groupEntityIds;
+                            } else {
+                                tempEntityIds = new Set([...tempEntityIds].filter(x => groupEntityIds.has(x)));
+                            }
+                        }
+                    }
+                    entityIds = tempEntityIds || new Set();
+                } else {
+                    // If no filters, show all entities from visible entity types
+                    entityIds = new Set(allNodes.filter(n => visibleEntityTypes.includes(n.group)).map(n => n.id));
+                }
+
+                // Log filtered entity IDs for debugging
+                console.debug('Filtered entity IDs:', Array.from(entityIds));
+                console.debug('Visible entity types:', visibleEntityTypes);
+                console.debug('Visible types:', Array.from(visibleTypes));
+
+                // Compute attribute nodes connected to the filtered entities, respecting visible types
+                const filteredAttributeIds = new Set(
+                    allEdges.filter(edge => {
+                        const toNode = allNodes.find(n => n.id === edge.to);
+                        return entityIds.has(edge.from) && toNode && visibleTypes.has(toNode.group);
+                    }).map(edge => edge.to)
+                );
+
+                // Combine entity and attribute IDs
+                const filteredNodeIds = new Set([...entityIds, ...filteredAttributeIds]);
+
+                // Filter nodes and edges
+                const filteredNodes = allNodes.filter(n => filteredNodeIds.has(n.id)).map(node => ({ ...node }));
+                const filteredEdges = allEdges.filter(edge => {
+                    const toNode = allNodes.find(n => n.id === edge.to);
+                    const fromNode = allNodes.find(n => n.id === edge.from);
+                    return entityIds.has(edge.from) && filteredNodeIds.has(edge.to) && toNode && visibleTypes.has(toNode.group) &&
+                           fromNode && visibleEntityTypes.includes(fromNode.group);
+                });
+
+                // Compute outgoing edge counts for entity nodes and set sizes
+                const outgoingEdgeCount = {};
+                filteredEdges.forEach(edge => {
+                    const fromNode = allNodes.find(n => n.id === edge.from);
+                    if (fromNode && entityGroups.includes(fromNode.group)) {
+                        outgoingEdgeCount[edge.from] = (outgoingEdgeCount[edge.from] || 0) + 1;
+                    }
+                });
+                filteredNodes.forEach(node => {
+                    if (entityGroups.includes(node.group)) {
+                        node.size = Math.min((outgoingEdgeCount[node.id] || 0) * 2 + 10, 100);
+                    } else {
+                        node.size = node.size || 10;
+                    }
+                });
+
+                // Log node sizes for debugging
+                console.debug('Filtered nodes with sizes:', filteredNodes.map(n => ({id: n.id, label: n.label, group: n.group, size: n.size})));
+                console.debug('Filtered edges:', filteredEdges);
+
+                // Update the graph
+                if (nodes && edges) {
+                    nodes.clear();
+                    nodes.add(filteredNodes);
+                    edges.clear();
+                    edges.add(filteredEdges);
+                    console.debug('Graph updated with nodes:', nodes.length, 'edges:', edges.length);
+                } else {
+                    console.error('Nodes or edges not initialized');
+                    document.getElementById('error').textContent = 'Error: Graph data not initialized';
+                }
+
+                // Update summary if visible
+                if (summaryVisible) {
+                    showSummary();
+                }
+            } catch (error) {
+                console.error('Error in filterGraphByEntityTypes:', error);
+                document.getElementById('error').textContent = 'Error filtering graph: ' + error.message;
+            }
+        }
+
+        // Reset value filters and show blanks only
+        function resetValueFilters() {
+            try {
+                document.querySelectorAll('.value-filter').forEach(select => {
+                    Array.from(select.options).forEach(option => option.selected = false);
+                });
+                const showBlanksOnly = document.getElementById('showBlanksOnly');
+                if (showBlanksOnly) {
+                    showBlanksOnly.checked = false;
+                }
+                filterGraphByEntityTypes();
+            } catch (error) {
+                console.error('Error in resetValueFilters:', error);
+                document.getElementById('error').textContent = 'Error resetting filters: ' + error.message;
+            }
+        }
+
+        // Handle summary display
+        function toggleSummary(event) {
+            try {
+                event.stopPropagation();
+                summaryVisible = !summaryVisible;
+                if (summaryVisible) {
+                    showSummary();
+                } else {
+                    const summaryCallout = document.getElementById('summaryCallout');
+                    if (summaryCallout) {
+                        summaryCallout.style.display = 'none';
+                    }
+                }
+            } catch (error) {
+                console.error('Error in toggleSummary:', error);
+                document.getElementById('error').textContent = 'Error toggling summary: ' + error.message;
+            }
+        }
+
+        function showSummary() {
+            try {
+                const summaryCallout = document.getElementById('summaryCallout');
+                if (!summaryCallout) {
+                    console.warn('Summary callout element not found');
+                    return;
+                }
+                const entityTypes = ['displayName', 'domain', 'type', 'source', 'upn', 'criticalityLevel', 'accountStatus'];
+                const counts = {};
+
+                entityTypes.forEach(type => {
+                    counts[type] = 0;
+                });
+
+                if (nodes) {
+                    nodes.get().forEach(node => {
+                        counts[node.group]++;
+                    });
+                }
+
+                const totalNodes = nodes ? nodes.length : 0;
+                const summary = `
+                    <strong>Graph Summary</strong><br>
+                    Total Entities: ${totalNodes}<br>
+                    ${entityTypes.map(type => `${type}: ${counts[type]}`).join('<br>')}
+                `;
+                summaryCallout.innerHTML = summary;
+                summaryCallout.style.display = 'block';
+            } catch (error) {
+                console.error('Error in showSummary:', error);
+                document.getElementById('error').textContent = 'Error updating summary: ' + error.message;
+            }
+        }
+
+        function handleOutsideClick(event) {
+            try {
+                const summaryCallout = document.getElementById('summaryCallout');
+                const summaryButton = document.getElementById('summaryButton');
+                if (summaryVisible && summaryCallout && summaryButton &&
+                    !summaryButton.contains(event.target) && !summaryCallout.contains(event.target)) {
+                    summaryVisible = false;
+                    summaryCallout.style.display = 'none';
+                }
+            } catch (error) {
+                console.error('Error in handleOutsideClick:', error);
+                document.getElementById('error').textContent = 'Error handling outside click: ' + error.message;
+            }
+        }
+
+        function togglePause() {
+            try {
+                isPaused = !isPaused;
+                const pauseButton = document.getElementById('pauseButton');
+                if (pauseButton) {
+                    pauseButton.textContent = isPaused ? 'Resume' : 'Pause';
+                }
+            } catch (error) {
+                console.error('Error in togglePause:', error);
+                document.getElementById('error').textContent = 'Error toggling pause: ' + error.message;
+            }
+        }
+
+        function togglePhysics() {
+            try {
+                physicsPaused = !physicsPaused;
+                const physicsButton = document.getElementById('physicsButton');
+                if (physicsButton) {
+                    physicsButton.textContent = physicsPaused ? 'Resume Physics' : 'Pause Physics';
+                }
+                updateLayout();
+            } catch (error) {
+                console.error('Error in togglePhysics:', error);
+                document.getElementById('error').textContent = 'Error toggling physics: ' + error.message;
+            }
+        }
+
+        function zoomToFit() {
+            try {
+                if (network) {
+                    network.fit({ animation: true });
+                }
+            } catch (error) {
+                console.error('Error in zoomToFit:', error);
+                document.getElementById('error').textContent = 'Error zooming to fit: ' + error.message;
+            }
+        }
+
+        function toggleFullScreen() {
+            try {
+                const networkElement = document.getElementById('network');
+                if (!networkElement) {
+                    console.warn('Network element not found');
+                    return;
+                }
+                if (!document.fullscreenElement) {
+                    networkElement.requestFullscreen().then(() => {
+                        document.getElementById('fullscreenButton').style.display = 'none';
+                        document.getElementById('minimizeButton').style.display = 'inline-block';
+                    }).catch(err => {
+                        console.error('Error entering fullscreen:', err);
+                    });
+                } else {
+                    document.exitFullscreen().then(() => {
+                        document.getElementById('fullscreenButton').style.display = 'inline-block';
+                        document.getElementById('minimizeButton').style.display = 'none';
+                    }).catch(err => {
+                        console.error('Error exiting fullscreen:', err);
+                    });
+                }
+            } catch (error) {
+                console.error('Error in toggleFullScreen:', error);
+                document.getElementById('error').textContent = 'Error toggling fullscreen: ' + error.message;
+            }
+        }
+
+        function handleFullScreenChange() {
+            try {
+                if (!document.fullscreenElement) {
+                    const fullscreenButton = document.getElementById('fullscreenButton');
+                    const minimizeButton = document.getElementById('minimizeButton');
+                    if (fullscreenButton && minimizeButton) {
+                        fullscreenButton.style.display = 'inline-block';
+                        minimizeButton.style.display = 'none';
+                    }
+                }
+            } catch (error) {
+                console.error('Error in handleFullScreenChange:', error);
+                document.getElementById('error').textContent = 'Error handling fullscreen change: ' + error.message;
+            }
+        }
+
+        function resetVisualization() {
+            try {
+                isPaused = false;
+                isProcessing = false;
+                physicsPaused = false;
+                summaryVisible = false;
+                if (document.fullscreenElement) {
+                    document.exitFullscreen();
+                }
+                const pauseButton = document.getElementById('pauseButton');
+                const physicsButton = document.getElementById('physicsButton');
+                const fullscreenButton = document.getElementById('fullscreenButton');
+                const minimizeButton = document.getElementById('minimizeButton');
+                const progressBar = document.getElementById('progressBar');
+                const errorDiv = document.getElementById('error');
+                const csvInput = document.getElementById('csvInput');
+                const callout = document.getElementById('callout');
+                const summaryCallout = document.getElementById('summaryCallout');
+                const layoutSelect = document.getElementById('layoutSelect');
+
+                if (pauseButton) pauseButton.textContent = 'Pause';
+                if (physicsButton) physicsButton.textContent = 'Pause Physics';
+                if (fullscreenButton) fullscreenButton.style.display = 'inline-block';
+                if (minimizeButton) minimizeButton.style.display = 'none';
+                if (progressBar) progressBar.value = 0;
+                if (errorDiv) errorDiv.textContent = '';
+                if (csvInput) csvInput.value = '';
+                const tbody = document.querySelector('#entityTable tbody');
+                if (tbody) tbody.innerHTML = '';
+                document.querySelectorAll('.filter-input').forEach(input => input.value = '');
+                document.querySelectorAll('.entity-type-filter').forEach(checkbox => checkbox.checked = true);
+                resetValueFilters();
+                if (layoutSelect) layoutSelect.value = 'barnes-hut';
+                if (callout) callout.style.display = 'none';
+                if (summaryCallout) summaryCallout.style.display = 'none';
+                allNodes = [];
+                allEdges = [];
+                valueLists = {
+                    domain: new Set(),
+                    type: new Set(),
+                    source: new Set(),
+                    criticalityLevel: new Set(),
+                    accountStatus: new Set()
+                };
+                if (!network || !nodes || !edges) {
+                    nodes = new vis.DataSet();
+                    edges = new vis.DataSet();
+                } else {
+                    nodes.clear();
+                    edges.clear();
+                }
+                network = null;
+            } catch (error) {
+                console.error('Error in resetVisualization:', error);
+                document.getElementById('error').textContent = 'Error resetting visualization: ' + error.message;
+            }
+        }
+
+        function handleFileSelect(event) {
+            try {
+                const file = event.target.files?.[0];
+                if (!file || isProcessing) return;
+
+                isProcessing = true;
+                const reader = new FileReader();
+                reader.onload = async function(e) {
+                    try {
+                        const text = e.target.result;
+                        await processCSV(text);
+                    } catch (error) {
+                        console.error('Error processing CSV:', error);
+                        document.getElementById('error').textContent = 'Error processing CSV: ' + error.message;
+                        document.getElementById('progressBar').value = 0;
+                    } finally {
+                        isProcessing = false;
+                    }
+                };
+                reader.readAsText(file);
+            } catch (error) {
+                console.error('Error in handleFileSelect:', error);
+                document.getElementById('error').textContent = 'Error handling file selection: ' + error.message;
+                isProcessing = false;
+            }
+        }
+
+        async function processCSV(csvText) {
+            try {
+                resetVisualization();
+                isProcessing = true;
+
+                const container = document.getElementById('network');
+                if (!container) {
+                    throw new Error('Network container not found');
+                }
+
+                nodes = new vis.DataSet();
+                edges = new vis.DataSet();
+                const dataVis = { nodes, edges };
+                const options = {
+                    nodes: { shape: 'dot', font: { size: 12 } },
+                    edges: { width: 2 },
+                    physics: { stabilization: true }
+                };
+                network = new vis.Network(container, dataVis, options);
+
+                network.on('context', (params) => {
+                    try {
+                        params.event.preventDefault();
+                        if (params.nodes.length > 0) {
+                            const nodeId = params.nodes[0];
+                            const node = nodes.get(nodeId);
+                            if (node) {
+                                showCallout(node, params.pointer.canvas.x, params.pointer.canvas.y);
+                            }
+                        } else {
+                            showCallout(null);
+                        }
+                    } catch (error) {
+                        console.error('Error in context menu handler:', error);
+                        document.getElementById('error').textContent = 'Error handling context menu: ' + error.message;
+                    }
+                });
+
+                const lines = csvText.trim().split('\n');
+                if (lines.length < 1) {
+                    throw new Error('CSV is empty');
+                }
+                const headers = lines[0].split(',').map(h => h.trim());
+                const data = lines.slice(1).map(line => {
+                    const values = [];
+                    let current = '';
+                    let inQuotes = false;
+                    for (let char of line) {
+                        if (char === '"') {
+                            inQuotes = !inQuotes;
+                        } else if (char === ',' && !inQuotes) {
+                            values.push(current.trim());
+                            current = '';
+                        } else {
+                            current += char;
+                        }
+                    }
+                    values.push(current.trim());
+                    return values;
+                });
+
+                const requiredHeaders = ['Display name', 'Domain', 'Type', 'Source', 'UPN', 'Criticality level', 'Account status'];
+                if (!requiredHeaders.every(h => headers.includes(h))) {
+                    throw new Error('CSV missing required headers');
+                }
+
+                const entities = {
+                    displayName: new Map(),
+                    domain: new Map(),
+                    type: new Map(),
+                    source: new Map(),
+                    upn: new Map(),
+                    criticalityLevel: new Map(),
+                    accountStatus: new Map()
+                };
+                const displayNameKeys = new Map();
+                const totalRows = data.length;
+                const tableData = [];
+                const tbody = document.querySelector('#entityTable tbody');
+                if (!tbody) {
+                    throw new Error('Table body not found');
+                }
+                const batchSize = 10;
+                const displayNameEdges = new Map();
+
+                for (let batchStart = 0; batchStart < data.length; batchStart += batchSize) {
+                    if (!isProcessing) break;
+                    while (isPaused) {
+                        await new Promise(resolve => setTimeout(resolve, 100));
+                    }
+
+                    const batchEnd = Math.min(batchStart + batchSize, data.length);
+                    const newEdges = [];
+
+                    for (let rowIndex = batchStart; rowIndex < batchEnd; rowIndex++) {
+                        const row = data[rowIndex];
+                        const rowData = {};
+                        headers.forEach((header, i) => {
+                            rowData[header] = row[i] || '';
+                        });
+
+                        const entityIds = {};
+                        if (rowData['Display name']) {
+                            const value = rowData['Display name'];
+                            const accountStatus = rowData['Account status'] || '';
+                            const compositeKey = `${value}|${accountStatus}`;
+                            let displayNameId;
+
+                            if (displayNameKeys.has(compositeKey)) {
+                                displayNameId = displayNameKeys.get(compositeKey).id;
+                            } else {
+                                const suffix = displayNameKeys.size;
+                                displayNameId = `dn_${value}_${suffix}`;
+                                entities.displayName.set(compositeKey, { id: displayNameId, label: value });
+                                allNodes.push({ id: displayNameId, label: value, group: 'displayName', color: '#ff9999' });
+                                displayNameKeys.set(compositeKey, { id: displayNameId, accountStatus });
+                                console.debug(`Created Display Name node: "${value}" (ID: ${displayNameId}, Account Status: "${accountStatus}")`);
+                            }
+
+                            entityIds.displayName = displayNameId;
+                        }
+                        if (rowData['Domain'] !== undefined) {
+                            const value = rowData['Domain'];
+                            if (!entities.domain.has(value)) {
+                                const id = `dom_${value}_${entities.domain.size}`;
+                                entities.domain.set(value, { id, label: value });
+                                allNodes.push({ id, label: value, group: 'domain', color: '#99ff99' });
+                                valueLists.domain.add(value);
+                            }
+                            entityIds.domain = entities.domain.get(value).id;
+                        }
+                        if (rowData['Type'] !== undefined) {
+                            const value = rowData['Type'];
+                            if (!entities.type.has(value)) {
+                                const id = `type_${value}_${entities.type.size}`;
+                                entities.type.set(value, { id, label: value });
+                                allNodes.push({ id, label: value, group: 'type', color: '#9999ff' });
+                                valueLists.type.add(value);
+                            }
+                            entityIds.type = entities.type.get(value).id;
+                        }
+                        if (rowData['Source'] !== undefined) {
+                            const value = rowData['Source'];
+                            if (!entities.source.has(value)) {
+                                const id = `src_${value}_${entities.source.size}`;
+                                entities.source.set(value, { id, label: value });
+                                allNodes.push({ id, label: value, group: 'source', color: '#ffff99' });
+                                valueLists.source.add(value);
+                            }
+                            entityIds.source = entities.source.get(value).id;
+                        }
+                        if (rowData['UPN']) {
+                            const value = rowData['UPN'];
+                            if (!entities.upn.has(value)) {
+                                const id = `upn_${value}_${entities.upn.size}`;
+                                entities.upn.set(value, { id, label: value });
+                                allNodes.push({ id, label: value, group: 'upn', color: '#ff99ff' });
+                            }
+                            entityIds.upn = entities.upn.get(value).id;
+                        }
+                        if (rowData['Criticality level'] !== undefined) {
+                            const value = rowData['Criticality level'];
+                            if (!entities.criticalityLevel.has(value)) {
+                                const id = `cl_${value}_${entities.criticalityLevel.size}`;
+                                entities.criticalityLevel.set(value, { id, label: value });
+                                allNodes.push({ id, label: value, group: 'criticalityLevel', color: '#99ffff' });
+                                valueLists.criticalityLevel.add(value);
+                            }
+                            entityIds.criticalityLevel = entities.criticalityLevel.get(value).id;
+                        }
+                        if (rowData['Account status'] !== undefined) {
+                            const value = rowData['Account status'];
+                            if (!entities.accountStatus.has(value)) {
+                                const id = `as_${value}_${entities.accountStatus.size}`;
+                                entities.accountStatus.set(value, { id, label: value });
+                                allNodes.push({ id, label: value, group: 'accountStatus', color: '#ffcc99' });
+                                valueLists.accountStatus.add(value);
+                            }
+                            entityIds.accountStatus = entities.accountStatus.get(value).id;
+                        }
+
+                        const otherEntityTypes = ['domain', 'type', 'source', 'criticalityLevel', 'accountStatus'];
+                        if (entityIds.displayName) {
+                            otherEntityTypes.forEach(key => {
+                                if (entityIds[key]) {
+                                    const edge = { from: entityIds.displayName, to: entityIds[key] };
+                                    newEdges.push(edge);
+                                    allEdges.push(edge);
+                                    if (key === 'accountStatus') {
+                                        const displayNameId = entityIds.displayName;
+                                        if (!displayNameEdges.has(displayNameId)) {
+                                            displayNameEdges.set(displayNameId, new Set());
+                                        }
+                                        displayNameEdges.get(displayNameId).add(rowData['Account status']);
+                                    }
+                                }
+                            });
+                            if (entityIds.upn) {
+                                const edge = { from: entityIds.displayName, to: entityIds.upn };
+                                newEdges.push(edge);
+                                allEdges.push(edge);
+                            }
+                        }
+                        if (entityIds.upn) {
+                            otherEntityTypes.forEach(key => {
+                                if (entityIds[key]) {
+                                    const edge = { from: entityIds.upn, to: entityIds[key] };
+                                    newEdges.push(edge);
+                                    allEdges.push(edge);
+                                }
+                            });
+                        }
+
+                        tableData.push(row);
+                        const tr = document.createElement('tr');
+                        requiredHeaders.forEach(header => {
+                            const td = document.createElement('td');
+                            const index = headers.indexOf(header);
+                            td.textContent = row[index] || '';
+                            tr.appendChild(td);
+                        });
+                        tbody.appendChild(tr);
+                    }
+
+                    filterTable();
+
+                    const incomingEdgeCount = {};
+                    allEdges.forEach(edge => {
+                        incomingEdgeCount[edge.to] = (incomingEdgeCount[edge.to] || 0) + 1;
+                    });
+                    allNodes.forEach(node => {
+                        if (!entityGroups.includes(node.group)) {
+                            node.size = Math.min((incomingEdgeCount[node.id] || 0) * 2 + 10, 100);
+                        } else {
+                            node.size = 10;
+                        }
+                    });
+
+                    let validationErrors = [];
+                    displayNameEdges.forEach((statuses, displayNameId) => {
+                        const displayName = allNodes.find(n => n.id === displayNameId)?.label || 'Unknown';
+                        if (statuses.has('Enabled') && statuses.has('Disabled')) {
+                            const errorMsg = `Validation Error: Display Name "${displayName}" is connected to both Enabled and Disabled Account Status nodes`;
+                            validationErrors.push(errorMsg);
+                            console.warn(errorMsg);
+                        }
+                    });
+                    if (validationErrors.length > 0) {
+                        document.getElementById('error').textContent = `Data validation errors: ${validationErrors.join('; ')}`;
+                    } else {
+                        document.getElementById('error').textContent = '';
+                    }
+
+                    document.getElementById('progressBar').value = (batchEnd / totalRows) * 100;
+
+                    if (typeof updateLayout === 'function') {
+                        updateLayout();
+                    } else {
+                        console.warn('updateLayout function not found, skipping layout update');
+                    }
+
+                    await new Promise(resolve => setTimeout(resolve, 10));
+                }
+
+                // Validate data before filtering
+                console.debug('Post-processing state:', { allNodesLength: allNodes.length, allEdgesLength: allEdges.length });
+                if (allNodes.length === 0 || allEdges.length === 0) {
+                    document.getElementById('error').textContent = 'Error: No valid nodes or edges created from CSV';
+                    isProcessing = false;
+                    return;
+                }
+
+                filterGraphByEntityTypes();
+                if (typeof populateValueFilters === 'function') {
+                    populateValueFilters();
+                } else {
+                    console.warn('populateValueFilters function not found, skipping value filter population');
+                }
+
+                if (isProcessing) {
+                    document.getElementById('progressBar').value = 100;
+                }
+            } catch (error) {
+                console.error('Error in processCSV:', error);
+                document.getElementById('error').textContent = 'Error processing CSV: ' + error.message;
+                document.getElementById('progressBar').value = 0;
+            } finally {
+                isProcessing = false;
+            }
+        }
+    </script>
+</body>
+</html>
