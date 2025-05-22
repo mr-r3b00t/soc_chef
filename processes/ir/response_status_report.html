@@ -205,6 +205,21 @@
         }
       }, [incidentDetails, lifecycle, closeDown, recommendations]);
 
+      // Clear local storage and reset state
+      const clearLocalStorage = () => {
+        if (window.confirm('Are you sure you want to clear all saved data? This will reset the app to its initial state.')) {
+          try {
+            localStorage.removeItem('cyberIncidentTrackerState');
+            setIncidentDetails(initialIncidentDetails);
+            setLifecycle(initialLifecycle);
+            setCloseDown(initialCloseDown);
+            setRecommendations(initialRecommendations);
+          } catch (e) {
+            console.error('Failed to clear local storage:', e);
+          }
+        }
+      };
+
       // Handle input changes for incident details
       const handleInputChange = (e) => {
         const { name, value } = e.target;
@@ -633,6 +648,12 @@
                   className="bg-purple-600 text-white px-4 py-2 rounded-md hover:bg-purple-700"
                 >
                   Print to PDF
+                </button>
+                <button
+                  onClick={clearLocalStorage}
+                  className="bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700"
+                >
+                  Clear Local Storage
                 </button>
               </div>
             </div>
