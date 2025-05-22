@@ -51,6 +51,7 @@
             { id: 'prep7', text: "Advise the Customer/Business is responsible for its decision making and actions", completed: false },
           ],
           notes: '',
+          nextActions: '',
         },
         identification: {
           active: false,
@@ -63,6 +64,7 @@
             { id: 'id5', text: 'Analyze user behavior for anomalies', completed: false },
           ],
           notes: '',
+          nextActions: '',
         },
         containment: {
           active: false,
@@ -74,6 +76,7 @@
             { id: 'cont4', text: 'Restrict insider access to sensitive systems', completed: false },
           ],
           notes: '',
+          nextActions: '',
         },
         eradication: {
           active: false,
@@ -85,6 +88,7 @@
             { id: 'erad4', text: 'Conduct deep forensic analysis for insider actions', completed: false },
           ],
           notes: '',
+          nextActions: '',
         },
         intelSharing: {
           active: false,
@@ -96,6 +100,7 @@
             { id: 'intel4', text: 'Share with Law Enforcement', completed: false },
           ],
           notes: '',
+          nextActions: '',
         },
         recovery: {
           active: false,
@@ -107,6 +112,7 @@
             { id: 'rec4', text: 'Reintegrate employees after clearance', completed: false },
           ],
           notes: '',
+          nextActions: '',
         },
         lessonsLearned: {
           active: false,
@@ -118,6 +124,7 @@
             { id: 'll4', text: 'Enhance insider threat training', completed: false },
           ],
           notes: '',
+          nextActions: '',
         },
       };
 
@@ -130,6 +137,7 @@
           { id: 'close4', text: 'Customer Sign Off', completed: false },
         ],
         notes: '',
+        nextActions: '',
       };
 
       // Initial state for recommendations
@@ -234,9 +242,22 @@
         }));
       };
 
+      // Handle next actions changes for lifecycle phases
+      const handleNextActionsChange = (phase, value) => {
+        setLifecycle((prev) => ({
+          ...prev,
+          [phase]: { ...prev[phase], nextActions: value },
+        }));
+      };
+
       // Handle notes changes for close down
       const handleCloseDownNotesChange = (value) => {
         setCloseDown((prev) => ({ ...prev, notes: value }));
+      };
+
+      // Handle next actions changes for close down
+      const handleCloseDownNextActionsChange = (value) => {
+        setCloseDown((prev) => ({ ...prev, nextActions: value }));
       };
 
       // Handle recommendations changes
@@ -295,7 +316,7 @@
         }
       };
 
-      // Calculate progress (including close down tasks, excluding recommendations)
+      // Calculate progress (including close down tasks, excluding recommendations and next actions)
       const calculateProgress = () => {
         const totalTasks = Object.values(lifecycle).reduce(
           (sum, phase) => sum + phase.tasks.length,
@@ -396,7 +417,7 @@
         y = doc.lastAutoTable.finalY + 10;
 
         // Lifecycle Phases
-        Object.entries(lifecycle).forEach(([phase, { active, completed, tasks, notes }]) => {
+        Object.entries(lifecycle).forEach(([phase, { active, completed, tasks, notes, nextActions }]) => {
           addNewPage();
           doc.setFontSize(12);
           doc.setFont('helvetica', 'bold');
@@ -425,6 +446,19 @@
           doc.setFont('helvetica', 'normal');
           const notesLines = doc.splitTextToSize(notes || 'No notes provided.', pageWidth - 2 * margin);
           notesLines.forEach(line => {
+            doc.text(line, margin, y);
+            y += 6;
+          });
+
+          // Next Actions
+          doc.setFontSize(10);
+          doc.setFont('helvetica', 'bold');
+          doc.text('Next Actions:', margin, y);
+          y += 6;
+          doc.setFontSize(10);
+          doc.setFont('helvetica', 'normal');
+          const nextActionsLines = doc.splitTextToSize(nextActions || 'No next actions provided.', pageWidth - 2 * margin);
+          nextActionsLines.forEach(line => {
             doc.text(line, margin, y);
             y += 6;
           });
@@ -460,6 +494,19 @@
         doc.setFont('helvetica', 'normal');
         const closeDownNotesLines = doc.splitTextToSize(closeDown.notes || 'No notes provided.', pageWidth - 2 * margin);
         closeDownNotesLines.forEach(line => {
+          doc.text(line, margin, y);
+          y += 6;
+        });
+
+        // Next Actions
+        doc.setFontSize(10);
+        doc.setFont('helvetica', 'bold');
+        doc.text('Next Actions:', margin, y);
+        y += 6;
+        doc.setFontSize(10);
+        doc.setFont('helvetica', 'normal');
+        const closeDownNextActionsLines = doc.splitTextToSize(closeDown.nextActions || 'No next actions provided.', pageWidth - 2 * margin);
+        closeDownNextActionsLines.forEach(line => {
           doc.text(line, margin, y);
           y += 6;
         });
@@ -667,7 +714,7 @@
           </div>
 
           {/* Lifecycle Phases */}
-          {Object.entries(lifecycle).map(([phase, { active, completed, tasks, notes }]) => (
+          {Object.entries(lifecycle).map(([phase, { active, completed, tasks, notes, nextActions }]) => (
             <div key={phase} className="bg-white p-6 rounded-lg shadow-md mb-4">
               <h2 className="text-xl font-semibold text-gray-700 capitalize mb-4">
                 {phase} {active && <span className="text-blue-500">(Active)</span>}
@@ -699,6 +746,16 @@
                   className="mt-1 w-full p-2 border rounded-md focus:ring focus:ring-blue-300"
                   rows="4"
                   placeholder="Enter notes for this phase"
+                ></textarea>
+              </div>
+              <div className="mt-4">
+                <label className="block text-sm font-medium text-gray-600">Next Actions</label>
+                <textarea
+                  value={nextActions}
+                  onChange={(e) => handleNextActionsChange(phase, e.target.value)}
+                  className="mt-1 w-full p-2 border rounded-md focus:ring focus:ring-blue-300"
+                  rows="4"
+                  placeholder="Enter next actions for this phase"
                 ></textarea>
               </div>
               {(active || completed) && (
@@ -746,6 +803,16 @@
                 className="mt-1 w-full p-2 border rounded-md focus:ring focus:ring-blue-300"
                 rows="4"
                 placeholder="Enter notes for incident close down"
+              ></textarea>
+            </div>
+            <div className="mt-4">
+              <label className="block text-sm font-medium text-gray-600">Next Actions</label>
+              <textarea
+                value={closeDown.nextActions}
+                onChange={(e) => handleCloseDownNextActionsChange(e.target.value)}
+                className="mt-1 w-full p-2 border rounded-md focus:ring focus:ring-blue-300"
+                rows="4"
+                placeholder="Enter next actions for incident close down"
               ></textarea>
             </div>
           </div>
