@@ -14,7 +14,7 @@
 <body class="bg-gray-100 min-h-screen flex flex-col">
   <div id="root" class="flex-grow"></div>
   <footer class="bg-gray-800 text-white text-center py-4">
-    <p class="text-sm font-semibold">CONFIDENTIAL</p>
+    <p className="text-sm font-semibold">CONFIDENTIAL</p>
   </footer>
 
   <script type="text/babel">
@@ -29,7 +29,7 @@
         respondingOrg: '',
         customerOrg: '',
         incidentId: `INC-${Math.floor(1000 + Math.random() * 9000)}`,
-        createdAt: new Date().toLocaleString(),
+        createdAt: new Date().toLocaleString('en-GB', { timeZone: 'Europe/London' }),
         status: 'DRAFT',
         incidentStatus: 'Initial',
         tlp: 'RED',
@@ -145,6 +145,9 @@
         recommendations: '',
       };
 
+      // Initial state for tracking log
+      const initialTrackingLog = [];
+
       // Load state from local storage or use initial state
       const [incidentDetails, setIncidentDetails] = useState(() => {
         const savedState = localStorage.getItem('cyberIncidentTrackerState');
@@ -198,6 +201,25 @@
         return initialRecommendations;
       });
 
+      const [trackingLog, setTrackingLog] = useState(() => {
+        const savedState = localStorage.getItem('cyberIncidentTrackerState');
+        if (savedState) {
+          try {
+            const parsed = JSON.parse(savedState);
+            return parsed.trackingLog || initialTrackingLog;
+          } catch (e) {
+            console.error('Failed to parse local storage state:', e);
+          }
+        }
+        return initialTrackingLog;
+      });
+
+      // Helper function to add a log entry
+      const addLogEntry = (action) => {
+        const timestamp = new Date().toLocaleString('en-GB', { timeZone: 'Europe/London' });
+        setTrackingLog((prev) => [...prev, { timestamp, action }]);
+      };
+
       // Save state to local storage whenever it changes
       useEffect(() => {
         const state = {
@@ -205,23 +227,26 @@
           lifecycle,
           closeDown,
           recommendations,
+          trackingLog,
         };
         try {
           localStorage.setItem('cyberIncidentTrackerState', JSON.stringify(state));
         } catch (e) {
           console.error('Failed to save state to local storage:', e);
         }
-      }, [incidentDetails, lifecycle, closeDown, recommendations]);
+      }, [incidentDetails, lifecycle, closeDown, recommendations, trackingLog]);
 
       // Clear local storage and reset state
       const clearLocalStorage = () => {
         if (window.confirm('Are you sure you want to clear all saved data? This will reset the app to its initial state.')) {
           try {
+            addLogEntry('Cleared local storage');
             localStorage.removeItem('cyberIncidentTrackerState');
             setIncidentDetails(initialIncidentDetails);
             setLifecycle(initialLifecycle);
             setCloseDown(initialCloseDown);
             setRecommendations(initialRecommendations);
+            setTrackingLog([]);
           } catch (e) {
             console.error('Failed to clear local storage:', e);
           }
@@ -231,11 +256,13 @@
       // Handle input changes for incident details
       const handleInputChange = (e) => {
         const { name, value } = e.target;
+        addLogEntry(`Updated ${name} to ${value || 'empty'}`);
         setIncidentDetails((prev) => ({ ...prev, [name]: value }));
       };
 
       // Handle notes changes for lifecycle phases
       const handleNotesChange = (phase, value) => {
+        addLogEntry(`Updated Notes in ${phase.charAt(0).toUpperCase() + phase.slice(1)}`);
         setLifecycle((prev) => ({
           ...prev,
           [phase]: { ...prev[phase], notes: value },
@@ -244,6 +271,7 @@
 
       // Handle next actions changes for lifecycle phases
       const handleNextActionsChange = (phase, value) => {
+        addLogEntry(`Updated Next Actions in ${phase.charAt(0).toUpperCase() + phase.slice(1)}`);
         setLifecycle((prev) => ({
           ...prev,
           [phase]: { ...prev[phase], nextActions: value },
@@ -252,40 +280,50 @@
 
       // Handle notes changes for close down
       const handleCloseDownNotesChange = (value) => {
+        addLogEntry('Updated Notes in Incident Close Down');
         setCloseDown((prev) => ({ ...prev, notes: value }));
       };
 
       // Handle next actions changes for close down
       const handleCloseDownNextActionsChange = (value) => {
+        addLogEntry('Updated Next Actions in Incident Close Down');
         setCloseDown((prev) => ({ ...prev, nextActions: value }));
       };
 
       // Handle recommendations changes
       const handleRecommendationsChange = (value) => {
+        addLogEntry('Updated Recommendations');
         setRecommendations((prev) => ({ ...prev, recommendations: value }));
       };
 
       // Toggle task completion for lifecycle phases
       const toggleTask = (phase, taskId) => {
-        setLifecycle((prev) => ({
-          ...prev,
-          [phase]: {
-            ...prev[phase],
-            tasks: prev[phase].tasks.map((task) =>
-              task.id === taskId ? { ...task, completed: !task.completed } : task
-            ),
-          },
-        }));
+        setLifecycle((prev) => {
+          const updatedTasks = prev[phase].tasks.map((task) =>
+            task.id === taskId ? { ...task, completed: !task.completed } : task
+          );
+          const task = updatedTasks.find((t) => t.id === taskId);
+          addLogEntry(`${task.completed ? 'Completed' : 'Uncompleted'} task: ${task.text} in ${phase.charAt(0).toUpperCase() + phase.slice(1)}`);
+          return {
+            ...prev,
+            [phase]: { ...prev[phase], tasks: updatedTasks },
+          };
+        });
       };
 
       // Toggle task completion for close down
       const toggleCloseDownTask = (taskId) => {
-        setCloseDown((prev) => ({
-          ...prev,
-          tasks: prev.tasks.map((task) =>
+        setCloseDown((prev) => {
+          const updatedTasks = prev.tasks.map((task) =>
             task.id === taskId ? { ...task, completed: !task.completed } : task
-          ),
-        }));
+          );
+          const task = updatedTasks.find((t) => t.id === taskId);
+          addLogEntry(`${task.completed ? 'Completed' : 'Uncompleted'} task: ${task.text} in Incident Close Down`);
+          return {
+            ...prev,
+            tasks: updatedTasks,
+          };
+        });
       };
 
       // Toggle phase active status
@@ -296,6 +334,7 @@
 
         if (isActive && currentIndex < phases.length - 1) {
           // Mark current phase as complete and activate next phase
+          addLogEntry(`Marked ${currentPhase.charAt(0).toUpperCase() + currentPhase.slice(1)} as complete`);
           setLifecycle((prev) => ({
             ...prev,
             [currentPhase]: { ...prev[currentPhase], active: false, completed: true },
@@ -303,6 +342,7 @@
           }));
         } else if (!isActive && lifecycle[currentPhase].completed) {
           // Re-open the phase and deactivate all subsequent phases
+          addLogEntry(`Re-opened ${currentPhase.charAt(0).toUpperCase() + currentPhase.slice(1)}`);
           setLifecycle((prev) => {
             const updated = { ...prev };
             // Deactivate all phases after the current one and reset completed status
@@ -337,6 +377,7 @@
           lifecycle,
           closeDown,
           recommendations,
+          trackingLog,
         };
         const jsonString = JSON.stringify(data, null, 2);
         const blob = new Blob([jsonString], { type: 'application/json' });
@@ -534,6 +575,24 @@
             doc.text(wrappedLine, margin, y);
             y += 6;
           });
+        });
+
+        // Tracking Log
+        addNewPage();
+        doc.setFontSize(12);
+        doc.setFont('helvetica', 'bold');
+        doc.text('Tracking Log', margin, y);
+        y += 7;
+
+        const logData = trackingLog.map(entry => [entry.timestamp, entry.action]);
+        doc.autoTable({
+          startY: y,
+          head: [['Date/Time', 'Action']],
+          body: logData.length > 0 ? logData : [['', 'No actions logged.']],
+          theme: 'striped',
+          headStyles: { fillColor: [0, 51, 102] },
+          margin: { left: margin, right: margin },
+          styles: { fontSize: 8 },
         });
 
         // Save PDF
@@ -830,6 +889,22 @@
                 placeholder="Enter recommendations, one per line (e.g., Implement multi-factor authentication)"
               ></textarea>
             </div>
+          </div>
+
+          {/* Tracking Log Section */}
+          <div className="bg-white p-6 rounded-lg shadow-md mb-4">
+            <h2 className="text-xl font-semibold text-gray-700 mb-4">Tracking Log</h2>
+            <ul className="space-y-2">
+              {trackingLog.length > 0 ? (
+                trackingLog.map((entry, index) => (
+                  <li key={index} className="text-sm text-gray-600">
+                    <span className="font-medium">{entry.timestamp}</span>: {entry.action}
+                  </li>
+                ))
+              ) : (
+                <li className="text-sm text-gray-600">No actions logged.</li>
+              )}
+            </ul>
           </div>
         </div>
       );
