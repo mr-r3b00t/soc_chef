@@ -1,43 +1,4 @@
-<script type="text/javascript">
-        var gk_isXlsx = false;
-        var gk_xlsxFileLookup = {};
-        var gk_fileData = {};
-        function filledCell(cell) {
-          return cell !== '' && cell != null;
-        }
-        function loadFileData(filename) {
-        if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
-            try {
-                var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
-                var firstSheetName = workbook.SheetNames[0];
-                var worksheet = workbook.Sheets[firstSheetName];
-
-                // Convert sheet to JSON to filter blank rows
-                var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
-                // Filter out blank rows (rows where all cells are empty, null, or undefined)
-                var filteredData = jsonData.filter(row => row.some(filledCell));
-
-                // Heuristic to find the header row by ignoring rows with fewer filled cells than the next row
-                var headerRowIndex = filteredData.findIndex((row, index) =>
-                  row.filter(filledCell).length >= filteredData[index + 1]?.filter(filledCell).length
-                );
-                // Fallback
-                if (headerRowIndex === -1 || headerRowIndex > 25) {
-                  headerRowIndex = 0;
-                }
-
-                // Convert filtered JSON back to CSV
-                var csv = XLSX.utils.aoa_to_sheet(filteredData.slice(headerRowIndex)); // Create a new sheet from filtered array of arrays
-                csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
-                return csv;
-            } catch (e) {
-                console.error(e);
-                return "";
-            }
-        }
-        return gk_fileData[filename] || "";
-        }
-        </script><!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
@@ -57,12 +18,12 @@
   </footer>
 
   <script type="text/babel">
-    const { useState } = React;
+    const { useState, useEffect } = React;
     const { jsPDF } = window.jspdf;
 
     const IncidentTrackerApp = () => {
-      // State for incident details
-      const [incidentDetails, setIncidentDetails] = useState({
+      // Initial state for incident details
+      const initialIncidentDetails = {
         responderName: '',
         firstResponderName: '',
         respondingOrg: '',
@@ -73,10 +34,10 @@
         incidentStatus: 'Initial',
         tlp: 'RED',
         category: 'Malware',
-      });
+      };
 
-      // State for lifecycle phases, tasks, and notes
-      const [lifecycle, setLifecycle] = useState({
+      // Initial state for lifecycle phases
+      const initialLifecycle = {
         preparation: {
           active: true,
           completed: false,
@@ -155,10 +116,10 @@
           ],
           notes: '',
         },
-      });
+      };
 
-      // State for incident close down
-      const [closeDown, setCloseDown] = useState({
+      // Initial state for incident close down
+      const initialCloseDown = {
         tasks: [
           { id: 'close1', text: 'Save Evidence if required', completed: false },
           { id: 'close2', text: 'Create report if required', completed: false },
@@ -166,7 +127,61 @@
           { id: 'close4', text: 'Customer Sign Off', completed: false },
         ],
         notes: '',
+      };
+
+      // Load state from local storage or use initial state
+      const [incidentDetails, setIncidentDetails] = useState(() => {
+        const savedState = localStorage.getItem('cyberIncidentTrackerState');
+        if (savedState) {
+          try {
+            const parsed = JSON.parse(savedState);
+            return parsed.incidentDetails || initialIncidentDetails;
+          } catch (e) {
+            console.error('Failed to parse local storage state:', e);
+          }
+        }
+        return initialIncidentDetails;
       });
+
+      const [lifecycle, setLifecycle] = useState(() => {
+        const savedState = localStorage.getItem('cyberIncidentTrackerState');
+        if (savedState) {
+          try {
+            const parsed = JSON.parse(savedState);
+            return parsed.lifecycle || initialLifecycle;
+          } catch (e) {
+            console.error('Failed to parse local storage state:', e);
+          }
+        }
+        return initialLifecycle;
+      });
+
+      const [closeDown, setCloseDown] = useState(() => {
+        const savedState = localStorage.getItem('cyberIncidentTrackerState');
+        if (savedState) {
+          try {
+            const parsed = JSON.parse(savedState);
+            return parsed.closeDown || initialCloseDown;
+          } catch (e) {
+            console.error('Failed to parse local storage state:', e);
+          }
+        }
+        return initialCloseDown;
+      });
+
+      // Save state to local storage whenever it changes
+      useEffect(() => {
+        const state = {
+          incidentDetails,
+          lifecycle,
+          closeDown,
+        };
+        try {
+          localStorage.setItem('cyberIncidentTrackerState', JSON.stringify(state));
+        } catch (e) {
+          console.error('Failed to save state to local storage:', e);
+        }
+      }, [incidentDetails, lifecycle, closeDown]);
 
       // Handle input changes for incident details
       const handleInputChange = (e) => {
