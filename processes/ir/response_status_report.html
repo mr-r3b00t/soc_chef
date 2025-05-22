@@ -1,0 +1,670 @@
+<script type="text/javascript">
+        var gk_isXlsx = false;
+        var gk_xlsxFileLookup = {};
+        var gk_fileData = {};
+        function filledCell(cell) {
+          return cell !== '' && cell != null;
+        }
+        function loadFileData(filename) {
+        if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
+            try {
+                var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
+                var firstSheetName = workbook.SheetNames[0];
+                var worksheet = workbook.Sheets[firstSheetName];
+
+                // Convert sheet to JSON to filter blank rows
+                var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
+                // Filter out blank rows (rows where all cells are empty, null, or undefined)
+                var filteredData = jsonData.filter(row => row.some(filledCell));
+
+                // Heuristic to find the header row by ignoring rows with fewer filled cells than the next row
+                var headerRowIndex = filteredData.findIndex((row, index) =>
+                  row.filter(filledCell).length >= filteredData[index + 1]?.filter(filledCell).length
+                );
+                // Fallback
+                if (headerRowIndex === -1 || headerRowIndex > 25) {
+                  headerRowIndex = 0;
+                }
+
+                // Convert filtered JSON back to CSV
+                var csv = XLSX.utils.aoa_to_sheet(filteredData.slice(headerRowIndex)); // Create a new sheet from filtered array of arrays
+                csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
+                return csv;
+            } catch (e) {
+                console.error(e);
+                return "";
+            }
+        }
+        return gk_fileData[filename] || "";
+        }
+        </script><!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cyber Incident Response Tracker</title>
+  <script src="https://cdn.jsdelivr.net/npm/react@18.2.0/umd/react.production.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/react-dom@18.2.0/umd/react-dom.production.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@babel/standalone@7.22.9/babel.min.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.3/jspdf.plugin.autotable.min.js"></script>
+</head>
+<body class="bg-gray-100 min-h-screen flex flex-col">
+  <div id="root" class="flex-grow"></div>
+  <footer class="bg-gray-800 text-white text-center py-4">
+    <p class="text-sm font-semibold">CONFIDENTIAL</p>
+  </footer>
+
+  <script type="text/babel">
+    const { useState } = React;
+    const { jsPDF } = window.jspdf;
+
+    const IncidentTrackerApp = () => {
+      // State for incident details
+      const [incidentDetails, setIncidentDetails] = useState({
+        responderName: '',
+        firstResponderName: '',
+        respondingOrg: '',
+        customerOrg: '',
+        incidentId: `INC-${Math.floor(1000 + Math.random() * 9000)}`,
+        createdAt: new Date().toLocaleString(),
+        status: 'DRAFT',
+        incidentStatus: 'Initial',
+        tlp: 'RED',
+        category: 'Malware',
+      });
+
+      // State for lifecycle phases, tasks, and notes
+      const [lifecycle, setLifecycle] = useState({
+        preparation: {
+          active: true,
+          completed: false,
+          tasks: [
+            { id: 'prep1', text: 'Establish incident response team', completed: false },
+            { id: 'prep2', text: 'Define roles and responsibilities', completed: false },
+            { id: 'prep3', text: 'Set up communication channels', completed: false },
+            { id: 'prep4', text: 'Review insider threat policies', completed: false },
+          ],
+          notes: '',
+        },
+        identification: {
+          active: false,
+          completed: false,
+          tasks: [
+            { id: 'id1', text: 'Detect incident via monitoring systems', completed: false },
+            { id: 'id2', text: 'Classify incident type (e.g., malware, insider threat)', completed: false },
+            { id: 'id3', text: 'Collect initial evidence (logs, alerts)', completed: false },
+            { id: 'id4', text: 'Interview potential insider threat suspects', completed: false },
+            { id: 'id5', text: 'Analyze user behavior for anomalies', completed: false },
+          ],
+          notes: '',
+        },
+        containment: {
+          active: false,
+          completed: false,
+          tasks: [
+            { id: 'cont1', text: 'Isolate affected systems', completed: false },
+            { id: 'cont2', text: 'Implement short-term containment measures', completed: false },
+            { id: 'cont3', text: 'Preserve evidence for forensics', completed: false },
+            { id: 'cont4', text: 'Restrict insider access to sensitive systems', completed: false },
+          ],
+          notes: '',
+        },
+        eradication: {
+          active: false,
+          completed: false,
+          tasks: [
+            { id: 'erad1', text: 'Remove malware or malicious artifacts', completed: false },
+            { id: 'erad2', text: 'Patch vulnerabilities', completed: false },
+            { id: 'erad3', text: 'Reset compromised credentials', completed: false },
+            { id: 'erad4', text: 'Conduct deep forensic analysis for insider actions', completed: false },
+          ],
+          notes: '',
+        },
+        intelSharing: {
+          active: false,
+          completed: false,
+          tasks: [
+            { id: 'intel1', text: 'Share with Private Intel Sharing', completed: false },
+            { id: 'intel2', text: 'Share with Country CERT', completed: false },
+            { id: 'intel3', text: 'Share with Public', completed: false },
+            { id: 'intel4', text: 'Share with Law Enforcement', completed: false },
+          ],
+          notes: '',
+        },
+        recovery: {
+          active: false,
+          completed: false,
+          tasks: [
+            { id: 'rec1', text: 'Restore systems from backups', completed: false },
+            { id: 'rec2', text: 'Validate system integrity', completed: false },
+            { id: 'rec3', text: 'Monitor for recurrence', completed: false },
+            { id: 'rec4', text: 'Reintegrate employees after clearance', completed: false },
+          ],
+          notes: '',
+        },
+        lessonsLearned: {
+          active: false,
+          completed: false,
+          tasks: [
+            { id: 'll1', text: 'Document incident findings', completed: false },
+            { id: 'll2', text: 'Update incident response plan', completed: false },
+            { id: 'll3', text: 'Conduct team debrief', completed: false },
+            { id: 'll4', text: 'Enhance insider threat training', completed: false },
+          ],
+          notes: '',
+        },
+      });
+
+      // State for incident close down
+      const [closeDown, setCloseDown] = useState({
+        tasks: [
+          { id: 'close1', text: 'Save Evidence if required', completed: false },
+          { id: 'close2', text: 'Create report if required', completed: false },
+          { id: 'close3', text: 'Secure Erase investigation equipment', completed: false },
+          { id: 'close4', text: 'Customer Sign Off', completed: false },
+        ],
+        notes: '',
+      });
+
+      // Handle input changes for incident details
+      const handleInputChange = (e) => {
+        const { name, value } = e.target;
+        setIncidentDetails((prev) => ({ ...prev, [name]: value }));
+      };
+
+      // Handle notes changes for lifecycle phases
+      const handleNotesChange = (phase, value) => {
+        setLifecycle((prev) => ({
+          ...prev,
+          [phase]: { ...prev[phase], notes: value },
+        }));
+      };
+
+      // Handle notes changes for close down
+      const handleCloseDownNotesChange = (value) => {
+        setCloseDown((prev) => ({ ...prev, notes: value }));
+      };
+
+      // Toggle task completion for lifecycle phases
+      const toggleTask = (phase, taskId) => {
+        setLifecycle((prev) => ({
+          ...prev,
+          [phase]: {
+            ...prev[phase],
+            tasks: prev[phase].tasks.map((task) =>
+              task.id === taskId ? { ...task, completed: !task.completed } : task
+            ),
+          },
+        }));
+      };
+
+      // Toggle task completion for close down
+      const toggleCloseDownTask = (taskId) => {
+        setCloseDown((prev) => ({
+          ...prev,
+          tasks: prev.tasks.map((task) =>
+            task.id === taskId ? { ...task, completed: !task.completed } : task
+          ),
+        }));
+      };
+
+      // Toggle phase active status
+      const togglePhase = (currentPhase) => {
+        const phases = Object.keys(lifecycle);
+        const currentIndex = phases.indexOf(currentPhase);
+        const isActive = lifecycle[currentPhase].active;
+
+        if (isActive && currentIndex < phases.length - 1) {
+          // Mark current phase as complete and activate next phase
+          setLifecycle((prev) => ({
+            ...prev,
+            [currentPhase]: { ...prev[currentPhase], active: false, completed: true },
+            [phases[currentIndex + 1]]: { ...prev[phases[currentIndex + 1]], active: true },
+          }));
+        } else if (!isActive && lifecycle[currentPhase].completed) {
+          // Re-open the phase and deactivate all subsequent phases
+          setLifecycle((prev) => {
+            const updated = { ...prev };
+            // Deactivate all phases after the current one and reset completed status
+            for (let i = currentIndex + 1; i < phases.length; i++) {
+              updated[phases[i]] = { ...updated[phases[i]], active: false, completed: false };
+            }
+            // Reactivate the current phase
+            updated[currentPhase] = { ...updated[currentPhase], active: true, completed: false };
+            return updated;
+          });
+        }
+      };
+
+      // Calculate progress (including close down tasks)
+      const calculateProgress = () => {
+        const totalTasks = Object.values(lifecycle).reduce(
+          (sum, phase) => sum + phase.tasks.length,
+          0
+        ) + closeDown.tasks.length;
+        const completedTasks = Object.values(lifecycle).reduce(
+          (sum, phase) =>
+            sum + phase.tasks.filter((task) => task.completed).length,
+          0
+        ) + closeDown.tasks.filter((task) => task.completed).length;
+        return Math.round((completedTasks / totalTasks) * 100);
+      };
+
+      // Export to JSON
+      const exportToJSON = () => {
+        const data = {
+          incidentDetails,
+          lifecycle,
+          closeDown,
+        };
+        const jsonString = JSON.stringify(data, null, 2);
+        const blob = new Blob([jsonString], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `incident-${incidentDetails.incidentId}.json`;
+        a.click();
+        URL.revokeObjectURL(url);
+      };
+
+      // Generate PDF using jsPDF
+      const printToPDF = () => {
+        const doc = new jsPDF();
+        const pageWidth = doc.internal.pageSize.getWidth();
+        const pageHeight = doc.internal.pageSize.getHeight();
+        const margin = 10;
+        let y = 10;
+
+        // Add footer to all pages
+        const addFooter = () => {
+          doc.setFontSize(8);
+          doc.setFont('helvetica', 'bold');
+          doc.setTextColor(255, 0, 0); // Red color for CONFIDENTIAL
+          doc.text('CONFIDENTIAL', pageWidth / 2, pageHeight - 10, { align: 'center' });
+          doc.setTextColor(0); // Reset to black
+        };
+
+        // Helper function to add a new page
+        const addNewPage = () => {
+          doc.addPage();
+          y = 10;
+          addFooter();
+        };
+
+        // Add footer to first page
+        addFooter();
+
+        // Title
+        doc.setFontSize(16);
+        doc.setFont('helvetica', 'bold');
+        doc.text('Cyber Incident Response Report', margin, y);
+        y += 10;
+        doc.setFontSize(10);
+        doc.setFont('helvetica', 'normal');
+        doc.text(`Date: May 22, 2025`, margin, y);
+        y += 10;
+
+        // Incident Details
+        addNewPage();
+        doc.setFontSize(12);
+        doc.setFont('helvetica', 'bold');
+        doc.text('Incident Details', margin, y);
+        y += 7;
+
+        const detailsData = [
+          ['Incident ID', incidentDetails.incidentId || 'Not specified'],
+          ['Created At', incidentDetails.createdAt || 'Not specified'],
+          ['Responder Name', incidentDetails.responderName || 'Not specified'],
+          ['First Responder Name', incidentDetails.firstResponderName || 'Not specified'],
+          ['Responding Organization', incidentDetails.respondingOrg || 'Not specified'],
+          ['Customer Organization', incidentDetails.customerOrg || 'Not specified'],
+          ['Status', incidentDetails.status || 'Not specified'],
+          ['Incident Status', incidentDetails.incidentStatus || 'Not specified'],
+          ['Traffic Light Protocol', incidentDetails.tlp || 'Not specified'],
+          ['Category', incidentDetails.category || 'Not specified'],
+        ];
+
+        doc.autoTable({
+          startY: y,
+          head: [['Field', 'Value']],
+          body: detailsData,
+          theme: 'striped',
+          headStyles: { fillColor: [0, 51, 102] },
+          margin: { left: margin, right: margin },
+          styles: { fontSize: 8 },
+        });
+        y = doc.lastAutoTable.finalY + 10;
+
+        // Lifecycle Phases
+        Object.entries(lifecycle).forEach(([phase, { active, completed, tasks, notes }]) => {
+          addNewPage();
+          doc.setFontSize(12);
+          doc.setFont('helvetica', 'bold');
+          doc.text(`${phase.charAt(0).toUpperCase() + phase.slice(1)} ${active ? '(Active)' : completed ? '(Completed)' : ''}`, margin, y);
+          y += 7;
+
+          // Tasks
+          doc.setFontSize(10);
+          doc.setFont('helvetica', 'bold');
+          doc.text('Tasks:', margin, y);
+          y += 6;
+          tasks.forEach(task => {
+            doc.setFontSize(11);
+            doc.setFont('helvetica', 'bold');
+            doc.text(`${task.completed ? '[X]' : '[ ]'}`, margin + 2, y);
+            doc.text(task.text, margin + 10, y);
+            y += 6;
+          });
+
+          // Notes
+          doc.setFontSize(10);
+          doc.setFont('helvetica', 'bold');
+          doc.text('Notes:', margin, y);
+          y += 6;
+          doc.setFontSize(10);
+          doc.setFont('helvetica', 'normal');
+          const notesLines = doc.splitTextToSize(notes || 'No notes provided.', pageWidth - 2 * margin);
+          notesLines.forEach(line => {
+            doc.text(line, margin, y);
+            y += 6;
+          });
+          y += 5;
+        });
+
+        // Incident Close Down
+        addNewPage();
+        doc.setFontSize(12);
+        doc.setFont('helvetica', 'bold');
+        doc.text('Incident Close Down', margin, y);
+        y += 7;
+
+        // Tasks
+        doc.setFontSize(10);
+        doc.setFont('helvetica', 'bold');
+        doc.text('Tasks:', margin, y);
+        y += 6;
+        closeDown.tasks.forEach(task => {
+          doc.setFontSize(11);
+          doc.setFont('helvetica', 'bold');
+          doc.text(`${task.completed ? '[X]' : '[ ]'}`, margin + 2, y);
+          doc.text(task.text, margin + 10, y);
+          y += 6;
+        });
+
+        // Notes
+        doc.setFontSize(10);
+        doc.setFont('helvetica', 'bold');
+        doc.text('Notes:', margin, y);
+        y += 6;
+        doc.setFontSize(10);
+        doc.setFont('helvetica', 'normal');
+        const closeDownNotesLines = doc.splitTextToSize(closeDown.notes || 'No notes provided.', pageWidth - 2 * margin);
+        closeDownNotesLines.forEach(line => {
+          doc.text(line, margin, y);
+          y += 6;
+        });
+
+        // Save PDF
+        doc.save(`incident-${incidentDetails.incidentId}.pdf`);
+      };
+
+      return (
+        <div className="container mx-auto p-6 max-w-4xl">
+          <h1 className="text-3xl font-bold text-gray-800 mb-6 text-center">
+            Cyber Incident Response Tracker
+          </h1>
+
+          {/* Incident Details Form */}
+          <div className="bg-white p-6 rounded-lg shadow-md mb-6">
+            <h2 className="text-xl font-semibold text-gray-700 mb-4">Incident Details</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-600">Responder Name</label>
+                <input
+                  type="text"
+                  name="responderName"
+                  value={incidentDetails.responderName}
+                  onChange={handleInputChange}
+                  className="mt-1 w-full p-2 border rounded-md focus:ring focus:ring-blue-300"
+                  placeholder="Enter responder name"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-600">First Responder Name</label>
+                <input
+                  type="text"
+                  name="firstResponderName"
+                  value={incidentDetails.firstResponderName}
+                  onChange={handleInputChange}
+                  className="mt-1 w-full p-2 border rounded-md focus:ring focus:ring-blue-300"
+                  placeholder="Enter first responder name"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-600">Responding Organization</label>
+                <input
+                  type="text"
+                  name="respondingOrg"
+                  value={incidentDetails.respondingOrg}
+                  onChange={handleInputChange}
+                  className="mt-1 w-full p-2 border rounded-md focus:ring focus:ring-blue-300"
+                  placeholder="Enter responding organization"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-600">Customer Organization</label>
+                <input
+                  type="text"
+                  name="customerOrg"
+                  value={incidentDetails.customerOrg}
+                  onChange={handleInputChange}
+                  className="mt-1 w-full p-2 border rounded-md focus:ring focus:ring-blue-300"
+                  placeholder="Enter customer organization"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-600">Incident ID</label>
+                <input
+                  type="text"
+                  name="incidentId"
+                  value={incidentDetails.incidentId}
+                  onChange={handleInputChange}
+                  className="mt-1 w-full p-2 border rounded-md focus:ring focus:ring-blue-300"
+                  placeholder="Enter incident ID"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-600">Created At</label>
+                <input
+                  type="text"
+                  name="createdAt"
+                  value={incidentDetails.createdAt}
+                  onChange={handleInputChange}
+                  className="mt-1 w-full p-2 border rounded-md focus:ring focus:ring-blue-300"
+                  placeholder="Enter creation date/time"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-600">Status</label>
+                <select
+                  name="status"
+                  value={incidentDetails.status}
+                  onChange={handleInputChange}
+                  className="mt-1 w-full p-2 border rounded-md focus:ring focus:ring-blue-300"
+                >
+                  <option value="DRAFT">DRAFT</option>
+                  <option value="RELEASE">RELEASE</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-600">Incident Status</label>
+                <select
+                  name="incidentStatus"
+                  value={incidentDetails.incidentStatus}
+                  onChange={handleInputChange}
+                  className="mt-1 w-full p-2 border rounded-md focus:ring focus:ring-blue-300"
+                >
+                  <option value="Initial">Initial</option>
+                  <option value="In Progress">In Progress</option>
+                  <option value="Monitoring">Monitoring</option>
+                  <option value="Closed">Closed</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-600">Traffic Light Protocol</label>
+                <select
+                  name="tlp"
+                  value={incidentDetails.tlp}
+                  onChange={handleInputChange}
+                  className="mt-1 w-full p-2 border rounded-md focus:ring focus:ring-blue-300"
+                >
+                  <option value="CLEAR">CLEAR</option>
+                  <option value="GREEN">GREEN</option>
+                  <option value="AMBER">AMBER</option>
+                  <option value="RED">RED</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-600">Category</label>
+                <select
+                  name="category"
+                  value={incidentDetails.category}
+                  onChange={handleInputChange}
+                  className="mt-1 w-full p-2 border rounded-md focus:ring focus:ring-blue-300"
+                >
+                  <option value="Malware">Malware</option>
+                  <option value="Phishing">Phishing</option>
+                  <option value="Intrusion">Intrusion</option>
+                  <option value="Data Theft">Data Theft</option>
+                  <option value="Data Loss">Data Loss</option>
+                  <option value="Device Theft">Device Theft</option>
+                  <option value="Device Loss">Device Loss</option>
+                  <option value="Unacceptable Computer Use">Unacceptable Computer Use</option>
+                  <option value="Suspected Insider Criminal Activity">Suspected Insider Criminal Activity</option>
+                  <option value="Other">Other</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          {/* Export and Print Buttons and Progress Bar */}
+          <div className="mb-6">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-xl font-semibold text-gray-700">Incident Progress</h2>
+              <div className="flex space-x-2">
+                <button
+                  onClick={exportToJSON}
+                  className="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700"
+                >
+                  Export to JSON
+                </button>
+                <button
+                  onClick={printToPDF}
+                  className="bg-purple-600 text-white px-4 py-2 rounded-md hover:bg-purple-700"
+                >
+                  Print to PDF
+                </button>
+              </div>
+            </div>
+            <div className="w-full bg-gray-200 rounded-full h-4">
+              <div
+                className="bg-blue-600 h-4 rounded-full"
+                style={{ width: `${calculateProgress()}%` }}
+              ></div>
+            </div>
+            <p className="text-sm text-gray-600 mt-2">{calculateProgress()}% Complete</p>
+          </div>
+
+          {/* Lifecycle Phases */}
+          {Object.entries(lifecycle).map(([phase, { active, completed, tasks, notes }]) => (
+            <div key={phase} className="bg-white p-6 rounded-lg shadow-md mb-4">
+              <h2 className="text-xl font-semibold text-gray-700 capitalize mb-4">
+                {phase} {active && <span className="text-blue-500">(Active)</span>}
+              </h2>
+              <ul className="space-y-2">
+                {tasks.map((task) => (
+                  <li key={task.id} className="flex items-center">
+                    <input
+                      type="checkbox"
+                      checked={task.completed}
+                      onChange={() => toggleTask(phase, task.id)}
+                      className="h-5 w-5 text-blue-600 rounded focus:ring-blue-500"
+                    />
+                    <span
+                      className={`ml-2 text-gray-700 ${
+                        task.completed ? 'line-through text-gray-400' : ''
+                      }`}
+                    >
+                      {task.text}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+              <div className="mt-4">
+                <label className="block text-sm font-medium text-gray-600">Notes</label>
+                <textarea
+                  value={notes}
+                  onChange={(e) => handleNotesChange(phase, e.target.value)}
+                  className="mt-1 w-full p-2 border rounded-md focus:ring focus:ring-blue-300"
+                  rows="4"
+                  placeholder="Enter notes for this phase"
+                ></textarea>
+              </div>
+              {(active || completed) && (
+                <button
+                  onClick={() => togglePhase(phase)}
+                  className={`mt-4 text-white px-4 py-2 rounded-md ${
+                    active
+                      ? 'bg-blue-600 hover:bg-blue-700'
+                      : 'bg-red-600 hover:bg-red-700'
+                  }`}
+                >
+                  {active ? 'Mark Phase as Complete' : 'Re-open Phase'}
+                </button>
+              )}
+            </div>
+          ))}
+
+          {/* Incident Close Down Section */}
+          <div className="bg-white p-6 rounded-lg shadow-md mb-4">
+            <h2 className="text-xl font-semibold text-gray-700 mb-4">Incident Close Down</h2>
+            <ul className="space-y-2">
+              {closeDown.tasks.map((task) => (
+                <li key={task.id} className="flex items-center">
+                  <input
+                    type="checkbox"
+                    checked={task.completed}
+                    onChange={() => toggleCloseDownTask(task.id)}
+                    className="h-5 w-5 text-blue-600 rounded focus:ring-blue-500"
+                  />
+                  <span
+                    className={`ml-2 text-gray-700 ${
+                      task.completed ? 'line-through text-gray-400' : ''
+                    }`}
+                  >
+                    {task.text}
+                  </span>
+                </li>
+              ))}
+            </ul>
+            <div className="mt-4">
+              <label className="block text-sm font-medium text-gray-600">Notes</label>
+              <textarea
+                value={closeDown.notes}
+                onChange={(e) => handleCloseDownNotesChange(e.target.value)}
+                className="mt-1 w-full p-2 border rounded-md focus:ring focus:ring-blue-300"
+                rows="4"
+                placeholder="Enter notes for incident close down"
+              ></textarea>
+            </div>
+          </div>
+        </div>
+      );
+    };
+
+    ReactDOM.render(<IncidentTrackerApp />, document.getElementById('root'));
+  </script>
+</body>
+</html>
