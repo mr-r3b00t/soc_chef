@@ -63,6 +63,8 @@ Reactive Orgs that either do not have Policies, Processes and Procedures or ones
 
 🎨 [DNS to KQL Array](https://mr-r3b00t.github.io/soc_chef/tools/dns_to_kql_array.html)
 
+🎨 [MessageID to KQL Array](https://mr-r3b00t.github.io/soc_chef/tools/message_id_to_kql_array.html)
+
 🎨 [Office 365 Audit Log to Timline Visualisation](https://mr-r3b00t.github.io/soc_chef/tools/o365_audit_log_timeline.html)
 
 🎨 [Defender Identities CSV Visualisation](https://mr-r3b00t.github.io/soc_chef/tools/defender_identities_viz.html)
