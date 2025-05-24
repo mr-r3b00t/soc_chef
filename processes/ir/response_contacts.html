@@ -1,0 +1,505 @@
+<script type="text/javascript">
+        var gk_isXlsx = false;
+        var gk_xlsxFileLookup = {};
+        var gk_fileData = {};
+        function filledCell(cell) {
+          return cell !== '' && cell != null;
+        }
+        function loadFileData(filename) {
+        if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
+            try {
+                var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
+                var firstSheetName = workbook.SheetNames[0];
+                var worksheet = workbook.Sheets[firstSheetName];
+
+                // Convert sheet to JSON to filter blank rows
+                var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
+                // Filter out blank rows (rows where all cells are empty, null, or undefined)
+                var filteredData = jsonData.filter(row => row.some(filledCell));
+
+                // Heuristic to find the header row by ignoring rows with fewer filled cells than the next row
+                var headerRowIndex = filteredData.findIndex((row, index) =>
+                  row.filter(filledCell).length >= filteredData[index + 1]?.filter(filledCell).length
+                );
+                // Fallback
+                if (headerRowIndex === -1 || headerRowIndex > 25) {
+                  headerRowIndex = 0;
+                }
+
+                // Convert filtered JSON back to CSV
+                var csv = XLSX.utils.aoa_to_sheet(filteredData.slice(headerRowIndex)); // Create a new sheet from filtered array of arrays
+                csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
+                return csv;
+            } catch (e) {
+                console.error(e);
+                return "";
+            }
+        }
+        return gk_fileData[filename] || "";
+        }
+        </script><!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cyber Incident Response Plan Form</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+</head>
+<body class="bg-gray-100 flex items-center justify-center min-h-screen">
+    <div class="bg-white p-8 rounded-lg shadow-lg w-full max-w-4xl">
+        <h1 class="text-2xl font-bold text-gray-800 mb-6 text-center">Cyber Incident Response Plan</h1>
+        <p class="text-gray-600 mb-6">This form captures critical information for effective cyber incident response, aligned with best practices (e.g., NIST SP 800-61) and UK legal requirements (UK GDPR, Data Protection Act 2018). Complete relevant sections to ensure a robust response plan. <strong>Guidance:</strong> Assign clear roles, maintain up-to-date contact details, and review this plan regularly. For UK breaches, notify the ICO within 72 hours if the breach is likely to result in a risk to individuals’ rights and freedoms.</p>
+        
+        <form id="incidentForm" onsubmit="generatePDF(event)">
+            <!-- Organizational Leadership -->
+            <div class="mb-6">
+                <h2 class="text-lg font-semibold text-gray-700 mb-2">Organizational Leadership</h2>
+                <p class="text-sm text-gray-500 mb-4">Identify the senior leader (e.g., CEO, Director) responsible for overseeing incident response, approving actions, and communicating with stakeholders. This role ensures strategic alignment and resource allocation.</p>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label for="org-leader-name" class="block text-sm font-medium text-gray-600">Name</label>
+                        <input type="text" id="org-leader-name" name="org-leader-name" class="mt-1 w-full p-2 border rounded-md focus:ring focus:ring-blue-300">
+                    </div>
+                    <div>
+                        <label for="org-leader-title" class="block text-sm font-medium text-gray-600">Title</label>
+                        <input type="text" id="org-leader-title" name="org-leader-title" class="mt-1 w-full p-2 border rounded-md focus:ring focus:ring-blue-300">
+                    </div>
+                    <div>
+                        <label for="org-leader-email" class="block text-sm font-medium text-gray-600">Email</label>
+                        <input type="email" id="org-leader-email" name="org-leader-email" class="mt-1 w-full p-2 border rounded-md focus:ring focus:ring-blue-300">
+                    </div>
+                    <div>
+                        <label for="org-leader-phone" class="block text-sm font-medium text-gray-600">Phone (24/7 Contact)</label>
+                        <input type="tel" id="org-leader-phone" name="org-leader-phone" class="mt-1 w-full p-2 border rounded-md focus:ring focus:ring-blue-300">
+                    </div>
+                </div>
+            </div>
+
+            <!-- IT Leadership -->
+            <div class="mb-6">
+                <h2 class="text-lg font-semibold text-gray-700 mb-2">IT Leadership</h2>
+                <p class="text-sm text-gray-500 mb-4">Designate the IT leader (e.g., CIO, IT Director) responsible for technical response, coordinating with security teams, and ensuring system recovery. This role drives containment and eradication efforts.</p>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label for="it-leader-name" class="block text-sm font-medium text-gray-600">Name</label>
+                        <input type="text" id="it-leader-name" name="it-leader-name" class="mt-1 w-full p-2 border rounded-md focus:ring focus:ring-blue-300">
+                    </div>
+                    <div>
+                        <label for="it-leader-title" class="block text-sm font-medium text-gray-600">Title</label>
+                        <input type="text" id="it-leader-title" name="it-leader-title" class="mt-1 w-full p-2 border rounded-md focus:ring focus:ring-blue-300">
+                    </div>
+                    <div>
+                        <label for="it-leader-email" class="block text-sm font-medium text-gray-600">Email</label>
+                        <input type="email" id="it-leader-email" name="it-leader-email" class="mt-1 w-full p-2 border rounded-md focus:ring focus:ring-blue-300">
+                    </div>
+                    <div>
+                        <label for="it-leader-phone" class="block text-sm font-medium text-gray-600">Phone (24/7 Contact)</label>
+                        <input type="tel" id="it-leader-phone" name="it-leader-phone" class="mt-1 w-full p-2 border rounded-md focus:ring focus:ring-blue-300">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Data Protection Officer -->
+            <div class="mb-6">
+                <h2 class="text-lg font-semibold text-gray-700 mb-2">Data Protection Officer (DPO)</h2>
+                <p class="text-sm text-gray-500 mb-4">The DPO ensures compliance with UK GDPR and Data Protection Act 2018, oversees breach assessments, and manages ICO notifications. Required for public authorities or organizations with large-scale data processing.</p>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label for="dpo-name" class="block text-sm font-medium text-gray-600">Name</label>
+                        <input type="text" id="dpo-name" name="dpo-name" class="mt-1 w-full p-2 border rounded-md focus:ring focus:ring-blue-300">
+                    </div>
+                    <div>
+                        <label for="dpo-title" class="block text-sm font-medium text-gray-600">Title</label>
+                        <input type="text" id="dpo-title" name="dpo-title" class="mt-1 w-full p-2 border rounded-md focus:ring focus:ring-blue-300">
+                    </div>
+                    <div>
+                        <label for="dpo-email" class="block text-sm font-medium text-gray-600">Email</label>
+                        <input type="email" id="dpo-email" name="dpo-email" class="mt-1 w-full p-2 border rounded-md focus:ring focus:ring-blue-300">
+                    </div>
+                    <div>
+                        <label for="dpo-phone" class="block text-sm font-medium text-gray-600">Phone (24/7 Contact)</label>
+                        <input type="tel" id="dpo-phone" name="dpo-phone" class="mt-1 w-full p-2 border rounded-md focus:ring focus:ring-blue-300">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Physical Security Contact -->
+            <div class="mb-6">
+                <h2 class="text-lg font-semibold text-gray-700 mb-2">Physical Security Contact</h2>
+                <p class="text-sm text-gray-500 mb-4">This contact manages physical access to facilities and secures hardware during an incident (e.g., server rooms). Essential for incidents involving physical breaches or insider threats.</p>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label for="physical-security-name" class="block text-sm font-medium text-gray-600">Name</label>
+                        <input type="text" id="physical-security-name" name="physical-security-name" class="mt-1 w-full p-2 border rounded-md focus:ring focus:ring-blue-300">
+                    </div>
+                    <div>
+                        <label for="physical-security-title" class="block text-sm font-medium text-gray-600">Title</label>
+                        <input type="text" id="physical-security-title" name="physical-security-title" class="mt-1 w-full p-2 border rounded-md focus:ring focus:ring-blue-300">
+                    </div>
+                    <div>
+                        <label for="physical-security-email" class="block text-sm font-medium text-gray-600">Email</label>
+                        <input type="email" id="physical-security-email" name="physical-security-email" class="mt-1 w-full p-2 border rounded-md focus:ring focus:ring-blue-300">
+                    </div>
+                    <div>
+                        <label for="physical-security-phone" class="block text-sm font-medium text-gray-600">Phone (24/7 Contact)</label>
+                        <input type="tel" id="physical-security-phone" name="physical-security-phone" class="mt-1 w-full p-2 border rounded-md focus:ring focus:ring-blue-300">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Security Operations Center Contact -->
+            <div class="mb-6">
+                <h2 class="text-lg font-semibold text-gray-700 mb-2">Security Operations Center (SOC) Contact</h2>
+                <p class="text-sm text-gray-500 mb-4">The SOC monitors and responds to security incidents in real-time, using tools like SIEM for detection and analysis. Provide details for the internal SOC or external managed security service provider (MSSP). Ensure 24/7 availability for incident escalation.</p>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label for="soc-contact-name" class="block text-sm font-medium text-gray-600">Contact Name or Team</label>
+                        <input type="text" id="soc-contact-name" name="soc-contact-name" class="mt-1 w-full p-2 border rounded-md focus:ring focus:ring-blue-300" placeholder="e.g., SOC Manager or MSSP Name">
+                    </div>
+                    <div>
+                        <label for="soc-contact-role" class="block text-sm font-medium text-gray-600">Role or Service</label>
+                        <input type="text" id="soc-contact-role" name="soc-contact-role" class="mt-1 w-full p-2 border rounded-md focus:ring focus:ring-blue-300" placeholder="e.g., SOC Lead, MSSP">
+                    </div>
+                    <div>
+                        <label for="soc-contact-email" class="block text-sm font-medium text-gray-600">Email</label>
+                        <input type="email" id="soc-contact-email" name="soc-contact-email" class="mt-1 w-full p-2 border rounded-md focus:ring focus:ring-blue-300">
+                    </div>
+                    <div>
+                        <label for="soc-contact-phone" class="block text-sm font-medium text-gray-600">Phone (24/7 Contact)</label>
+                        <input type="tel" id="soc-contact-phone" name="soc-contact-phone" class="mt-1 w-full p-2 border rounded-md focus:ring focus:ring-blue-300">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Legal Contact -->
+            <div class="mb-6">
+                <h2 class="text-lg font-semibold text-gray-700 mb-2">Legal Contact</h2>
+                <p class="text-sm text-gray-500 mb-4">The legal contact advises on regulatory obligations, manages liability, and coordinates external counsel. Critical for UK GDPR compliance and potential litigation.</p>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label for="legal-contact-name" class="block text-sm font-medium text-gray-600">Name</label>
+                        <input type="text" id="legal-contact-name" name="legal-contact-name" class="mt-1 w-full p-2 border rounded-md focus:ring focus:ring-blue-300">
+                    </div>
+                    <div>
+                        <label for="legal-contact-title" class="block text-sm font-medium text-gray-600">Title</label>
+                        <input type="text" id="legal-contact-title" name="legal-contact-title" class="mt-1 w-full p-2 border rounded-md focus:ring focus:ring-blue-300">
+                    </div>
+                    <div>
+                        <label for="legal-contact-email" class="block text-sm font-medium text-gray-600">Email</label>
+                        <input type="email" id="legal-contact-email" name="legal-contact-email" class="mt-1 w-full p-2 border rounded-md focus:ring focus:ring-blue-300">
+                    </div>
+                    <div>
+                        <label for="legal-contact-phone" class="block text-sm font-medium text-gray-600">Phone (24/7 Contact)</label>
+                        <input type="tel" id="legal-contact-phone" name="legal-contact-phone" class="mt-1 w-full p-2 border rounded-md focus:ring focus:ring-blue-300">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Insurance Details -->
+            <div class="mb-6">
+                <h2 class="text-lg font-semibold text-gray-700 mb-2">Insurance Details</h2>
+                <p class="text-sm text-gray-500 mb-4">Document cyber insurance details to facilitate claims for incident-related costs (e.g., recovery, legal fees). Ensure the policy covers data breaches and ransomware.</p>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label for="insurance-provider" class="block text-sm font-medium text-gray-600">Provider Name</label>
+                        <input type="text" id="insurance-provider" name="insurance-provider" class="mt-1 w-full p-2 border rounded-md focus:ring focus:ring-blue-300">
+                    </div>
+                    <div>
+                        <label for="insurance-policy-number" class="block text-sm font-medium text-gray-600">Policy Number</label>
+                        <input type="text" id="insurance-policy-number" name="insurance-policy-number" class="mt-1 w-full p-2 border rounded-md focus:ring focus:ring-blue-300">
+                    </div>
+                    <div>
+                        <label for="insurance-contact" class="block text-sm font-medium text-gray-600">Contact Name</label>
+                        <input type="text" id="insurance-contact" name="insurance-contact" class="mt-1 w-full p-2 border rounded-md focus:ring focus:ring-blue-300">
+                    </div>
+                    <div>
+                        <label for="insurance-phone" class="block text-sm font-medium text-gray-600">Contact Phone</label>
+                        <input type="tel" id="insurance-phone" name="insurance-phone" class="mt-1 w-full p-2 border rounded-md focus:ring focus:ring-blue-300">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Escalation Routes -->
+            <div class="mb-6">
+                <h2 class="text-lg font-semibold text-gray-700 mb-2">Escalation Routes</h2>
+                <p class="text-sm text-gray-500 mb-4">Define clear escalation paths for incident reporting and decision-making. The primary route is the first point of contact; the secondary route is a backup if the primary is unavailable. Ensure 24/7 availability.</p>
+                <!-- Primary Route -->
+                <div class="mb-4">
+                    <h3 class="text-md font-medium text-gray-600 mb-2">Primary Route</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label for="primary-contact-name" class="block text-sm font-medium text-gray-600">Contact Name</label>
+                            <input type="text" id="primary-contact-name" name="primary-contact-name" class="mt-1 w-full p-2 border rounded-md focus:ring focus:ring-blue-300">
+                        </div>
+                        <div>
+                            <label for="primary-contact-role" class="block text-sm font-medium text-gray-600">Role</label>
+                            <input type="text" id="primary-contact-role" name="primary-contact-role" class="mt-1 w-full p-2 border rounded-md focus:ring focus:ring-blue-300">
+                        </div>
+                        <div>
+                            <label for="primary-contact-email" class="block text-sm font-medium text-gray-600">Email</label>
+                            <input type="email" id="primary-contact-email" name="primary-contact-email" class="mt-1 w-full p-2 border rounded-md focus:ring focus:ring-blue-300">
+                        </div>
+                        <div>
+                            <label for="primary-contact-phone" class="block text-sm font-medium text-gray-600">Phone (24/7 Contact)</label>
+                            <input type="tel" id="primary-contact-phone" name="primary-contact-phone" class="mt-1 w-full p-2 border rounded-md focus:ring focus:ring-blue-300">
+                        </div>
+                    </div>
+                </div>
+                <!-- Secondary Route -->
+                <div>
+                    <h3 class="text-md font-medium text-gray-600 mb-2">Secondary Route</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label for="secondary-contact-name" class="block text-sm font-medium text-gray-600">Contact Name</label>
+                            <input type="text" id="secondary-contact-name" name="secondary-contact-name" class="mt-1 w-full p-2 border rounded-md focus:ring focus:ring-blue-300">
+                        </div>
+                        <div>
+                            <label for="secondary-contact-role" class="block text-sm font-medium text-gray-600">Role</label>
+                            <input type="text" id="secondary-contact-role" name="secondary-contact-role" class="mt-1 w-full p-2 border rounded-md focus:ring focus:ring-blue-300">
+                        </div>
+                        <div>
+                            <label for="secondary-contact-email" class="block text-sm font-medium text-gray-600">Email</label>
+                            <input type="email" id="secondary-contact-email" name="secondary-contact-email" class="mt-1 w-full p-2 border rounded-md focus:ring focus:ring-blue-300">
+                        </div>
+                        <div>
+                            <label for="secondary-contact-phone" class="block text-sm font-medium text-gray-600">Phone (24/7 Contact)</label>
+                            <input type="tel" id="secondary-contact-phone" name="secondary-contact-phone" class="mt-1 w-full p-2 border rounded-md focus:ring focus:ring-blue-300">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Regulatory Reporting Requirements -->
+            <div class="mb-6">
+                <h2 class="text-lg font-semibold text-gray-700 mb-2">Regulatory Reporting Requirements</h2>
+                <p class="text-sm text-gray-500 mb-4">Under UK GDPR, personal data breaches must be reported to the ICO within 72 hours if they are likely to result in a risk to individuals’ rights and freedoms. Include details of applicable regulations (e.g., UK GDPR, NIS Regulations) and reporting procedures. Document any sector-specific requirements (e.g., FCA for financial services).</p>
+                <div>
+                    <label for="regulatory-requirements" class="block text-sm font-medium text-gray-600">Regulatory Details</label>
+                    <textarea id="regulatory-requirements" name="regulatory-requirements" rows="5" class="mt-1 w-full p-2 border rounded-md focus:ring focus:ring-blue-300" placeholder="e.g., UK GDPR: Notify ICO within 72 hours. NIS Regulations: Report to competent authority. Sector-specific: FCA, Ofcom, etc."></textarea>
+                </div>
+                <div class="mt-4">
+                    <label for="ico-contact" class="block text-sm font-medium text-gray-600">ICO Contact Details</label>
+                    <input type="text" id="ico-contact" name="ico-contact" class="mt-1 w-full p-2 border rounded-md focus:ring focus:ring-blue-300" placeholder="e.g., ICO Helpline: 0303 123 1113, https://ico.org.uk">
+                </div>
+            </div>
+
+            <!-- Incident Response Team Availability -->
+            <div class="mb-6">
+                <h2 class="text-lg font-semibold text-gray-700 mb-2">Incident Response Team Availability</h2>
+                <p class="text-sm text-gray-500 mb-4">Confirm the availability of an incident response team (internal or external) for immediate action. Best practice: Maintain a retainer with a cybersecurity firm for rapid response.</p>
+                <div>
+                    <label for="ir-team-details" class="block text-sm font-medium text-gray-600">Team Details</label>
+                    <textarea id="ir-team-details" name="ir-team-details" rows="3" class="mt-1 w-full p-2 border rounded-md focus:ring focus:ring-blue-300" placeholder="e.g., Internal SOC team or external provider (name, contact details, SLA)"></textarea>
+                </div>
+            </div>
+
+            <!-- Submit Button -->
+            <div class="text-center">
+                <button type="submit" class="bg-blue-600 text-white px-6 py-2 rounded-md hover:bg-blue-700 focus:outline-none focus:ring focus:ring-blue-300">Submit Plan</button>
+            </div>
+        </form>
+    </div>
+
+    <script>
+        function generatePDF(event) {
+            event.preventDefault();
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            let yOffset = 10;
+
+            // Title
+            doc.setFontSize(16);
+            doc.text("Cyber Incident Response Plan", 10, yOffset);
+            yOffset += 10;
+
+            // Organizational Leadership
+            doc.setFontSize(12);
+            doc.text("Organizational Leadership", 10, yOffset);
+            yOffset += 7;
+            doc.setFontSize(10);
+            const orgName = document.getElementById('org-leader-name').value || "Not provided";
+            const orgTitle = document.getElementById('org-leader-title').value || "Not provided";
+            const orgEmail = document.getElementById('org-leader-email').value || "Not provided";
+            const orgPhone = document.getElementById('org-leader-phone').value || "Not provided";
+            doc.text(`Name: ${orgName}`, 10, yOffset);
+            yOffset += 5;
+            doc.text(`Title: ${orgTitle}`, 10, yOffset);
+            yOffset += 5;
+            doc.text(`Email: ${orgEmail}`, 10, yOffset);
+            yOffset += 5;
+            doc.text(`Phone: ${orgPhone}`, 10, yOffset);
+            yOffset += 10;
+
+            // IT Leadership
+            doc.setFontSize(12);
+            doc.text("IT Leadership", 10, yOffset);
+            yOffset += 7;
+            doc.setFontSize(10);
+            const itName = document.getElementById('it-leader-name').value || "Not provided";
+            const itTitle = document.getElementById('it-leader-title').value || "Not provided";
+            const itEmail = document.getElementById('it-leader-email').value || "Not provided";
+            const itPhone = document.getElementById('it-leader-phone').value || "Not provided";
+            doc.text(`Name: ${itName}`, 10, yOffset);
+            yOffset += 5;
+            doc.text(`Title: ${itTitle}`, 10, yOffset);
+            yOffset += 5;
+            doc.text(`Email: ${itEmail}`, 10, yOffset);
+            yOffset += 5;
+            doc.text(`Phone: ${itPhone}`, 10, yOffset);
+            yOffset += 10;
+
+            // Data Protection Officer
+            doc.setFontSize(12);
+            doc.text("Data Protection Officer", 10, yOffset);
+            yOffset += 7;
+            doc.setFontSize(10);
+            const dpoName = document.getElementById('dpo-name').value || "Not provided";
+            const dpoTitle = document.getElementById('dpo-title').value || "Not provided";
+            const dpoEmail = document.getElementById('dpo-email').value || "Not provided";
+            const dpoPhone = document.getElementById('dpo-phone').value || "Not provided";
+            doc.text(`Name: ${dpoName}`, 10, yOffset);
+            yOffset += 5;
+            doc.text(`Title: ${dpoTitle}`, 10, yOffset);
+            yOffset += 5;
+            doc.text(`Email: ${dpoEmail}`, 10, yOffset);
+            yOffset += 5;
+            doc.text(`Phone: ${dpoPhone}`, 10, yOffset);
+            yOffset += 10;
+
+            // Physical Security Contact
+            doc.setFontSize(12);
+            doc.text("Physical Security Contact", 10, yOffset);
+            yOffset += 7;
+            doc.setFontSize(10);
+            const physName = document.getElementById('physical-security-name').value || "Not provided";
+            const physTitle = document.getElementById('physical-security-title').value || "Not provided";
+            const physEmail = document.getElementById('physical-security-email').value || "Not provided";
+            const physPhone = document.getElementById('physical-security-phone').value || "Not provided";
+            doc.text(`Name: ${physName}`, 10, yOffset);
+            yOffset += 5;
+            doc.text(`Title: ${physTitle}`, 10, yOffset);
+            yOffset += 5;
+            doc.text(`Email: ${physEmail}`, 10, yOffset);
+            yOffset += 5;
+            doc.text(`Phone: ${physPhone}`, 10, yOffset);
+            yOffset += 10;
+
+            // Security Operations Center Contact
+            doc.setFontSize(12);
+            doc.text("Security Operations Center Contact", 10, yOffset);
+            yOffset += 7;
+            doc.setFontSize(10);
+            const socName = document.getElementById('soc-contact-name').value || "Not provided";
+            const socRole = document.getElementById('soc-contact-role').value || "Not provided";
+            const socEmail = document.getElementById('soc-contact-email').value || "Not provided";
+            const socPhone = document.getElementById('soc-contact-phone').value || "Not provided";
+            doc.text(`Name/Team: ${socName}`, 10, yOffset);
+            yOffset += 5;
+            doc.text(`Role/Service: ${socRole}`, 10, yOffset);
+            yOffset += 5;
+            doc.text(`Email: ${socEmail}`, 10, yOffset);
+            yOffset += 5;
+            doc.text(`Phone: ${socPhone}`, 10, yOffset);
+            yOffset += 10;
+
+            // Legal Contact
+            doc.setFontSize(12);
+            doc.text("Legal Contact", 10, yOffset);
+            yOffset += 7;
+            doc.setFontSize(10);
+            const legalName = document.getElementById('legal-contact-name').value || "Not provided";
+            const legalTitle = document.getElementById('legal-contact-title').value || "Not provided";
+            const legalEmail = document.getElementById('legal-contact-email').value || "Not provided";
+            const legalPhone = document.getElementById('legal-contact-phone').value || "Not provided";
+            doc.text(`Name: ${legalName}`, 10, yOffset);
+            yOffset += 5;
+            doc.text(`Title: ${legalTitle}`, 10, yOffset);
+            yOffset += 5;
+            doc.text(`Email: ${legalEmail}`, 10, yOffset);
+            yOffset += 5;
+            doc.text(`Phone: ${legalPhone}`, 10, yOffset);
+            yOffset += 10;
+
+            // Insurance Details
+            doc.setFontSize(12);
+            doc.text("Insurance Details", 10, yOffset);
+            yOffset += 7;
+            doc.setFontSize(10);
+            const insProvider = document.getElementById('insurance-provider').value || "Not provided";
+            const insPolicy = document.getElementById('insurance-policy-number').value || "Not provided";
+            const insContact = document.getElementById('insurance-contact').value || "Not provided";
+            const insPhone = document.getElementById('insurance-phone').value || "Not provided";
+            doc.text(`Provider: ${insProvider}`, 10, yOffset);
+            yOffset += 5;
+            doc.text(`Policy Number: ${insPolicy}`, 10, yOffset);
+            yOffset += 5;
+            doc.text(`Contact Name: ${insContact}`, 10, yOffset);
+            yOffset += 5;
+            doc.text(`Phone: ${insPhone}`, 10, yOffset);
+            yOffset += 10;
+
+            // Escalation Routes - Primary
+            doc.setFontSize(12);
+            doc.text("Escalation Routes - Primary", 10, yOffset);
+            yOffset += 7;
+            doc.setFontSize(10);
+            const primName = document.getElementById('primary-contact-name').value || "Not provided";
+            const primRole = document.getElementById('primary-contact-role').value || "Not provided";
+            const primEmail = document.getElementById('primary-contact-email').value || "Not provided";
+            const primPhone = document.getElementById('primary-contact-phone').value || "Not provided";
+            doc.text(`Name: ${primName}`, 10, yOffset);
+            yOffset += 5;
+            doc.text(`Role: ${primRole}`, 10, yOffset);
+            yOffset += 5;
+            doc.text(`Email: ${primEmail}`, 10, yOffset);
+            yOffset += 5;
+            doc.text(`Phone: ${primPhone}`, 10, yOffset);
+            yOffset += 10;
+
+            // Escalation Routes - Secondary
+            doc.setFontSize(12);
+            doc.text("Escalation Routes - Secondary", 10, yOffset);
+            yOffset += 7;
+            doc.setFontSize(10);
+            const secName = document.getElementById('secondary-contact-name').value || "Not provided";
+            const secRole = document.getElementById('secondary-contact-role').value || "Not provided";
+            const secEmail = document.getElementById('secondary-contact-email').value || "Not provided";
+            const secPhone = document.getElementById('secondary-contact-phone').value || "Not provided";
+            doc.text(`Name: ${secName}`, 10, yOffset);
+            yOffset += 5;
+            doc.text(`Role: ${secRole}`, 10, yOffset);
+            yOffset += 5;
+            doc.text(`Email: ${secEmail}`, 10, yOffset);
+            yOffset += 5;
+            doc.text(`Phone: ${secPhone}`, 10, yOffset);
+            yOffset += 10;
+
+            // Regulatory Reporting Requirements
+            doc.setFontSize(12);
+            doc.text("Regulatory Reporting Requirements", 10, yOffset);
+            yOffset += 7;
+            doc.setFontSize(10);
+            const regText = document.getElementById('regulatory-requirements').value || "Not provided";
+            const regLines = doc.splitTextToSize(regText, 180);
+            doc.text(regLines, 10, yOffset);
+            yOffset += regLines.length * 5 + 5;
+            const icoContact = document.getElementById('ico-contact').value || "Not provided";
+            doc.text(`ICO Contact: ${icoContact}`, 10, yOffset);
+            yOffset += 10;
+
+            // Incident Response Team Availability
+            doc.setFontSize(12);
+            doc.text("Incident Response Team Availability", 10, yOffset);
+            yOffset += 7;
+            doc.setFontSize(10);
+            const irText = document.getElementById('ir-team-details').value || "Not provided";
+            const irLines = doc.splitTextToSize(irText, 180);
+            doc.text(irLines, 10, yOffset);
+
+            // Save PDF
+            doc.save("Cyber_Incident_Response_Plan.pdf");
+        }
+    </script>
+</body>
+</html>
