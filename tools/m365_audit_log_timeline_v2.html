@@ -1,0 +1,445 @@
+<script type="text/javascript">
+        var gk_isXlsx = false;
+        var gk_xlsxFileLookup = {};
+        var gk_fileData = {};
+        function filledCell(cell) {
+          return cell !== '' && cell != null;
+        }
+        function loadFileData(filename) {
+        if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
+            try {
+                var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
+                var firstSheetName = workbook.SheetNames[0];
+                var worksheet = workbook.Sheets[firstSheetName];
+
+                // Convert sheet to JSON to filter blank rows
+                var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
+                // Filter out blank rows (rows where all cells are empty, null, or undefined)
+                var filteredData = jsonData.filter(row => row.some(filledCell));
+
+                // Heuristic to find the header row by ignoring rows with fewer filled cells than the next row
+                var headerRowIndex = filteredData.findIndex((row, index) =>
+                  row.filter(filledCell).length >= filteredData[index + 1]?.filter(filledCell).length
+                );
+                // Fallback
+                if (headerRowIndex === -1 || headerRowIndex > 25) {
+                  headerRowIndex = 0;
+                }
+
+                // Convert filtered JSON back to CSV
+                var csv = XLSX.utils.aoa_to_sheet(filteredData.slice(headerRowIndex)); // Create a new sheet from filtered array of arrays
+                csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
+                return csv;
+            } catch (e) {
+                console.error(e);
+                return "";
+            }
+        }
+        return gk_fileData[filename] || "";
+        }
+        </script><!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Office 365 Audit Log Timeline</title>
+    <!-- vis.js CSS -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/vis-timeline/7.7.2/vis-timeline-graph2d.min.css" rel="stylesheet" type="text/css" />
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        #visualization {
+            width: 100%;
+            height: 600px;
+            border: 1px solid #ccc;
+        }
+        #fileInput {
+            margin-bottom: 10px;
+        }
+        #error {
+            color: red;
+            display: none;
+            margin-bottom: 10px;
+        }
+        #zoomFitButton {
+            margin-bottom: 10px;
+            padding: 8px 16px;
+            background-color: #0078D4;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        #zoomFitButton:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+        #filterContainer {
+            margin-top: 10px;
+            margin-bottom: 10px;
+            display: flex;
+            gap: 20px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        #filterContainer label {
+            font-weight: bold;
+        }
+        #filterContainer select {
+            padding: 5px;
+            border-radius: 4px;
+            border: 1px solid #ccc;
+            min-width: 200px;
+        }
+        #clientIpFilter {
+            height: 100px;
+        }
+        /* New styles for legend */
+        #legendContainer {
+            margin-top: 10px;
+            margin-bottom: 10px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            align-items: center;
+        }
+        #legendContainer .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        #legendContainer .legend-color {
+            width: 20px;
+            height: 20px;
+            border: 1px solid #333;
+            border-radius: 3px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Office 365 Audit Log Timeline</h1>
+    <p>Upload a Microsoft Office 365 audit log CSV file to visualize events on a timeline.</p>
+    <input type="file" id="fileInput" accept=".csv" />
+    <button id="zoomFitButton" disabled>Zoom to Fit</button>
+    <div id="error"></div>
+    <div id="visualization"></div>
+    <div id="filterContainer">
+        <label for="operationFilter">Filter by Operation:</label>
+        <select id="operationFilter" disabled>
+            <option value="all">All Operations</option>
+        </select>
+        <label for="userIdFilter">Filter by UserId:</label>
+        <select id="userIdFilter" disabled>
+            <option value="all">All Users</option>
+        </select>
+        <label for="clientIpFilter">Filter by Client IP (Multi-select):</label>
+        <select id="clientIpFilter" multiple disabled>
+            <option value="all">All IPs</option>
+        </select>
+    </div>
+    <!-- New legend container -->
+    <div id="legendContainer">
+        <strong>User Color Key:</strong>
+        <!-- Dynamically populated with user-color mappings -->
+    </div>
+
+    <!-- vis.js Library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/vis-timeline/7.7.2/vis-timeline-graph2d.min.js"></script>
+    <!-- PapaParse for CSV parsing -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+    <script>
+        // DOM elements
+        const fileInput = document.getElementById('fileInput');
+        const zoomFitButton = document.getElementById('zoomFitButton');
+        const errorDiv = document.getElementById('error');
+        const container = document.getElementById('visualization');
+        const operationFilter = document.getElementById('operationFilter');
+        const userIdFilter = document.getElementById('userIdFilter');
+        const clientIpFilter = document.getElementById('clientIpFilter');
+        const legendContainer = document.getElementById('legendContainer');
+
+        // Initialize vis.js Timeline
+        const items = new vis.DataSet([]);
+        const options = {
+            height: '100%',
+            zoomable: true,
+            selectable: true,
+            format: {
+                minorLabels: {
+                    millisecond: 'SSS',
+                    second: 's',
+                    minute: 'HH:mm',
+                    hour: 'HH:mm',
+                    weekday: 'ddd D',
+                    day: 'D',
+                    month: 'MMM',
+                    year: 'YYYY'
+                },
+                majorLabels: {
+                    millisecond: 'HH:mm:ss',
+                    second: 'D MMMM HH:mm',
+                    minute: 'ddd D MMMM',
+                    hour: 'ddd D MMMM',
+                    weekday: 'MMMM YYYY',
+                    day: 'MMMM YYYY',
+                    month: 'YYYY',
+                    year: ''
+                }
+            },
+            tooltip: {
+                followMouse: true,
+                overflowMethod: 'cap'
+            }
+        };
+        const timeline = new vis.Timeline(container, items, options);
+
+        // Store all timeline items for filtering
+        let allItems = [];
+
+        // Color palette for users
+        const userColors = [
+            '#0078D4', '#D83B01', '#107C10', '#6264A7', '#F2C811', '#C30052',
+            '#00B7C3', '#8E562E', '#008272', '#A80000', '#5C2E91', '#FFB900'
+        ];
+        let userColorMap = {};
+
+        // Handle Zoom to Fit button click
+        zoomFitButton.addEventListener('click', () => {
+            timeline.fit();
+        });
+
+        // Handle filter changes
+        function applyFilters() {
+            const selectedOperation = operationFilter.value;
+            const selectedUserId = userIdFilter.value;
+            const selectedClientIps = Array.from(clientIpFilter.selectedOptions).map(option => option.value);
+
+            const filteredItems = allItems.filter(item => {
+                const matchOperation = selectedOperation === 'all' || item.operation === selectedOperation;
+                const matchUserId = selectedUserId === 'all' || item.userId === selectedUserId;
+                const matchClientIp = selectedClientIps.includes('all') || selectedClientIps.includes(item.clientIp);
+                return matchOperation && matchUserId && matchClientIp;
+            });
+
+            items.clear();
+            items.add(filteredItems);
+        }
+
+        operationFilter.addEventListener('change', applyFilters);
+        userIdFilter.addEventListener('change', applyFilters);
+        clientIpFilter.addEventListener('change', applyFilters);
+
+        // Handle file upload
+        fileInput.addEventListener('change', (event) => {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            // Reset previous data
+            items.clear();
+            allItems = [];
+            userColorMap = {};
+            errorDiv.style.display = 'none';
+            zoomFitButton.disabled = true;
+            operationFilter.disabled = true;
+            userIdFilter.disabled = true;
+            clientIpFilter.disabled = true;
+            operationFilter.innerHTML = '<option value="all">All Operations</option>';
+            userIdFilter.innerHTML = '<option value="all">All Users</option>';
+            clientIpFilter.innerHTML = '<option value="all">All IPs</option>';
+            legendContainer.innerHTML = '<strong>User Color Key:</strong>';
+
+            // Validate file type
+            if (!file.name.endsWith('.csv')) {
+                showError('Please upload a valid CSV file.');
+                return;
+            }
+
+            // Parse CSV file
+            Papa.parse(file, {
+                header: true,
+                skipEmptyLines: true,
+                complete: (result) => {
+                    try {
+                        processCsvData(result.data);
+                    } catch (err) {
+                        showError('Error processing CSV data: ' + err.message);
+                    }
+                },
+                error: (err) => {
+                    showError('Error parsing CSV file: ' + err.message);
+                }
+            });
+        });
+
+        // Process CSV data and populate timeline
+        function processCsvData(data) {
+            if (!data || data.length === 0) {
+                showError('No data found in the CSV file.');
+                return;
+            }
+
+            // Expected headers
+            const requiredHeaders = ['RecordId', 'CreationDate', 'RecordType', 'Operation', 'UserId', 'AuditData'];
+            const headers = Object.keys(data[0]);
+            for (const header of requiredHeaders) {
+                if (!headers.includes(header)) {
+                    showError(`Missing required column: ${header}`);
+                    return;
+                }
+            }
+
+            // Collect unique values for filters
+            const operations = new Set(['all']);
+            const userIds = new Set(['all']);
+            const clientIps = new Set(['all']);
+
+            // Process each row
+            const timelineItems = data.map((row, index) => {
+                // Normalize CreationDate to handle microsecond precision and edge cases
+                let dateString = row.CreationDate ? row.CreationDate.trim() : '';
+                let date;
+
+                if (dateString) {
+                    if (dateString.includes('.')) {
+                        dateString = dateString.replace(/(\.\d{0,3})\d*Z$/, '$1Z');
+                    }
+                    date = new Date(dateString);
+                    console.debug(`Row ${index + 2}: Original date: ${row.CreationDate}, Normalized: ${dateString}, Parsed: ${date}`);
+                    if (isNaN(date)) {
+                        const match = dateString.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(\.\d{1,3})?Z$/);
+                        if (match) {
+                            const [, year, month, day, hour, minute, second, millis = '.000'] = match;
+                            const utcString = `${year}-${month}-${day}T${hour}:${minute}:${second}${millis}Z`;
+                            date = new Date(utcString);
+                            console.debug(`Row ${index + 2}: Fallback parsed date: ${date}`);
+                        }
+                    }
+                }
+
+                if (!dateString || isNaN(date)) {
+                    console.warn(`Invalid date in row ${index + 2}: ${row.CreationDate}`);
+                    return null;
+                }
+
+                // Parse AuditData JSON
+                let auditData = {};
+                let clientIp = 'N/A';
+                try {
+                    auditData = JSON.parse(row.AuditData);
+                    clientIp = auditData.ClientIPAddress || auditData.ClientIP || auditData.clientIp || 'N/A';
+                    if (clientIp === 'N/A' && auditData.ExtendedProperties) {
+                        const ipProp = auditData.ExtendedProperties.find(prop => prop.Name === 'ClientIPAddress' || prop.Name === 'ClientIP');
+                        clientIp = ipProp ? ipProp.Value : 'N/A';
+                    }
+                } catch (err) {
+                    console.warn(`Invalid AuditData JSON in row ${index + 2}: ${row.AuditData}`);
+                }
+
+                // Collect filter values
+                const operation = row.Operation || 'N/A';
+                const userId = row.UserId || 'N/A';
+                operations.add(operation);
+                userIds.add(userId);
+                clientIps.add(clientIp);
+
+                // Assign color to user
+                if (!userColorMap[userId]) {
+                    const colorIndex = Object.keys(userColorMap).length % userColors.length;
+                    userColorMap[userId] = userColors[colorIndex];
+                }
+
+                // Build event content for tooltip
+                const content = `
+                    <div style="padding: 5px;">
+                        <strong>Operation:</strong> ${operation}<br>
+                        <strong>User:</strong> ${userId}<br>
+                        <strong>Client IP:</strong> ${clientIp}<br>
+                        <strong>Record Type:</strong> ${row.RecordType || 'Default'}<br>
+                        <strong>Details:</strong> ${auditData.ObjectId || auditData.Target || 'N/A'}
+                    </div>
+                `;
+
+                return {
+                    id: row.RecordId || index,
+                    content: operation,
+                    start: date,
+                    title: content,
+                    style: `background-color: ${userColorMap[userId]}; color: white; border-radius: 3px;`,
+                    operation: operation,
+                    userId: userId,
+                    clientIp: clientIp
+                };
+            }).filter(item => item !== null);
+
+            if (timelineItems.length === 0) {
+                showError('No valid events found in the CSV file.');
+                return;
+            }
+
+            // Populate filter dropdowns
+            const sortedOperations = Array.from(operations).filter(op => op !== 'all').sort();
+            const sortedUserIds = Array.from(userIds).filter(id => id !== 'all').sort();
+            const sortedClientIps = Array.from(clientIps).filter(ip => ip !== 'all').sort();
+            sortedOperations.forEach(op => {
+                const option = document.createElement('option');
+                option.value = op;
+                option.textContent = op;
+                operationFilter.appendChild(option);
+            });
+            sortedUserIds.forEach(id => {
+                const option = document.createElement('option');
+                option.value = id;
+                option.textContent = id;
+                userIdFilter.appendChild(option);
+            });
+            sortedClientIps.forEach(ip => {
+                const option = document.createElement('option');
+                option.value = ip;
+                option.textContent = ip;
+                clientIpFilter.appendChild(option);
+            });
+
+            // Populate legend
+            sortedUserIds.forEach(userId => {
+                const legendItem = document.createElement('div');
+                legendItem.className = 'legend-item';
+                const colorBox = document.createElement('div');
+                colorBox.className = 'legend-color';
+                colorBox.style.backgroundColor = userColorMap[userId];
+                const label = document.createElement('span');
+                label.textContent = userId;
+                legendItem.appendChild(colorBox);
+                legendItem.appendChild(label);
+                legendContainer.appendChild(legendItem);
+            });
+
+            // Enable filters and buttons
+            operationFilter.disabled = false;
+            userIdFilter.disabled = false;
+            clientIpFilter.disabled = false;
+            zoomFitButton.disabled = false;
+
+            // Update timeline
+            allItems = timelineItems;
+            items.add(timelineItems);
+            timeline.fit();
+        }
+
+        // Display error message
+        function showError(message) {
+            errorDiv.textContent = message;
+            errorDiv.style.display = 'block';
+        }
+
+        // Handle timeline selection
+        timeline.on('select', (properties) => {
+            if (properties.items.length > 0) {
+                const selectedItem = items.get(properties.items[0]);
+                console.log('Selected event:', selectedItem);
+            }
+        });
+    </script>
+</body>
+</html>
