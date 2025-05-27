@@ -1,0 +1,458 @@
+<script type="text/javascript">
+        var gk_isXlsx = false;
+        var gk_xlsxFileLookup = {};
+        var gk_fileData = {};
+        function filledCell(cell) {
+          return cell !== '' && cell != null;
+        }
+        function loadFileData(filename) {
+        if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
+            try {
+                var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
+                var firstSheetName = workbook.SheetNames[0];
+                var worksheet = workbook.Sheets[firstSheetName];
+
+                // Convert sheet to JSON to filter blank rows
+                var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
+                // Filter out blank rows (rows where all cells are empty, null, or undefined)
+                var filteredData = jsonData.filter(row => row.some(filledCell));
+
+                // Heuristic to find the header row by ignoring rows with fewer filled cells than the next row
+                var headerRowIndex = filteredData.findIndex((row, index) =>
+                  row.filter(filledCell).length >= filteredData[index + 1]?.filter(filledCell).length
+                );
+                // Fallback
+                if (headerRowIndex === -1 || headerRowIndex > 25) {
+                  headerRowIndex = 0;
+                }
+
+                // Convert filtered JSON back to CSV
+                var csv = XLSX.utils.aoa_to_sheet(filteredData.slice(headerRowIndex)); // Create a new sheet from filtered array of arrays
+                csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
+                return csv;
+            } catch (e) {
+                console.error(e);
+                return "";
+            }
+        }
+        return gk_fileData[filename] || "";
+        }
+        </script><!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Detailed Incident Investigation Questions with Response Boxes</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Arial, sans-serif;
+            line-height: 1.7;
+            margin: 30px auto;
+            max-width: 900px;
+            color: #2c3e50;
+            background-color: #f5f6f5;
+        }
+        h1 {
+            text-align: center;
+            color: #2c3e50;
+            font-size: 2.2em;
+            margin-bottom: 30px;
+        }
+        h2 {
+            color: #34495e;
+            font-size: 1.6em;
+            border-bottom: 3px solid #3498db;
+            padding-bottom: 8px;
+            margin-top: 20px;
+            cursor: pointer;
+        }
+        .section {
+            margin-bottom: 40px;
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+        ul {
+            list-style-type: none;
+            margin: 0;
+            padding: 0;
+        }
+        li {
+            margin-bottom: 15px;
+            padding: 10px;
+            border-left: 4px solid #3498db;
+            background-color: #f9f9f9;
+            transition: background-color 0.3s;
+        }
+        li:hover {
+            background-color: #e8f4f8;
+        }
+        .question {
+            font-weight: bold;
+            color: #2c3e50;
+        }
+        .details {
+            color: #555;
+            font-size: 0.95em;
+            margin-top: 5px;
+        }
+        .response-box {
+            margin-top: 10px;
+            width: 100%;
+            min-height: 80px;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-family: 'Segoe UI', Arial, sans-serif;
+            font-size: 0.9em;
+            resize: vertical;
+        }
+        .response-box:focus {
+            border-color: #3498db;
+            outline: none;
+            box-shadow: 0 0 5px rgba(52, 152, 219, 0.3);
+        }
+        .sub-list {
+            margin-top: 10px;
+            padding-left: 20px;
+        }
+        .sub-list li {
+            border-left: none;
+            padding: 5px;
+            background-color: transparent;
+        }
+        .sub-list li:hover {
+            background-color: transparent;
+        }
+        .collapsible-content {
+            display: none;
+        }
+        .collapsible-content.active {
+            display: block;
+        }
+        button {
+            background-color: #3498db;
+            color: #fff;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-bottom: 20px;
+            display: block;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        button:hover {
+            background-color: #2980b9;
+        }
+        @media (max-width: 600px) {
+            body {
+                margin: 15px;
+            }
+            h1 {
+                font-size: 1.8em;
+            }
+            h2 {
+                font-size: 1.4em;
+            }
+            .response-box {
+                min-height: 60px;
+            }
+        }
+    </style>
+    <script>
+        function toggleSection(id) {
+            const content = document.getElementById(id);
+            content.classList.toggle('active');
+        }
+    </script>
+</head>
+<body>
+    <h1>Detailed Incident Investigation Questions with Response Boxes</h1>
+    <button onclick="document.querySelectorAll('.collapsible-content').forEach(el => el.classList.toggle('active'))">
+        Toggle All Sections
+    </button>
+
+    <div class="section">
+        <h2 onclick="toggleSection('supplier-breach')">Third-Party Supplier Breach</h2>
+        <div id="supplier-breach" class="collapsible-content active">
+            <ul>
+                <li>
+                    <div class="question">Initial Compromise Details:</div>
+                    <ul class="sub-list">
+                        <li>
+                            <span class="question">When and how was the third-party supplier's system initially compromised?</span>
+                            <div class="details">Determine the exact timeline (date and time) of the breach to establish a chronology. Identify the attack vector, such as a phishing email, exploited software vulnerability (e.g., unpatched systems), or social engineering. Request logs or incident reports from the supplier to pinpoint the entry point.</div>
+                            <textarea class="response-box" placeholder="Enter response here..."></textarea>
+                        </li>
+                        <li>
+                            <span class="question">What specific vulnerabilities or methods (e.g., phishing, malware, stolen credentials) were exploited to gain access?</span>
+                            <div class="details">Investigate whether the compromise involved known vulnerabilities (e.g., CVE identifiers), outdated software, or weak authentication practices. Confirm if the supplier has conducted a vulnerability assessment or penetration test recently.</div>
+                            <textarea class="response-box" placeholder="Enter response here..."></textarea>
+                        </li>
+                    </ul>
+                </li>
+                <li>
+                    <div class="question">Scope of the Breach:</div>
+                    <ul class="sub-list">
+                        <li>
+                            <span class="question">What systems, data, or accounts were accessed or compromised at the supplier?</span>
+                            <div class="details">Identify which systems (e.g., email servers, CRM, databases) or accounts (e.g., admin, user) were affected. Determine if the breach was limited to the email system or extended to other infrastructure. Request a detailed inventory of compromised assets.</div>
+                            <textarea class="response-box" placeholder="Enter response here..."></textarea>
+                        </li>
+                        <li>
+                            <span class="question">Was any sensitive data (e.g., customer data, credentials, or proprietary information) exfiltrated?</span>
+                            <div class="details">Check for evidence of data exfiltration, such as unusual outbound traffic or logs indicating file downloads. Determine the type and volume of data potentially exposed, including personal data, financial records, or intellectual property.</div>
+                            <textarea class="response-box" placeholder="Enter response here..."></textarea>
+                        </li>
+                    </ul>
+                </li>
+                <li>
+                    <div class="question">Phishing Email Details:</div>
+                    <ul class="sub-list">
+                        <li>
+                            <span class="question">What was the content and structure of the phishing email sent from the supplier’s compromised account?</span>
+                            <div class="details">Analyze the email’s subject, body, sender details, and any embedded links or attachments. Check for spoofing indicators, such as mismatched domain names or unusual headers. Preserve a copy of the email for forensic analysis.</div>
+                            <textarea class="response-box" placeholder="Enter response here..."></textarea>
+                        </li>
+                        <li>
+                            <span class="question">How was the email distributed (e.g., targeted individuals, mass distribution)?</span>
+                            <div class="details">Determine if the phishing email was sent to specific individuals (e.g., spear-phishing targeting executives) or broadly distributed. Identify the recipient list to assess the potential impact and notify affected parties.</div>
+                            <textarea class="response-box" placeholder="Enter response here..."></textarea>
+                        </li>
+                        <li>
+                            <span class="question">Did the email contain malicious links, attachments, or other payloads?</span>
+                            <div class="details">Analyze any links (e.g., to credential harvesting sites) or attachments (e.g., malicious PDFs, executables) using sandboxing tools or threat intelligence platforms. Confirm the payload’s behavior and potential impact.</div>
+                            <textarea class="response-box" placeholder="Enter response here..."></textarea>
+                        </li>
+                    </ul>
+                </li>
+                <li>
+                    <div class="question">Supplier’s Security Posture:</div>
+                    <ul class="sub-list">
+                        <li>
+                            <span class="question">What security controls (e.g., email filtering, multi-factor authentication) were in place at the supplier at the time of the breach?</span>
+                            <div class="details">Review the supplier’s security stack, including email gateways, firewalls, and endpoint protection. Confirm whether MFA was enforced for email accounts and if DMARC, DKIM, or SPF were properly configured.</div>
+                            <textarea class="response-box" placeholder="Enter response here..."></textarea>
+                        </li>
+                        <li>
+                            <span class="question">Have they conducted a forensic analysis to identify the root cause of their compromise?</span>
+                            <div class="details">Request a forensic report or summary from the supplier detailing the root cause analysis. Verify if a third-party incident response team was involved and if the analysis aligns with industry standards (e.g., NIST 800-61).</div>
+                            <textarea class="response-box" placeholder="Enter response here..."></textarea>
+                        </li>
+                    </ul>
+                </li>
+                <li>
+                    <div class="question">Response and Containment:</div>
+                    <ul class="sub-list">
+                        <li>
+                            <span class="question">What actions has the supplier taken to contain the breach (e.g., account suspension, system patching)?</span>
+                            <div class="details">Confirm specific containment measures, such as isolating affected systems, resetting credentials, or applying security patches. Request a timeline of these actions to evaluate their timeliness and effectiveness.</div>
+                            <textarea class="response-box" placeholder="Enter response here..."></textarea>
+                        </li>
+                        <li>
+                            <span class="question">Have they notified all affected parties, including other clients, and complied with relevant regulations?</span>
+                            <div class="details">Verify if the supplier has adhered to notification requirements under regulations like GDPR, CCPA, or industry-specific standards. Request copies of their notification communications and compliance documentation.</div>
+                            <textarea class="response-box" placeholder="Enter response here..."></textarea>
+                        </li>
+                    </ul>
+                </li>
+                <li>
+                    <div class="question">Communication and Coordination:</div>
+                    <ul class="sub-list">
+                        <li>
+                            <span class="question">When did the supplier notify your organization of the breach?</span>
+                            <div class="details">Establish the exact date and time of notification to assess delays. Determine the method of communication (e.g., email, phone) and whether it met contractual or regulatory timelines.</div>
+                            <textarea class="response-box" placeholder="Enter response here..."></textarea>
+                        </li>
+                        <li>
+                            <span class="question">What is the supplier’s plan for ongoing communication and updates regarding the incident?</span>
+                            <div class="details">Request a schedule for regular updates and a designated point of contact for incident-related communications. Ensure the supplier provides actionable information, such as new findings or mitigation progress.</div>
+                            <textarea class="response-box" placeholder="Enter response here..."></textarea>
+                        </li>
+                    </ul>
+                </li>
+                <li>
+                    <div class="question">Supply Chain Risk:</div>
+                    <ul class="sub-list">
+                        <li>
+                            <span class="question">What is the supplier’s process for vetting their own third-party vendors to prevent further supply chain attacks?</span>
+                            <div class="details">Review the supplier’s vendor management policies, including security assessments and audits. Confirm whether they follow frameworks like ISO 27001 or NIST 800-53 for supply chain security.</div>
+                            <textarea class="response-box" placeholder="Enter response here..."></textarea>
+                        </li>
+                        <li>
+                            <span class="question">Are there contractual obligations or security standards they are required to meet, and were these adhered to?</span>
+                            <div class="details">Examine the contract or service-level agreement (SLA) with the supplier to identify security requirements, such as encryption standards or incident response protocols. Assess whether non-compliance contributed to the breach.</div>
+                            <textarea class="response-box" placeholder="Enter response here..."></textarea>
+                        </li>
+                    </ul>
+                </li>
+                <li>
+                    <div class="question">Future Prevention:</div>
+                    <ul class="sub-list">
+                        <li>
+                            <span class="question">What measures is the supplier implementing to prevent similar incidents (e.g., enhanced monitoring, employee training)?</span>
+                            <div class="details">Request a detailed remediation plan, including timelines for implementing new controls like intrusion detection systems, regular security training, or zero-trust architecture.</div>
+                            <textarea class="response-box" placeholder="Enter response here..."></textarea>
+                        </li>
+                        <li>
+                            <span class="question">How will they verify the integrity of their systems moving forward?</span>
+                            <div class="details">Confirm if the supplier will conduct regular audits, penetration tests, or continuous monitoring to ensure system integrity. Request evidence of compliance with these measures, such as audit reports.</div>
+                            <textarea class="response-box" placeholder="Enter response here..."></textarea>
+                        </li>
+                    </ul>
+                </li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="section">
+        <h2 onclick="toggleSection('internal-breach')">Internal Mailbox Breach</h2>
+        <div id="internal-breach" class="collapsible-content active">
+            <ul>
+                <li>
+                    <div class="question">Breach Detection:</div>
+                    <ul class="sub-list">
+                        <li>
+                            <span class="question">When and how was the unauthorized login to the mailbox detected?</span>
+                            <div class="details">Review security information and event management (SIEM) logs, email audit trails, or user reports to pinpoint the detection timeline. Identify whether automated alerts or manual reviews triggered the discovery.</div>
+                            <textarea class="response-box" placeholder="Enter response here..."></textarea>
+                        </li>
+                        <li>
+                            <span class="question">What indicators of compromise (e.g., unusual login locations, IP addresses, or activity patterns) were observed?</span>
+                            <div class="details">Analyze login metadata, such as geolocation, device type, and IP addresses. Cross-reference with known threat intelligence to identify if the IP is associated with malicious activity.</div>
+                            <textarea class="response-box" placeholder="Enter response here..."></textarea>
+                        </li>
+                    </ul>
+                </li>
+                <li>
+                    <div class="question">Access Details:</div>
+                    <ul class="sub-list">
+                        <li>
+                            <span class="question">Which mailbox was compromised, and what level of access did the threat actor gain (e.g., read-only, full control)?</span>
+                            <div class="details">Identify the specific mailbox (e.g., user role, department) and its permissions. Check if the threat actor had access to delegate accounts, shared mailboxes, or administrative functions.</div>
+                            <textarea class="response-box" placeholder="Enter response here..."></textarea>
+                        </li>
+                        <li>
+                            <span class="question">Were any other accounts or systems accessed using credentials from the compromised mailbox?</span>
+                            <div class="details">Investigate whether the compromised credentials were used for lateral movement, such as accessing other cloud services (e.g., Microsoft 365, Google Workspace) or internal systems. Review access logs for suspicious activity.</div>
+                            <textarea class="response-box" placeholder="Enter response here..."></textarea>
+                        </li>
+                    </ul>
+                </li>
+                <li>
+                    <div class="question">Phishing Interaction:</div>
+                    <ul class="sub-list">
+                        <li>
+                            <span class="question">Did the user interact with the phishing email (e.g., clicked a link, entered credentials, or downloaded an attachment)?</span>
+                            <div class="details">Interview the affected user and review email client logs to confirm their actions. Determine if credentials were entered on a fake login page or if malware was executed from an attachment.</div>
+                            <textarea class="response-box" placeholder="Enter response here..."></textarea>
+                        </li>
+                        <li>
+                            <span class="question">Was the phishing email identified and flagged by your email security tools before or after the interaction?</span>
+                            <div class="details">Check email gateway logs (e.g., Microsoft Defender, Proofpoint) to see if the phishing email bypassed filters or was flagged post-delivery. Identify any gaps in detection rules or configurations.</div>
+                            <textarea class="response-box" placeholder="Enter response here..."></textarea>
+                        </li>
+                    </ul>
+                </li>
+                <li>
+                    <div class="question">Impact Assessment:</div>
+                    <ul class="sub-list">
+                        <li>
+                            <span class="question">What data or communications in the mailbox could have been accessed or exfiltrated?</span>
+                            <div class="details">Review the mailbox contents for sensitive data, such as customer PII, financial details, or internal communications. Estimate the volume and criticality of potentially exposed information.</div>
+                            <textarea class="response-box" placeholder="Enter response here..."></textarea>
+                        </li>
+                        <li>
+                            <span class="question">Were any sensitive actions (e.g., email forwarding rules, data sharing) performed by the threat actor?</span>
+                            <div class="details">Check for unauthorized email rules, forwarded messages, or data sharing (e.g., via cloud storage links). Investigate whether the threat actor sent additional phishing emails from the compromised account.</div>
+                            <textarea class="response-box" placeholder="Enter response here..."></textarea>
+                        </li>
+                    </ul>
+                </li>
+                <li>
+                    <div class="question">Security Controls:</div>
+                    <ul class="sub-list">
+                        <li>
+                            <span class="question">Was multi-factor authentication (MFA) enabled on the compromised mailbox, and if not, why?</span>
+                            <div class="details">Verify MFA status in the email platform’s admin console. If MFA was not enabled, identify policy gaps or user exemptions that allowed this vulnerability.</div>
+                            <textarea class="response-box" placeholder="Enter response here..."></textarea>
+                        </li>
+                        <li>
+                            <span class="question">What email security measures (e.g., spam filters, DMARC policies) were in place, and did they fail to detect the phishing email?</span>
+                            <div class="details">Review email security configurations, including DMARC, DKIM, and SPF settings, to identify failures. Analyze why the phishing email was not quarantined or flagged by existing tools.</div>
+                            <textarea class="response-box" placeholder="Enter response here..."></textarea>
+                        </li>
+                    </ul>
+                </li>
+                <li>
+                    <div class="question">Containment and Response:</div>
+                    <ul class="sub-list">
+                        <li>
+                            <span class="question">What immediate actions were taken to secure the compromised mailbox (e.g., password reset, account suspension)?</span>
+                            <div class="details">Document the containment steps, such as locking the account, revoking active sessions, or resetting passwords. Confirm whether these actions were performed promptly to limit damage.</div>
+                            <textarea class="response-box" placeholder="Enter response here..."></textarea>
+                        </li>
+                        <li>
+                            <span class="question">Has a forensic investigation been initiated to determine the extent of the breach and any lateral movement?</span>
+                            <div class="details">Confirm if a forensic team (internal or external) is analyzing logs, network traffic, and endpoints. Ensure the investigation covers potential persistence mechanisms, such as backdoors or malware.</div>
+                            <textarea class="response-box" placeholder="Enter response here..."></textarea>
+                        </li>
+                    </ul>
+                </li>
+                <li>
+                    <div class="question">User Awareness:</div>
+                    <ul class="sub-list">
+                        <li>
+                            <span class="question">Has the affected user received phishing awareness training, and when was the last training session?</span>
+                            <div class="details">Review training records to confirm the user’s participation in security awareness programs. Assess whether the training covered recognizing advanced phishing techniques, such as spear-phishing.</div>
+                            <textarea class="response-box" placeholder="Enter response here..."></textarea>
+                        </li>
+                        <li>
+                            <span class="question">Are there patterns of similar incidents involving other users in the organization?</span>
+                            <div class="details">Analyze incident logs to identify recurring phishing incidents or vulnerabilities. Determine if specific departments or roles are being targeted repeatedly.</div>
+                            <textarea class="response-box" placeholder="Enter response here..."></textarea>
+                        </li>
+                    </ul>
+                </li>
+                <li>
+                    <div class="question">Mitigation and Prevention:</div>
+                    <ul class="sub-list">
+                        <li>
+                            <span class="question">What steps are being taken to strengthen mailbox security (e.g., enabling MFA, enhancing email filters)?</span>
+                            <div class="details">Outline specific technical controls, such as mandatory MFA, advanced threat protection, or zero-trust policies. Ensure these measures are applied across all accounts, not just the compromised one.</div>
+                            <textarea class="response-box" placeholder="Enter response here..."></textarea>
+                        </li>
+                        <li>
+                            <span class="question">How will the organization improve employee training and awareness to prevent future phishing incidents?</span>
+                            <div class="details">Plan for regular, updated phishing simulations and training sessions. Consider gamified or role-specific training to improve engagement and effectiveness.</div>
+                            <textarea class="response-box" placeholder="Enter response here..."></textarea>
+                        </li>
+                        <li>
+                            <span class="question">If this occurred tomorrow, would you be able to protect, detect, and respond differently to reduce the likelihood and impact of a re-occurrence?</span>
+                            <div class="details">Evaluate whether current and planned security measures (e.g., improved email filters, MFA enforcement, real-time monitoring) would prevent or mitigate a similar incident. Identify gaps in the existing incident response plan and propose specific improvements, such as faster detection through enhanced SIEM rules or automated account lockdown procedures.</div>
+                            <textarea class="response-box" placeholder="Enter response here..."></textarea>
+                        </li>
+                    </ul>
+                </li>
+                <li>
+                    <div class="question">Regulatory and Reporting:</div>
+                    <ul class="sub-list">
+                        <li>
+                            <span class="question">Does this breach trigger any regulatory reporting requirements (e.g., GDPR, CCPA)?</span>
+                            <div class="details">Consult with legal or compliance teams to determine if the breach involves personal data or meets reporting thresholds. Identify applicable regulations based on the data type and geographic scope.</div>
+                            <textarea class="response-box" placeholder="Enter response here..."></textarea>
+                        </li>
+                        <li>
+                            <span class="question">Have relevant stakeholders (e.g., legal, compliance, or customers) been notified as needed?</span>
+                            <div class="details">Document all notifications sent to internal and external stakeholders. Ensure communications are clear, compliant, and include guidance on next steps for affected parties.</div>
+                            <textarea class="response-box" placeholder="Enter response here..."></textarea>
+                        </li>
+                    </ul>
+                </li>
+            </ul>
+        </div>
+    </div>
+</body>
+</html>
