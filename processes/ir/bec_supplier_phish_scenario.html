@@ -1,48 +1,9 @@
-<script type="text/javascript">
-        var gk_isXlsx = false;
-        var gk_xlsxFileLookup = {};
-        var gk_fileData = {};
-        function filledCell(cell) {
-          return cell !== '' && cell != null;
-        }
-        function loadFileData(filename) {
-        if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
-            try {
-                var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
-                var firstSheetName = workbook.SheetNames[0];
-                var worksheet = workbook.Sheets[firstSheetName];
-
-                // Convert sheet to JSON to filter blank rows
-                var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
-                // Filter out blank rows (rows where all cells are empty, null, or undefined)
-                var filteredData = jsonData.filter(row => row.some(filledCell));
-
-                // Heuristic to find the header row by ignoring rows with fewer filled cells than the next row
-                var headerRowIndex = filteredData.findIndex((row, index) =>
-                  row.filter(filledCell).length >= filteredData[index + 1]?.filter(filledCell).length
-                );
-                // Fallback
-                if (headerRowIndex === -1 || headerRowIndex > 25) {
-                  headerRowIndex = 0;
-                }
-
-                // Convert filtered JSON back to CSV
-                var csv = XLSX.utils.aoa_to_sheet(filteredData.slice(headerRowIndex)); // Create a new sheet from filtered array of arrays
-                csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
-                return csv;
-            } catch (e) {
-                console.error(e);
-                return "";
-            }
-        }
-        return gk_fileData[filename] || "";
-        }
-        </script><!DOCTYPE html>
+<!hraDOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Detailed Incident Investigation Questions with Response Boxes</title>
+    <title>Detailed Incident Investigation Questions with Response Boxes and PDF Export</title>
     <style>
         body {
             font-family: 'Segoe UI', Arial, sans-serif;
@@ -146,6 +107,13 @@
         button:hover {
             background-color: #2980b9;
         }
+        #create-pdf-btn {
+            background-color: #e74c3c;
+            margin-top: 10px;
+        }
+        #create-pdf-btn:hover {
+            background-color: #c0392b;
+        }
         @media (max-width: 600px) {
             body {
                 margin: 15px;
@@ -161,18 +129,71 @@
             }
         }
     </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script>
         function toggleSection(id) {
             const content = document.getElementById(id);
             content.classList.toggle('active');
         }
+
+        function createPDF() {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF({
+                orientation: 'portrait',
+                unit: 'px',
+                format: 'a4'
+            });
+
+            const element = document.body;
+            const pageWidth = doc.internal.pageSize.getWidth();
+            const pageHeight = doc.internal.pageSize.getHeight();
+
+            html2canvas(element, {
+                scale: 2,
+                useCORS: true,
+                windowWidth: element.scrollWidth,
+                windowHeight: element.scrollHeight
+            }).then(canvas => {
+                const imgData = canvas.toDataURL('image/png');
+                const imgWidth = canvas.width;
+                const imgHeight = canvas.height;
+                const ratio = Math.min(pageWidth / imgWidth, pageHeight / imgHeight);
+                const scaledWidth = imgWidth * ratio * 0.95;
+                const scaledHeight = imgHeight * ratio * 0.95;
+
+                let yPosition = 20;
+                if (scaledHeight <= pageHeight) {
+                    doc.addImage(imgData, 'PNG', 10, yPosition, scaledWidth, scaledHeight);
+                } else {
+                    let remainingHeight = scaledHeight;
+                    let offsetY = 0;
+
+                    while (remainingHeight > 0) {
+                        doc.addImage(imgData, 'PNG', 10, yPosition, scaledWidth, scaledHeight, null, 'FAST', 0, offsetY);
+                        remainingHeight -= pageHeight;
+                        offsetY += pageHeight / ratio;
+                        if (remainingHeight > 0) {
+                            doc.addPage();
+                            yPosition = 20;
+                        }
+                    }
+                }
+
+                doc.save('incident_investigation_questions.pdf');
+            }).catch(error => {
+                console.error('Error generating PDF:', error);
+                alert('Failed to generate PDF. Please try again.');
+            });
+        }
     </script>
 </head>
 <body>
-    <h1>Detailed Incident Investigation Questions with Response Boxes</h1>
+    <h1>Detailed Incident Investigation Questions with Response Boxes and PDF Export</h1>
     <button onclick="document.querySelectorAll('.collapsible-content').forEach(el => el.classList.toggle('active'))">
         Toggle All Sections
     </button>
+    <button id="create-pdf-btn" onclick="createPDF()">Create PDF</button>
 
     <div class="section">
         <h2 onclick="toggleSection('supplier-breach')">Third-Party Supplier Breach</h2>
@@ -277,13 +298,13 @@
                     <div class="question">Supply Chain Risk:</div>
                     <ul class="sub-list">
                         <li>
-                            <span class="question">What is the supplier’s process for vetting their own third-party vendors to prevent further supply chain attacks?</span>
-                            <div class="details">Review the supplier’s vendor management policies, including security assessments and audits. Confirm whether they follow frameworks like ISO 27001 or NIST 800-53 for supply chain security.</div>
+                            <span class="question">What is second-party vendor’s process for vetting their own third-party vendors to prevent further supply chain attacks?</span>
+                            <div class="details">Review the second-party vendor’s vendor management policies, including security assessments and audits. Confirm whether they follow frameworks like ISO 27001 or NIST 800-53 for supply chain security.</div>
                             <textarea class="response-box" placeholder="Enter response here..."></textarea>
                         </li>
                         <li>
                             <span class="question">Are there contractual obligations or security standards they are required to meet, and were these adhered to?</span>
-                            <div class="details">Examine the contract or service-level agreement (SLA) with the supplier to identify security requirements, such as encryption standards or incident response protocols. Assess whether non-compliance contributed to the breach.</div>
+                            <div class="details">Examine the contract or service-level agreement (SLA) with the second-party vendor to identify security requirements, such as encryption standards or incident response protocols. Assess whether non-compliance contributed to the breach.</div>
                             <textarea class="response-box" placeholder="Enter response here..."></textarea>
                         </li>
                     </ul>
@@ -292,13 +313,13 @@
                     <div class="question">Future Prevention:</div>
                     <ul class="sub-list">
                         <li>
-                            <span class="question">What measures is the supplier implementing to prevent similar incidents (e.g., enhanced monitoring, employee training)?</span>
+                            <span class="question">What measures is the second-party vendor implementing to prevent similar incidents (e.g., enhanced monitoring, employee training)?</span>
                             <div class="details">Request a detailed remediation plan, including timelines for implementing new controls like intrusion detection systems, regular security training, or zero-trust architecture.</div>
                             <textarea class="response-box" placeholder="Enter response here..."></textarea>
                         </li>
                         <li>
                             <span class="question">How will they verify the integrity of their systems moving forward?</span>
-                            <div class="details">Confirm if the supplier will conduct regular audits, penetration tests, or continuous monitoring to ensure system integrity. Request evidence of compliance with these measures, such as audit reports.</div>
+                            <div class="details">Confirm if the second-party vendor will conduct regular audits, penetration tests, or continuous monitoring to ensure system integrity. Request evidence of compliance with these measures, such as audit reports.</div>
                             <textarea class="response-box" placeholder="Enter response here..."></textarea>
                         </li>
                     </ul>
