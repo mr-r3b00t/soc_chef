@@ -79,6 +79,9 @@ Reactive Orgs that either do not have Policies, Processes and Procedures or ones
 
 🎨 [Exernal - MSP Backup Services Assessment](https://mr-r3b00t.github.io/msp-assesment/)
 
+🎨 [AES String Encrtption and Decryption Tool](https://mr-r3b00t.github.io/tools/encrypted_chat.html)
+
+
 
 ☕ [Buy me a coffee](https://buymeacoffee.com/mrr3b00t)
 
