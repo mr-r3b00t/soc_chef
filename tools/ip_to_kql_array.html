@@ -48,13 +48,15 @@
             // Split by whitespace, newlines, or common delimiters
             const tokens = input.split(/[\s,;\n]+/)
                 .filter(token => token.trim() !== '');
-            // Filter valid IPs and exclude subnets
-            const validIPs = tokens
-                .filter(token => {
-                    // Exclude anything with a subnet mask (e.g., /24)
-                    if (token.includes('/')) return false;
-                    return isValidIPv4(token) || isValidIPv6(token);
-                })
+            // Filter valid IPs, exclude subnets, deduplicate, and sort
+            const validIPs = [...new Set(
+                tokens
+                    .filter(token => {
+                        // Exclude anything with a subnet mask (e.g., /24)
+                        if (token.includes('/')) return false;
+                        return isValidIPv4(token) || isValidIPv6(token);
+                    })
+            )].sort()
                 .map(ip => `"${ip}"`);
             // Join with commas
             const result = validIPs.join(',');
