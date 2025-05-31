@@ -81,6 +81,9 @@ Reactive Orgs that either do not have Policies, Processes and Procedures or ones
 
 🎨 [AES String Encrtption and Decryption Tool](https://mr-r3b00t.github.io/soc_chef/tools/encrypted_chat.html)
 
+🎨 [File to base64 encoder](https://mr-r3b00t.github.io/soc_chef/tools/file_to_base64.html)
+
+
 
 
 ☕ [Buy me a coffee](https://buymeacoffee.com/mrr3b00t)
