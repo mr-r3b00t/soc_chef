@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>File to Base64 Converter</title>
+    <title>File to Base64 Converter 3</title>
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-gray-100 flex items-center justify-center min-h-screen">
@@ -76,19 +76,26 @@
 
                 let base64String = '';
 
-                // Try to process as a blob (image or file)
-                const blobTypes = clipboardItem.types.filter(type => type !== 'text/plain');
-                if (blobTypes.length > 0) {
-                    const blob = await clipboardItem.getType(blobTypes[0]);
-                    base64String = await blobToBase64(blob);
+                // Force encoding as blob with the first available type
+                if (clipboardItem.types.length > 0) {
+                    const blob = await clipboardItem.getType(clipboardItem.types[0]);
+                    try {
+                        base64String = await blobToBase64(blob);
+                    } catch (err) {
+                        console.error('Blob conversion failed:', err);
+                    }
                 }
-                // Fallback to plain text
-                else if (clipboardItem.types.includes('text/plain')) {
+
+                // Fallback to text if blob encoding fails
+                if (!base64String && clipboardItem.types.includes('text/plain')) {
                     const text = await clipboardItem.getType('text/plain');
                     const textContent = await text.text();
                     base64String = textToBase64(textContent);
-                } else {
-                    alert('Unsupported clipboard content type: ' + clipboardItem.types.join(', '));
+                }
+
+                // If no Base64 string generated, alert with types
+                if (!base64String) {
+                    alert('Failed to encode clipboard content. Types: ' + clipboardItem.types.join(', '));
                     base64Output.value = '';
                     copyButton.disabled = true;
                     return;
@@ -96,10 +103,10 @@
 
                 base64Output.value = base64String;
                 copyButton.disabled = false;
-                alert('Clipboard content converted to Base64!');
+                alert('Clipboard content encoded to Base64!');
             } catch (err) {
                 console.error('Failed to read clipboard: ', err);
-                alert('Failed to read clipboard content. Ensure clipboard access is allowed.');
+                alert('Failed to read clipboard. Ensure clipboard access is allowed.');
                 base64Output.value = '';
                 copyButton.disabled = true;
             }
