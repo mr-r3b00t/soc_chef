@@ -1,43 +1,4 @@
-<script type="text/javascript">
-        var gk_isXlsx = false;
-        var gk_xlsxFileLookup = {};
-        var gk_fileData = {};
-        function filledCell(cell) {
-          return cell !== '' && cell != null;
-        }
-        function loadFileData(filename) {
-        if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
-            try {
-                var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
-                var firstSheetName = workbook.SheetNames[0];
-                var worksheet = workbook.Sheets[firstSheetName];
-
-                // Convert sheet to JSON to filter blank rows
-                var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
-                // Filter out blank rows (rows where all cells are empty, null, or undefined)
-                var filteredData = jsonData.filter(row => row.some(filledCell));
-
-                // Heuristic to find the header row by ignoring rows with fewer filled cells than the next row
-                var headerRowIndex = filteredData.findIndex((row, index) =>
-                  row.filter(filledCell).length >= filteredData[index + 1]?.filter(filledCell).length
-                );
-                // Fallback
-                if (headerRowIndex === -1 || headerRowIndex > 25) {
-                  headerRowIndex = 0;
-                }
-
-                // Convert filtered JSON back to CSV
-                var csv = XLSX.utils.aoa_to_sheet(filteredData.slice(headerRowIndex)); // Create a new sheet from filtered array of arrays
-                csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
-                return csv;
-            } catch (e) {
-                console.error(e);
-                return "";
-            }
-        }
-        return gk_fileData[filename] || "";
-        }
-        </script><!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -48,16 +9,26 @@
 <body class="bg-gray-100 flex items-center justify-center min-h-screen">
     <div class="bg-white p-6 rounded-lg shadow-lg w-full max-w-md">
         <h1 class="text-2xl font-bold mb-4 text-center">File to Base64 Converter</h1>
-        <input type="file" id="fileInput" class="mb-4 w-full p-2 border rounded">
+        <div class="flex space-x-2 mb-4">
+            <input type="file" id="fileInput" class="w-full p-2 border rounded">
+            <button id="pasteButton" class="bg-green-500 text-white p-2 rounded hover:bg-green-600">Paste from Clipboard</button>
+        </div>
         <textarea id="base64Output" class="w-full h-40 p-2 border rounded mb-4" readonly placeholder="Base64 output will appear here"></textarea>
         <button id="copyButton" class="w-full bg-blue-500 text-white p-2 rounded hover:bg-blue-600 disabled:bg-gray-400" disabled>Copy to Clipboard</button>
     </div>
 
     <script>
         const fileInput = document.getElementById('fileInput');
+        const pasteButton = document.getElementById('pasteButton');
         const base64Output = document.getElementById('base64Output');
         const copyButton = document.getElementById('copyButton');
 
+        // Function to convert text to Base64
+        function textToBase64(text) {
+            return btoa(text);
+        }
+
+        // Handle file input
         fileInput.addEventListener('change', (event) => {
             const file = event.target.files[0];
             if (file) {
@@ -74,6 +45,27 @@
             }
         });
 
+        // Handle paste button
+        pasteButton.addEventListener('click', async () => {
+            try {
+                const text = await navigator.clipboard.readText();
+                if (text) {
+                    const base64String = textToBase64(text);
+                    base64Output.value = base64String;
+                    copyButton.disabled = false;
+                    alert('Clipboard content converted to Base64!');
+                } else {
+                    base64Output.value = '';
+                    copyButton.disabled = true;
+                    alert('Clipboard is empty or contains no text.');
+                }
+            } catch (err) {
+                console.error('Failed to read clipboard: ', err);
+                alert('Failed to read clipboard content.');
+            }
+        });
+
+        // Handle copy button
         copyButton.addEventListener('click', () => {
             base64Output.select();
             try {
