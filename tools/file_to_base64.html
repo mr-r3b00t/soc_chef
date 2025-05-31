@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>File to Base64 Converter v2</title>
+    <title>File to Base64 Converter 2.1</title>
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-gray-100 flex items-center justify-center min-h-screen">
@@ -72,19 +72,14 @@
                 }
 
                 const clipboardItem = clipboardItems[0];
+                console.log('Clipboard item types:', clipboardItem.types); // Debug log
+
                 let base64String = '';
 
-                // Check for image types
-                const imageTypes = clipboardItem.types.filter(type => type.startsWith('image/'));
-                if (imageTypes.length > 0) {
-                    const blob = await clipboardItem.getType(imageTypes[0]);
-                    base64String = await blobToBase64(blob);
-                }
-                // Check for any blob-based types (files)
-                else if (clipboardItem.types.some(type => type !== 'text/plain')) {
-                    // Prioritize non-text types for files
-                    const fileType = clipboardItem.types.find(type => type !== 'text/plain') || clipboardItem.types[0];
-                    const blob = await clipboardItem.getType(fileType);
+                // Try to process as a blob (image or file)
+                const blobTypes = clipboardItem.types.filter(type => type !== 'text/plain');
+                if (blobTypes.length > 0) {
+                    const blob = await clipboardItem.getType(blobTypes[0]);
                     base64String = await blobToBase64(blob);
                 }
                 // Fallback to plain text
@@ -93,7 +88,7 @@
                     const textContent = await text.text();
                     base64String = textToBase64(textContent);
                 } else {
-                    alert('Unsupported clipboard content type.');
+                    alert('Unsupported clipboard content type: ' + clipboardItem.types.join(', '));
                     base64Output.value = '';
                     copyButton.disabled = true;
                     return;
