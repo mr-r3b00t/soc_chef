@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>File to Base64 Converter</title>
+    <title>File to Base64 Converter v2</title>
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-gray-100 flex items-center justify-center min-h-screen">
@@ -80,12 +80,14 @@
                     const blob = await clipboardItem.getType(imageTypes[0]);
                     base64String = await blobToBase64(blob);
                 }
-                // Check for file types (non-image files)
-                else if (clipboardItem.types.includes('application/octet-stream') || clipboardItem.types.includes('text/plain')) {
-                    const blob = await clipboardItem.getType(clipboardItem.types[0]);
+                // Check for any blob-based types (files)
+                else if (clipboardItem.types.some(type => type !== 'text/plain')) {
+                    // Prioritize non-text types for files
+                    const fileType = clipboardItem.types.find(type => type !== 'text/plain') || clipboardItem.types[0];
+                    const blob = await clipboardItem.getType(fileType);
                     base64String = await blobToBase64(blob);
                 }
-                // Check for plain text
+                // Fallback to plain text
                 else if (clipboardItem.types.includes('text/plain')) {
                     const text = await clipboardItem.getType('text/plain');
                     const textContent = await text.text();
