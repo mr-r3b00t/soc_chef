@@ -28,17 +28,32 @@
             return btoa(text);
         }
 
+        // Function to convert blob to Base64
+        function blobToBase64(blob) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () => {
+                    const base64String = reader.result.split(',')[1];
+                    resolve(base64String);
+                };
+                reader.onerror = reject;
+                reader.readAsDataURL(blob);
+            });
+        }
+
         // Handle file input
         fileInput.addEventListener('change', (event) => {
             const file = event.target.files[0];
             if (file) {
-                const reader = new FileReader();
-                reader.onload = () => {
-                    const base64String = reader.result.split(',')[1];
+                blobToBase64(file).then(base64String => {
                     base64Output.value = base64String;
                     copyButton.disabled = false;
-                };
-                reader.readAsDataURL(file);
+                }).catch(err => {
+                    console.error('Failed to convert file: ', err);
+                    alert('Failed to convert file to Base64.');
+                    base64Output.value = '';
+                    copyButton.disabled = true;
+                });
             } else {
                 base64Output.value = '';
                 copyButton.disabled = true;
@@ -48,20 +63,48 @@
         // Handle paste button
         pasteButton.addEventListener('click', async () => {
             try {
-                const text = await navigator.clipboard.readText();
-                if (text) {
-                    const base64String = textToBase64(text);
-                    base64Output.value = base64String;
-                    copyButton.disabled = false;
-                    alert('Clipboard content converted to Base64!');
-                } else {
+                const clipboardItems = await navigator.clipboard.read();
+                if (clipboardItems.length === 0) {
+                    alert('Clipboard is empty.');
                     base64Output.value = '';
                     copyButton.disabled = true;
-                    alert('Clipboard is empty or contains no text.');
+                    return;
                 }
+
+                const clipboardItem = clipboardItems[0];
+                let base64String = '';
+
+                // Check for image types
+                const imageTypes = clipboardItem.types.filter(type => type.startsWith('image/'));
+                if (imageTypes.length > 0) {
+                    const blob = await clipboardItem.getType(imageTypes[0]);
+                    base64String = await blobToBase64(blob);
+                }
+                // Check for file types (non-image files)
+                else if (clipboardItem.types.includes('application/octet-stream') || clipboardItem.types.includes('text/plain')) {
+                    const blob = await clipboardItem.getType(clipboardItem.types[0]);
+                    base64String = await blobToBase64(blob);
+                }
+                // Check for plain text
+                else if (clipboardItem.types.includes('text/plain')) {
+                    const text = await clipboardItem.getType('text/plain');
+                    const textContent = await text.text();
+                    base64String = textToBase64(textContent);
+                } else {
+                    alert('Unsupported clipboard content type.');
+                    base64Output.value = '';
+                    copyButton.disabled = true;
+                    return;
+                }
+
+                base64Output.value = base64String;
+                copyButton.disabled = false;
+                alert('Clipboard content converted to Base64!');
             } catch (err) {
                 console.error('Failed to read clipboard: ', err);
-                alert('Failed to read clipboard content.');
+                alert('Failed to read clipboard content. Ensure clipboard access is allowed.');
+                base64Output.value = '';
+                copyButton.disabled = true;
             }
         });
 
