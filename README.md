@@ -83,6 +83,10 @@ Reactive Orgs that either do not have Policies, Processes and Procedures or ones
 
 🎨 [File to base64 encoder](https://mr-r3b00t.github.io/soc_chef/tools/file_to_base64.html)
 
+🎨 [Steg Hide](https://mr-r3b00t.github.io/soc_chef/tools/steg_hide.html)
+
+🎨 [Steg Decode](https://mr-r3b00t.github.io/soc_chef/tools/steg_decode.html)
+
 
 
 
