@@ -1,0 +1,446 @@
+<script type="text/javascript">
+        var gk_isXlsx = false;
+        var gk_xlsxFileLookup = {};
+        var gk_fileData = {};
+        function filledCell(cell) {
+          return cell !== '' && cell != null;
+        }
+        function loadFileData(filename) {
+        if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
+            try {
+                var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
+                var firstSheetName = workbook.SheetNames[0];
+                var worksheet = workbook.Sheets[firstSheetName];
+
+                // Convert sheet to JSON to filter blank rows
+                var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
+                // Filter out blank rows (rows where all cells are empty, null, or undefined)
+                var filteredData = jsonData.filter(row => row.some(filledCell));
+
+                // Heuristic to find the header row by ignoring rows with fewer filled cells than the next row
+                var headerRowIndex = filteredData.findIndex((row, index) =>
+                  row.filter(filledCell).length >= filteredData[index + 1]?.filter(filledCell).length
+                );
+                // Fallback
+                if (headerRowIndex === -1 || headerRowIndex > 25) {
+                  headerRowIndex = 0;
+                }
+
+                // Convert filtered JSON back to CSV
+                var csv = XLSX.utils.aoa_to_sheet(filteredData.slice(headerRowIndex)); // Create a new sheet from filtered array of arrays
+                csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
+                return csv;
+            } catch (e) {
+                console.error(e);
+                return "";
+            }
+        }
+        return gk_fileData[filename] || "";
+        }
+        </script><!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Data Breach Response Wizard for UK Charities</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+</head>
+<body class="bg-gradient-to-r from-blue-100 to-gray-100 font-sans min-h-screen flex items-center justify-center">
+    <div class="container mx-auto p-6 max-w-3xl">
+        <h1 class="text-4xl font-bold text-center mb-8 text-gray-800">Data Breach Response Wizard for UK Charities</h1>
+        <div id="wizard" class="bg-white p-8 rounded-xl shadow-lg transition-all duration-300">
+            <div id="step-content" class="mb-6"></div>
+            <div id="navigation" class="flex justify-between">
+                <button id="prev-btn" class="bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition-transform transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed" disabled>Previous</button>
+                <button id="next-btn" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-transform transform hover:scale-105">Next</button>
+            </div>
+            <div id="download-btn-container" class="hidden mt-6 text-center">
+                <button id="download-pdf-btn" class="bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 transition-transform transform hover:scale-105">Download PDF</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const { jsPDF } = window.jspdf;
+        const overview = {
+            title: "Welcome to the Data Breach Response Wizard",
+            content: `
+                <h2 class="text-2 upstairs">Data Breach Response Wizard</h2>
+                <p class="mb-6 text-gray-600">This wizard guides UK charities through the essential steps to respond to a data breach, ensuring compliance with UK GDPR, Charity Commission requirements, and best practices. Follow the steps to contain the breach, notify relevant parties, and implement improvements to prevent future incidents.</p>
+                <div class="border-l-4 border-red-500 bg-gray-100 p-4 mb-6 rounded-r-lg">
+                    <p class="text-gray-800 font-semibold">Disclaimer: This wizard is provided for informational purposes only and does not constitute legal advice. Use at your own risk. Consult a qualified legal professional for advice tailored to your situation.</p>
+                </div>
+                <div class="text-center">
+                    <button id="start-btn" class="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-transform transform hover:scale-105">Start</button>
+                </div>
+            `
+        };
+
+        const steps = [
+            {
+                title: "Step 1: Containment and Eradication",
+                content: `
+                    <h2 class="text-2xl font-semibold mb-4 text-gray-800">Containment and Eradication</h2>
+                    <p class="mb-4 text-gray-600">Act quickly to limit the damage of the data breach. Identify what was affected (e.g., stolen data, compromised systems) and take immediate steps to stop further unauthorized access.</p>
+                    <ul class="list-disc pl-6 mb-4 text-gray-600">
+                        <li>Disconnect affected devices or systems from the internet, if safe to do so.</li>
+                        <li>Change passwords for affected accounts and systems.</li>
+                        <li>Work with your IT team or a trusted IT professional to secure systems and remove any malicious software.</li>
+                        <li>Preserve evidence (e.g., logs, files) for investigations, but avoid making changes that could destroy evidence.</li>
+                    </ul>
+                    <p><strong class="text-gray-800">Tip:</strong> Keep a detailed record of all actions taken, as this will be needed for reporting to regulators and the Charity Commission.</p>
+                `,
+                plainContent: `Containment and Eradication
+Act quickly to limit the damage of the data breach. Identify what was affected (e.g., stolen data, compromised systems) and take immediate steps to stop further unauthorized access.
+- Disconnect affected devices or systems from the internet, if safe to do so.
+- Change passwords for affected accounts and systems.
+- Work with your IT team or a trusted IT professional to secure systems and remove any malicious software.
+- Preserve evidence (e.g., logs, files) for investigations, but avoid making changes that could destroy evidence.
+Tip: Keep a detailed record of all actions taken, as this will be needed for reporting to regulators and the Charity Commission.`
+            },
+            {
+                title: "Step 2: Contact Your Insurance Provider",
+                content: `
+                    <h2 class="text-2xl font-semibold mb-4 text-gray-800">Contact Your Insurance Provider</h2>
+                    <p class="mb-4 text-gray-600">If your charity has cyber insurance, contact your provider as soon as possible to report the breach.</p>
+                    <ul class="list-disc pl-6 mb-4 text-gray-600">
+                        <li>Locate your insurance policy details and contact information.</li>
+                        <li>Inform them of the breach, providing initial details (e.g., what happened, when it was discovered).</li>
+                        <li>Ask about coverage for legal fees, recovery costs, or notifying affected individuals.</li>
+                    </ul>
+                    <p><strong class="text-gray-800">Tip:</strong> Your insurer may provide guidance or services to assist with the response.</p>
+                `,
+                plainContent: `Contact Your Insurance Provider
+If your charity has cyber insurance, contact your provider as soon as possible to report the breach.
+- Locate your insurance policy details and contact information.
+- Inform them of the breach, providing initial details (e.g., what happened, when it was discovered).
+- Ask about coverage for legal fees, recovery costs, or notifying affected individuals.
+Tip: Your insurer may provide guidance or services to assist with the response.`
+            },
+            {
+                title: "Step 3: Contact Legal Counsel",
+                content: `
+                    <h2 class="text-2xl font-semibold mb-4 text-gray-800">Contact Legal Counsel</h2>
+                    <p class="mb-4 text-gray-600">Engage your charity’s legal advisor or a data protection lawyer to understand your legal obligations and potential liabilities under UK GDPR.</p>
+                    <ul class="list-disc pl-6 mb-4 text-gray-600">
+                        <li>Discuss the breach details and seek advice on compliance with data protection laws.</li>
+                        <li>Ask about your obligations to notify regulators, the Charity Commission, and affected individuals.</li>
+                        <li>Ensure legal privilege is maintained for sensitive communications.</li>
+                    </ul>
+                    <p><strong class="text-gray-800">Tip:</strong> If you don’t have a lawyer, contact a firm specializing in data protection law.</p>
+                `,
+                plainContent: `Contact Legal Counsel
+Engage your charity’s legal advisor or a data protection lawyer to understand your legal obligations and potential liabilities under UK GDPR.
+- Discuss the breach details and seek advice on compliance with data protection laws.
+- Ask about your obligations to notify regulators, the Charity Commission, and affected individuals.
+- Ensure legal privilege is maintained for sensitive communications.
+Tip: If you don’t have a lawyer, contact a firm specializing in data protection law.`
+            },
+            {
+                title: "Step 4: Contact the Information Commissioner’s Office (ICO)",
+                content: `
+                    <h2 class="text-2xl font-semibold mb-4 text-gray-800">Contact the Information Commissioner’s Office (ICO)</h2>
+                    <p class="mb-4 text-gray-600">Under UK GDPR, you must report a personal data breach to the ICO within 72 hours of becoming aware of it, unless it’s unlikely to result in a risk to individuals’ rights and freedoms.</p>
+                    <ul class="list-disc pl-6 mb-4 text-gray-600">
+                        <li>Visit the <a href="https://ico.org.uk/for-organisations/report-a-breach/" class="text-blue-600 underline hover:text-blue-800" target="_blank">ICO’s data breach reporting page</a>.</li>
+                        <li>Prepare details: what data was breached, how it happened, who was affected, and what you’ve done so far.</li>
+                        <li>Submit an initial report online or call the ICO helpline at 0303 123 1113.</li>
+                    </ul>
+                    <p><strong class="text-gray-800">Tip:</strong> If unsure about reporting, notify the ICO anyway and provide updates as more information becomes available.</p>
+                `,
+                plainContent: `Contact the Information Commissioner’s Office (ICO)
+Under UK GDPR, you must report a personal data breach to the ICO within 72 hours of becoming aware of it, unless it’s unlikely to result in a risk to individuals’ rights and freedoms.
+- Visit the ICO’s data breach reporting page (https://ico.org.uk/for-organisations/report-a-breach/).
+- Prepare details: what data was breached, how it happened, who was affected, and what you’ve done so far.
+- Submit an initial report online or call the ICO helpline at 0303 123 1113.
+Tip: If unsure about reporting, notify the ICO anyway and provide updates as more information becomes available.`
+            },
+            {
+                title: "Step 5: Notify the Charity Commission",
+                content: `
+                    <h2 class="text-2xl font-semibold mb-4 text-gray-800">Notify the Charity Commission</h2>
+                    <p class="mb-4 text-gray-600">As a UK charity, you must report the data breach as a serious incident to the Charity Commission if it causes significant harm or loss (e.g., financial loss, reputational damage, or harm to beneficiaries).</p>
+                    <ul class="list-disc pl-6 mb-4 text-gray-600">
+                        <li>Visit the <a href="https://www.gov.uk/guidance/how-to-report-a-serious-incident-in-your-charity" class="text-blue-600 underline hover:text-blue-800" target="_blank">Charity Commission’s serious incident reporting page</a>.</li>
+                        <li>Provide details of the breach, including its impact, actions taken, and any notifications to the ICO or Action Fraud (include crime reference number if applicable).</li>
+                        <li>Submit the report via the online form or email <a href="mailto:RSI@charitycommission.gov.uk" class="text-blue-600 underline hover:text-blue-800">RSI@charitycommission.gov.uk</a>.</li>
+                    </ul>
+                    <p><strong class="text-gray-800">Tip:</strong> Report promptly, even if details are incomplete, and update the Charity Commission as the situation develops.</p>
+                `,
+                plainContent: `Notify the Charity Commission
+As a UK charity, you must report the data breach as a serious incident to the Charity Commission if it causes significant harm or loss (e.g., financial loss, reputational damage, or harm to beneficiaries).
+- Visit the Charity Commission’s serious incident reporting page (https://www.gov.uk/guidance/how-to-report-a-serious-incident-in-your-charity).
+- Provide details of the breach, including its impact, actions taken, and any notifications to the ICO or Action Fraud (include crime reference number if applicable).
+- Submit the report via the online form or email RSI@charitycommission.gov.uk.
+Tip: Report promptly, even if details are incomplete, and update the Charity Commission as the situation develops.`
+            },
+            {
+                title: "Step 6: Report to Law Enforcement (Action Fraud)",
+                content: `
+                    <h2 class="text-2xl font-semibold mb-4 text-gray-800">Report to Law Enforcement (Action Fraud)</h2>
+                    <p class="mb-4 text-gray-600">If the breach involves cybercrime (e.g., hacking, ransomware), report it to Action Fraud, the UK’s national fraud and cybercrime reporting center.</p>
+                    <ul class="list-disc pl-6 mb-4 text-gray-600">
+                        <li>Visit <a href="https://www.actionfraud.police.uk/" class="text-blue-600 underline hover:text-blue-800" target="_blank">Action Fraud’s website</a> to report the incident.</li>
+                        <li>Provide details of the breach, including any evidence of criminal activity.</li>
+                        <li>Obtain a crime reference number for your records and Charity Commission reporting.</li>
+                    </ul>
+                    <p><strong class="text-gray-800">Tip:</strong> Reporting to Action Fraud helps law enforcement track and investigate cybercrime.</p>
+                `,
+                plainContent: `Report to Law Enforcement (Action Fraud)
+If the breach involves cybercrime (e.g., hacking, ransomware), report it to Action Fraud, the UK’s national fraud and cybercrime reporting center.
+- Visit Action Fraud’s website (https://www.actionfraud.police.uk/) to report the incident.
+- Provide details of the breach, including any evidence of criminal activity.
+- Obtain a crime reference number for your records and Charity Commission reporting.
+Tip: Reporting to Action Fraud helps law enforcement track and investigate cybercrime.`
+            },
+            {
+                title: "Step 7: Report to the National Cyber Security Centre (NCSC)",
+                content: `
+                    <h2 class="text-2xl font-semibold mb-4 text-gray-800">Report to the National Cyber Security Centre (NCSC)</h2>
+                    <p class="mb-4 text-gray-600">The NCSC provides support for cyber incidents and collects data to improve UK cybersecurity.</p>
+                    <ul class="list-disc pl-6 mb-4 text-gray-600">
+                        <li>Visit the <a href="https://www.ncsc.gov.uk/section/about-this-website/reporting-an-incident" class="text-blue-600 underline hover:text-blue-800" target="_blank">NCSC incident reporting page</a>.</li>
+                        <li>Submit details of the breach, especially if it involves a cyberattack.</li>
+                        <li>Use NCSC resources for guidance on securing systems.</li>
+                    </ul>
+                    <p><strong class="text-gray-800">Tip:</strong> The NCSC may offer free tools or advice to help your charity recover.</p>
+                `,
+                plainContent: `Report to the National Cyber Security Centre (NCSC)
+The NCSC provides support for cyber incidents and collects data to improve UK cybersecurity.
+- Visit the NCSC incident reporting page (https://www.ncsc.gov.uk/section/about-this-website/reporting-an-incident).
+- Submit details of the breach, especially if it involves a cyberattack.
+- Use NCSC resources for guidance on securing systems.
+Tip: The NCSC may offer free tools or advice to help your charity recover.`
+            },
+            {
+                title: "Step 8: Initial Victim Communications",
+                content: `
+                    <h2 class="text-2xl font-semibold mb-4 text-gray-800">Initial Victim Communications</h2>
+                    <p class="mb-4 text-gray-600">If personal data was breached, inform affected individuals promptly if there’s a high risk to their rights and freedoms, as required by UK GDPR.</p>
+                    <ul class="list-disc pl-6 mb-4 text-gray-600">
+                        <li>Identify who was affected (e.g., donors, volunteers, staff).</li>
+                        <li>Prepare a clear, concise message explaining what happened, what data was involved, and what steps you’re taking.</li>
+                        <li>Provide advice on protecting themselves (e.g., changing passwords, monitoring bank accounts).</li>
+                        <li>Include a contact point for questions (e.g., email or phone number).</li>
+                    </ul>
+                    <p><strong class="text-gray-800">Tip:</strong> Consult your legal advisor before communicating to ensure compliance with UK GDPR.</p>
+                `,
+                plainContent: `Initial Victim Communications
+If personal data was breached, inform affected individuals promptly if there’s a high risk to their rights and freedoms, as required by UK GDPR.
+- Identify who was affected (e.g., donors, volunteers, staff).
+- Prepare a clear, concise message explaining what happened, what data was involved, and what steps you’re taking.
+- Provide advice on protecting themselves (e.g., changing passwords, monitoring bank accounts).
+- Include a contact point for questions (e.g., email or phone number).
+Tip: Consult your legal advisor before communicating to ensure compliance with UK GDPR.`
+            },
+            {
+                title: "Step 9: Breach Impact Analysis / Discovery / Data Classification",
+                content: `
+                    <h2 class="text-2xl font-semibold mb-4 text-gray-800">Breach Impact Analysis / Discovery / Data Classification</h2>
+                    <p class="mb-4 text-gray-600">Assess the scope and impact of the breach to understand its severity and guide your response.</p>
+                    <ul class="list-disc pl-6 mb-4 text-gray-600">
+                        <li>Identify what data was compromised (e.g., names, emails, financial details).</li>
+                        <li>Classify the data (e.g., personal, sensitive, confidential).</li>
+                        <li>Determine the potential harm to individuals (e.g., identity theft, financial loss).</li>
+                        <li>Document the number of affected records and individuals for ICO and Charity Commission reports.</li>
+                    </ul>
+                    <p><strong class="text-gray-800">Tip:</strong> Work with IT and legal teams to ensure a thorough analysis.</p>
+                `,
+                plainContent: `Breach Impact Analysis / Discovery / Data Classification
+Assess the scope and impact of the breach to understand its severity and guide your response.
+- Identify what data was compromised (e.g., names, emails, financial details).
+- Classify the data (e.g., personal, sensitive, confidential).
+- Determine the potential harm to individuals (e.g., identity theft, financial loss).
+- Document the number of affected records and individuals for ICO and Charity Commission reports.
+Tip: Work with IT and legal teams to ensure a thorough analysis.`
+            },
+            {
+                title: "Step 10: Updating Victims",
+                content: `
+                    <h2 class="text-2xl font-semibold mb-4 text-gray-800">Updating Victims</h2>
+                    <p class="mb-4 text-gray-600">Keep affected individuals informed as you learn more about the breach and your response progresses.</p>
+                    <ul class="list-disc pl-6 mb-4 text-gray-600">
+                        <li>Send follow-up communications with updates on the investigation or remedial actions.</li>
+                        <li>Reassure individuals about steps taken to prevent further issues.</li>
+                        <li>Provide additional support, such as credit monitoring, if appropriate.</li>
+                    </ul>
+                    <p><strong class="text-gray-800">Tip:</strong> Be transparent but avoid sharing sensitive details that could aid attackers.</p>
+                `,
+                plainContent: `Updating Victims
+Keep affected individuals informed as you learn more about the breach and your response progresses.
+- Send follow-up communications with updates on the investigation or remedial actions.
+- Reassure individuals about steps taken to prevent further issues.
+- Provide additional support, such as credit monitoring, if appropriate.
+Tip: Be transparent but avoid sharing sensitive details that could aid attackers.`
+            },
+            {
+                title: "Step 11: Updating the ICO",
+                content: `
+                    <h2 class="text-2xl font-semibold mb-4 text-gray-800">Updating the ICO</h2>
+                    <p class="mb-4 text-gray-600">Provide the ICO with updates if new information comes to light after your initial report.</p>
+                    <ul class="list-disc pl-6 mb-4 text-gray-600">
+                        <li>Contact the ICO via their <a href="https://ico.org.uk/for-organisations/report-a-breach/" class="text-blue-600 underline hover:text-blue-800" target="_blank">reporting portal</a> or helpline.</li>
+                        <li>Share details like the number of affected individuals, the type of data, and actions taken.</li>
+                        <li>Respond promptly to any ICO inquiries or requests for information.</li>
+                    </ul>
+                    <p><strong class="text-gray-800">Tip:</strong> Accurate updates help demonstrate compliance and cooperation.</p>
+                `,
+                plainContent: `Updating the ICO
+Provide the ICO with updates if new information comes to light after your initial report.
+- Contact the ICO via their reporting portal (https://ico.org.uk/for-organisations/report-a-breach/) or helpline.
+- Share details like the number of affected individuals, the type of data, and actions taken.
+- Respond promptly to any ICO inquiries or requests for information.
+Tip: Accurate updates help demonstrate compliance and cooperation.`
+            },
+            {
+                title: "Step 12: Reporting Internally",
+                content: `
+                    <h2 class="text-2xl font-semibold mb-4 text-gray-800">Reporting Internally</h2>
+                    <p class="mb-4 text-gray-600">Inform your charity’s leadership, staff, and trustees about the breach to ensure transparency and coordination.</p>
+                    <ul class="list-disc pl-6 mb-4 text-gray-600">
+                        <li>Brief trustees and senior management on the breach details, response plan, and Charity Commission report.</li>
+                        <li>Advise staff on what to say (or not say) if asked about the breach.</li>
+                        <li>Document the breach in your charity’s incident log.</li>
+                    </ul>
+                    <p><strong class="text-gray-800">Tip:</strong> Clear internal communication helps maintain trust and alignment.</p>
+                `,
+                plainContent: `Reporting Internally
+Inform your charity’s leadership, staff, and trustees about the breach to ensure transparency and coordination.
+- Brief trustees and senior management on the breach details, response plan, and Charity Commission report.
+- Advise staff on what to say (or not say) if asked about the breach.
+- Document the breach in your charity’s incident log.
+Tip: Clear internal communication helps maintain trust and alignment.`
+            },
+            {
+                title: "Step 13: Debrief and Lessons Learned Internally",
+                content: `
+                    <h2 class="text-2xl font-semibold mb-4 text-gray-800">Debrief and Lessons Learned Internally</h2>
+                    <p class="mb-4 text-gray-600">After resolving the breach, hold a debrief to review what happened and identify improvements.</p>
+                    <ul class="list-disc pl-6 mb-4 text-gray-600">
+                        <li>Gather key stakeholders (e.g., IT, legal, leadership) to discuss the breach response.</li>
+                        <li>Identify what went well and what could be improved.</li>
+                        <li>Document lessons learned to strengthen future responses and Charity Commission compliance.</li>
+                    </ul>
+                    <p><strong class="text-gray-800">Tip:</strong> Use the debrief to update your charity’s incident response plan.</p>
+                `,
+                plainContent: `Debrief and Lessons Learned Internally
+After resolving the breach, hold a debrief to review what happened and identify improvements.
+- Gather key stakeholders (e.g., IT, legal, leadership) to discuss the breach response.
+- Identify what went well and what could be improved.
+- Document lessons learned to strengthen future responses and Charity Commission compliance.
+Tip: Use the debrief to update your charity’s incident response plan.`
+            },
+            {
+                title: "Step 14: Improvement Plans",
+                content: `
+                    <h2 class="text-2xl font-semibold mb-4 text-gray-800">Improvement Plans</h2>
+                    <p class="mb-4 text-gray-600">Develop and implement a plan to prevent future breaches and improve your charity’s data security.</p>
+                    <ul class="list-disc pl-6 mb-4 text-gray-600">
+                        <li>Update security policies and procedures based on lessons learned.</li>
+                        <li>Provide staff training on data protection and cybersecurity.</li>
+                        <li>Consider investing in stronger security measures, like encryption or monitoring tools.</li>
+                        <li>Schedule regular audits to ensure compliance with UK GDPR and Charity Commission requirements.</li>
+                    </ul>
+                    <p><strong class="text-gray-800">Tip:</strong> Continuous improvement helps protect your charity and its stakeholders.</p>
+                    <p class="mt-4 font-bold text-gray-800">Congratulations! You’ve completed the data breach response process. Review your actions and ensure all documentation is complete.</p>
+                `,
+                plainContent: `Improvement Plans
+Develop and implement a plan to prevent future breaches and improve your charity’s data security.
+- Update security policies and procedures based on lessons learned.
+- Provide staff training on data protection and cybersecurity.
+- Consider investing in stronger security measures, like encryption or monitoring tools.
+- Schedule regular audits to ensure compliance with UK GDPR and Charity Commission requirements.
+Tip: Continuous improvement helps protect your charity and its stakeholders.
+Congratulations! You’ve completed the data breach response process. Review your actions and ensure all documentation is complete.`
+            }
+        ];
+
+        let currentStep = -1; // Start with overview page
+
+        function renderStep() {
+            const contentDiv = document.getElementById('step-content');
+            const navigationDiv = document.getElementById('navigation');
+            const downloadBtnContainer = document.getElementById('download-btn-container');
+
+            if (currentStep === -1) {
+                contentDiv.innerHTML = overview.content;
+                navigationDiv.classList.add('hidden');
+                downloadBtnContainer.classList.add('hidden');
+                document.getElementById('start-btn').addEventListener('click', () => {
+                    currentStep = 0;
+                    renderStep();
+                });
+            } else {
+                const step = steps[currentStep];
+                contentDiv.innerHTML = step.content;
+                navigationDiv.classList.remove('hidden');
+                document.getElementById('prev-btn').disabled = currentStep === 0;
+                document.getElementById('next-btn').innerText = currentStep === steps.length - 1 ? 'Finish' : 'Next';
+                downloadBtnContainer.classList.toggle('hidden', currentStep !== steps.length - 1);
+            }
+        }
+
+        function generatePDF() {
+            const doc = new jsPDF({ unit: 'mm', format: 'a4' });
+            let yOffset = 10;
+
+            // Add document title
+            doc.setFontSize(18);
+            doc.text("Data Breach Response Guide for UK Charities", 10, yOffset);
+            yOffset += 15;
+
+            // Add each step on a new page
+            steps.forEach((step, index) => {
+                if (index > 0) {
+                    doc.addPage();
+                    yOffset = 10;
+                }
+
+                // Step title
+                doc.setFontSize(14);
+                doc.text(step.title, 10, yOffset);
+                yOffset += 10;
+
+                // Add plain content with proper wrapping
+                doc.setFontSize(10);
+                const lines = doc.splitTextToSize(step.plainContent, 180);
+                lines.forEach(line => {
+                    if (yOffset > 270) {
+                        doc.addPage();
+                        yOffset = 10;
+                    }
+                    doc.text(line, 10, yOffset);
+                    yOffset += 8;
+                });
+                yOffset += 10; // Space after section
+            });
+
+            // Save the PDF
+            doc.save('Data_Breach_Response_Guide.pdf');
+        }
+
+        document.getElementById('prev-btn').addEventListener('click', () => {
+            if (currentStep > 0) {
+                currentStep--;
+                renderStep();
+            }
+        });
+
+        document.getElementById('next-btn').addEventListener('click', () => {
+            if (currentStep < steps.length - 1) {
+                currentStep++;
+                renderStep();
+            } else {
+                alert('You have completed the data breach response process!');
+                renderStep();
+            }
+        });
+
+        document.getElementById('download-pdf-btn').addEventListener('click', generatePDF);
+
+        // Render the overview page
+        renderStep();
+    </script>
+</body>
+</html>
