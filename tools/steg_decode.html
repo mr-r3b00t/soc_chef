@@ -1,0 +1,187 @@
+<script type="text/javascript">
+        var gk_isXlsx = false;
+        var gk_xlsxFileLookup = {};
+        var gk_fileData = {};
+        function filledCell(cell) {
+          return cell !== '' && cell != null;
+        }
+        function loadFileData(filename) {
+        if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
+            try {
+                var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
+                var firstSheetName = workbook.SheetNames[0];
+                var worksheet = workbook.Sheets[firstSheetName];
+
+                // Convert sheet to JSON to filter blank rows
+                var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
+                // Filter out blank rows (rows where all cells are empty, null, or undefined)
+                var filteredData = jsonData.filter(row => row.some(filledCell));
+
+                // Heuristic to find the header row by ignoring rows with fewer filled cells than the next row
+                var headerRowIndex = filteredData.findIndex((row, index) =>
+                  row.filter(filledCell).length >= filteredData[index + 1]?.filter(filledCell).length
+                );
+                // Fallback
+                if (headerRowIndex === -1 || headerRowIndex > 25) {
+                  headerRowIndex = 0;
+                }
+
+                // Convert filtered JSON back to CSV
+                var csv = XLSX.utils.aoa_to_sheet(filteredData.slice(headerRowIndex)); // Create a new sheet from filtered array of arrays
+                csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
+                return csv;
+            } catch (e) {
+                console.error(e);
+                return "";
+            }
+        }
+        return gk_fileData[filename] || "";
+        }
+        </script><!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Steganography Decoder App</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 20px auto;
+            padding: 20px;
+            text-align: center;
+        }
+        .container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
+        }
+        input[type="file"], button {
+            width: 100%;
+            max-width: 400px;
+            padding: 10px;
+            margin: 5px 0;
+        }
+        textarea {
+            width: 100%;
+            max-width: 400px;
+            padding: 10px;
+            margin: 5px 0;
+            resize: vertical;
+        }
+        canvas {
+            max-width: 100%;
+            border: 1px solid #ccc;
+            margin-top: 10px;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            cursor: pointer;
+            padding: 10px 20px;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        button:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+        #error {
+            color: red;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Steganography Decoder App</h1>
+        <p>Decode a hidden message from an image</p>
+        <input type="file" id="imageInput" accept="image/png, image/jpeg">
+        <button id="decodeBtn" onclick="decodeMessage()" disabled>Decode Message</button>
+        <p id="error"></p>
+        <textarea id="decodedMessage" rows="4" placeholder="Decoded message will appear here" readonly></textarea>
+        <canvas id="previewCanvas" style="display: none;"></canvas>
+    </div>
+
+    <script>
+        const imageInput = document.getElementById('imageInput');
+        const decodeBtn = document.getElementById('decodeBtn');
+        const errorDisplay = document.getElementById('error');
+        const decodedMessage = document.getElementById('decodedMessage');
+        const previewCanvas = document.getElementById('previewCanvas');
+        let selectedImage = null;
+
+        // Enable decode button when an image is selected
+        imageInput.addEventListener('change', function(e) {
+            decodeBtn.disabled = !e.target.files.length;
+            if (e.target.files.length > 0) {
+                selectedImage = new Image();
+                selectedImage.onload = function() {
+                    previewCanvas.width = selectedImage.width;
+                    previewCanvas.height = selectedImage.height;
+                    previewCanvas.style.display = 'block';
+                    const ctx = previewCanvas.getContext('2d');
+                    ctx.drawImage(selectedImage, 0, 0);
+                };
+                selectedImage.src = URL.createObjectURL(e.target.files[0]);
+            } else {
+                previewCanvas.style.display = 'none';
+            }
+        });
+
+        function decodeMessage() {
+            if (!selectedImage) {
+                showError('Please upload an image.');
+                return;
+            }
+
+            const canvas = document.createElement('canvas');
+            canvas.width = selectedImage.width;
+            canvas.height = selectedImage.height;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(selectedImage, 0, 0);
+
+            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            const data = imageData.data;
+
+            // Extract bits from LSB of RGB channels
+            let binaryMessage = '';
+            for (let i = 0; i < data.length; i += 4) {
+                for (let channel = 0; channel < 3; channel++) {
+                    binaryMessage += (data[i + channel] & 1).toString();
+                }
+            }
+
+            // Convert binary to text until null terminator (00000000)
+            let message = '';
+            for (let i = 0; i < binaryMessage.length - 7; i += 8) {
+                const byte = binaryMessage.slice(i, i + 8);
+                if (byte === '00000000') break; // Null terminator
+                const charCode = parseInt(byte, 2);
+                if (charCode === 0) break; // Additional safety check
+                message += String.fromCharCode(charCode);
+            }
+
+            if (message) {
+                decodedMessage.value = message;
+                showError('Message decoded successfully!', false);
+            } else {
+                decodedMessage.value = '';
+                showError('No valid message found in the image.');
+            }
+        }
+
+        function showError(message, isError = true) {
+            errorDisplay.textContent = message;
+            errorDisplay.style.color = isError ? 'red' : 'green';
+            errorDisplay.style.display = 'block';
+            setTimeout(() => {
+                errorDisplay.style.display = 'none';
+            }, 3000);
+        }
+    </script>
+</body>
+</html>
