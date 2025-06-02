@@ -33,7 +33,7 @@ Reactive Orgs that either do not have Policies, Processes and Procedures or ones
 
 🗒️  [Incident Response Overview UK General Business](https://mr-r3b00t.github.io/soc_chef/processes/ir/uk_business_incident_response_overview.html)
 
-🗒️  [Incident Response Overview UK General Business](https://mr-r3b00t.github.io/soc_chef/processes/ir/uk_charity_incident_response_overview.html)
+🗒️  [Incident Response Overview UK Charrities](https://mr-r3b00t.github.io/soc_chef/processes/ir/uk_charity_incident_response_overview.html)
 
 🗒️ [Data Breach Preparedness Assessment Tool](https://mr-r3b00t.github.io/soc_chef/processes/ir/Data%20Breach%20Preparedness%20Assessment%20Tool.html)
 
