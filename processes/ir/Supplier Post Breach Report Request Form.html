@@ -1,0 +1,360 @@
+<script type="text/javascript">
+        var gk_isXlsx = false;
+        var gk_xlsxFileLookup = {};
+        var gk_fileData = {};
+        function filledCell(cell) {
+          return cell !== '' && cell != null;
+        }
+        function loadFileData(filename) {
+        if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
+            try {
+                var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
+                var firstSheetName = workbook.SheetNames[0];
+                var worksheet = workbook.Sheets[firstSheetName];
+
+                // Convert sheet to JSON to filter blank rows
+                var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
+                // Filter out blank rows (rows where all cells are empty, null, or undefined)
+                var filteredData = jsonData.filter(row => row.some(filledCell));
+
+                // Heuristic to find the header row by ignoring rows with fewer filled cells than the next row
+                var headerRowIndex = filteredData.findIndex((row, index) =>
+                  row.filter(filledCell).length >= filteredData[index + 1]?.filter(filledCell).length
+                );
+                // Fallback
+                if (headerRowIndex === -1 || headerRowIndex > 25) {
+                  headerRowIndex = 0;
+                }
+
+                // Convert filtered JSON back to CSV
+                var csv = XLSX.utils.aoa_to_sheet(filteredData.slice(headerRowIndex)); // Create a new sheet from filtered array of arrays
+                csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
+                return csv;
+            } catch (e) {
+                console.error(e);
+                return "";
+            }
+        }
+        return gk_fileData[filename] || "";
+        }
+        </script><!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Supplier Post Breach Report Request Form</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            line-height: 1.6;
+            margin: 0;
+            padding: 20px;
+            background-color: #f4f4f4;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        h1, h2, h3 {
+            color: #333;
+        }
+        h2 {
+            border-bottom: 2px solid #007BFF;
+            padding-bottom: 5px;
+        }
+        .question {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        input[type="text"], textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            margin-bottom: 10px;
+        }
+        textarea {
+            height: 100px;
+            resize: vertical;
+        }
+        input[type="button"] {
+            background-color: #007BFF;
+            color: #fff;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        input[type="button"]:hover {
+            background-color: #0056b3;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Supplier Post Breach Report Request Form</h1>
+        <p>As a customer organization, we have been informed of a security incident affecting your systems or services, which may impact our operations or data. Please provide comprehensive responses to the questions below to help us assess the situation and determine the steps needed to restore full access to your services.</p>
+
+        <form id="breach-report-form">
+            <h2>Respondent Information</h2>
+            <div class="question">
+                <label for="respondent-name">Name</label>
+                <input type="text" id="respondent-name" name="respondent-name" required>
+            </div>
+            <div class="question">
+                <label for="respondent-title">Title</label>
+                <input type="text" id="respondent-title" name="respondent-title" required>
+            </div>
+            <div class="question">
+                <label for="company-name">Company Name</label>
+                <input type="text" id="company-name" name="company-name" required>
+            </div>
+            <div class="question">
+                <label for="submission-date">Submission Date</label>
+                <input type="text" id="submission-date" name="submission-date" value="June 2, 2025, 6:14 AM BST" readonly>
+            </div>
+
+            <h2>The Incident & Its Impact</h2>
+            <div class="question">
+                <label for="incident-details">What occurred and when? (Include the nature of the breach, affected systems, date and time of detection, timeline of the breach, attack vectors, and scope of data affected)</label>
+                <textarea id="incident-details" name="incident-details" required></textarea>
+            </div>
+            <div class="question">
+                <label for="containment-status">Has the incident been fully contained and eradicated? (Include steps taken, evidence of threat removal, and status if not fully resolved)</label>
+                <textarea id="containment-status" name="containment-status" required></textarea>
+            </div>
+            <div class="question">
+                <label for="insurance-engagement">Have you engaged your cyber insurance provider? (Include date of notification, status of claims, and coverage details)</label>
+                <textarea id="insurance-engagement" name="insurance-engagement" required></textarea>
+            </div>
+            <div class="question">
+                <label for="incident-response-firm">Have you engaged an incident response firm? (Include firm name, date of engagement, scope, and key findings)</label>
+                <textarea id="incident-response-firm" name="incident-response-firm" required></textarea>
+            </div>
+            <div class="question">
+                <label for="forensics-firm">Have you engaged a digital forensics firm to obtain a report? (Include firm name, engagement date, report timeline, preliminary findings, and sharing plans)</label>
+                <textarea id="forensics-firm" name="forensics-firm" required></textarea>
+            </div>
+            <div class="question">
+                <label for="prevention-measures">What measures have been taken to prevent recurrence? (Include technical controls, policy updates, training, monitoring, and planned assessments)</label>
+                <textarea id="prevention-measures" name="prevention-measures" required></textarea>
+            </div>
+
+            <h2>Regulatory and Law Enforcement Reporting</h2>
+            <div class="question">
+                <label for="ico-reporting">Have you reported the incident to the Information Commissioner’s Office (ICO)? (Include date, nature of notification, ICO feedback, and reason if not reported)</label>
+                <textarea id="ico-reporting" name="ico-reporting" required></textarea>
+            </div>
+            <div class="question">
+                <label for="law-enforcement">Have you reported the incident to law enforcement? (Include agency, date, report reference, nature of incident, and ongoing engagement)</label>
+                <textarea id="law-enforcement" name="law-enforcement" required></textarea>
+            </div>
+            <div class="question">
+                <label for="ncsc-engagement">Have you engaged with the National Cyber Security Centre (NCSC)? (Include date, reporting method, guidance received, and reason if not engaged)</label>
+                <textarea id="ncsc-engagement" name="ncsc-engagement" required></textarea>
+            </div>
+
+            <h2>Incident Reporting to Customers</h2>
+            <div class="question">
+                <label for="detection-method">How were you made aware of the incident? (Include method of detection, tools used, and time elapsed until detection)</label>
+                <textarea id="detection-method" name="detection-method" required></textarea>
+            </div>
+            <div class="question">
+                <label for="customer-notification">When and how was this reported to our organization? (Include date, time, method, content, and compliance with deadlines)</label>
+                <textarea id="customer-notification" name="customer-notification" required></textarea>
+            </div>
+            <div class="question">
+                <label for="communication-contact">Who within your organization is responsible for coordinating incident communications? (Include name, role, contact info, and update frequency)</label>
+                <textarea id="communication-contact" name="communication-contact" required></textarea>
+            </div>
+
+            <h2>Restoring Services</h2>
+            <div class="question">
+                <label for="remediation-evidence">Provide evidence of remediation (Include documentation or third-party validation of secure systems)</label>
+                <textarea id="remediation-evidence" name="remediation-evidence" required></textarea>
+            </div>
+            <div class="question">
+                <label for="account-controls">Confirm account and access control measures (Include details on securing compromised accounts and strengthening access controls)</label>
+                <textarea id="account-controls" name="account-controls" required></textarea>
+            </div>
+            <div class="question">
+                <label for="system-integrity">Detail how system integrity was verified (Include vulnerability scans, penetration testing, or system reimaging)</label>
+                <textarea id="system-integrity" name="system-integrity" required></textarea>
+            </div>
+            <div class="question">
+                <label for="data-impact">Provide a data impact assessment (Include whether our data was compromised, type, volume, sensitivity, and mitigation steps)</label>
+                <textarea id="data-impact" name="data-impact" required></textarea>
+            </div>
+            <div class="question">
+                <label for="restoration-plan">Outline the restoration plan (Include timeline, process, and verification steps for restoring access)</label>
+                <textarea id="restoration-plan" name="restoration-plan" required></textarea>
+            </div>
+            <div class="question">
+                <label for="ongoing-monitoring">Describe ongoing monitoring plans (Include monitoring for further compromise and shared telemetry or alerts)</label>
+                <textarea id="ongoing-monitoring" name="ongoing-monitoring" required></textarea>
+            </div>
+
+            <h2>Submission Instructions</h2>
+            <p>Please submit your responses by <strong>June 9, 2025, 5:00 PM BST</strong> to <a href="mailto:security@customerorganization.com">security@customerorganization.com</a>. If additional time is needed, please notify us immediately with a proposed timeline. For questions, contact Jane Doe, Chief Information Security Officer, at <a href="mailto:jane.doe@customerorganization.com">jane.doe@customerorganization.com</a>.</p>
+
+            <input type="button" value="Generate PDF Response" onclick="generatePDF()">
+        </form>
+    </div>
+
+    <script>
+        function generatePDF() {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF({
+                orientation: 'portrait',
+                unit: 'mm',
+                format: 'a4'
+            });
+
+            const margin = 15;
+            const pageWidth = 180; // A4 width (210mm) - margins
+            let yPosition = 20;
+
+            // Set modern fonts
+            doc.setFont("Helvetica", "normal");
+
+            // Helper function to add text with wrapping and page break handling
+            function addText(text, x, y, maxWidth, fontSize, weight = "normal") {
+                doc.setFontSize(fontSize);
+                doc.setFont("Helvetica", weight);
+                const lines = doc.splitTextToSize(text, maxWidth);
+                const lineHeight = fontSize * 0.4;
+
+                // Check if text will exceed page height
+                if (y + (lines.length * lineHeight) > 270) {
+                    doc.addPage();
+                    y = margin;
+                }
+
+                doc.text(lines, x, y);
+                return y + (lines.length * lineHeight) + 2;
+            }
+
+            // Helper function to add section header with underline on a new page
+            function addSectionHeader(text) {
+                doc.addPage();
+                yPosition = margin;
+                doc.setFontSize(14);
+                doc.setFont("Helvetica", "bold");
+                const lines = doc.splitTextToSize(text, pageWidth);
+                const lineHeight = 14 * 0.4;
+                doc.text(lines, margin, yPosition);
+                const textHeight = lines.length * lineHeight;
+
+                // Draw blue underline below the text
+                doc.setFillColor(0, 123, 255);
+                doc.rect(margin, yPosition + textHeight, pageWidth, 0.5, 'F');
+                yPosition += textHeight + 4; // Add extra spacing after underline
+            }
+
+            // Add header on first page
+            doc.setFillColor(240, 240, 240);
+            doc.rect(0, 0, 210, 20, 'F'); // Header background
+            yPosition = addText("Supplier Post Breach Report", margin, 10, pageWidth, 18, "bold");
+            yPosition += 5;
+
+            // Respondent Information
+            addSectionHeader("Respondent Information");
+            const respondentName = document.getElementById('respondent-name').value || "Not provided";
+            const respondentTitle = document.getElementById('respondent-title').value || "Not provided";
+            const companyName = document.getElementById('company-name').value || "Not provided";
+            const submissionDate = document.getElementById('submission-date').value;
+
+            yPosition = addText(`Name: ${respondentName}`, margin, yPosition, pageWidth, 12);
+            yPosition = addText(`Title: ${respondentTitle}`, margin, yPosition, pageWidth, 12);
+            yPosition = addText(`Company Name: ${companyName}`, margin, yPosition, pageWidth, 12);
+            yPosition = addText(`Submission Date: ${submissionDate}`, margin, yPosition, pageWidth, 12);
+
+            // Incident & Its Impact
+            addSectionHeader("The Incident & Its Impact");
+            yPosition = addText("What occurred and when? (Include the nature of the breach, affected systems, date and time of detection, timeline of the breach, attack vectors, and scope of data affected)", margin, yPosition, pageWidth, 12, "bold");
+            yPosition = addText(document.getElementById('incident-details').value || "No response provided", margin, yPosition, pageWidth, 11);
+
+            yPosition = addText("Has the incident been fully contained and eradicated? (Include steps taken, evidence of threat removal, and status if not fully resolved)", margin, yPosition, pageWidth, 12, "bold");
+            yPosition = addText(document.getElementById('containment-status').value || "No response provided", margin, yPosition, pageWidth, 11);
+
+            yPosition = addText("Have you engaged your cyber insurance provider? (Include date of notification, status of claims, and coverage details)", margin, yPosition, pageWidth, 12, "bold");
+            yPosition = addText(document.getElementById('insurance-engagement').value || "No response provided", margin, yPosition, pageWidth, 11);
+
+            yPosition = addText("Have you engaged an incident response firm? (Include firm name, date of engagement, scope, and key findings)", margin, yPosition, pageWidth, 12, "bold");
+            yPosition = addText(document.getElementById('incident-response-firm').value || "No response provided", margin, yPosition, pageWidth, 11);
+
+            yPosition = addText("Have you engaged a digital forensics firm to obtain a report? (Include firm name, engagement date, report timeline, preliminary findings, and sharing plans)", margin, yPosition, pageWidth, 12, "bold");
+            yPosition = addText(document.getElementById('forensics-firm').value || "No response provided", margin, yPosition, pageWidth, 11);
+
+            yPosition = addText("What measures have been taken to prevent recurrence? (Include technical controls, policy updates, training, monitoring, and planned assessments)", margin, yPosition, pageWidth, 12, "bold");
+            yPosition = addText(document.getElementById('prevention-measures').value || "No response provided", margin, yPosition, pageWidth, 11);
+
+            // Regulatory and Law Enforcement Reporting
+            addSectionHeader("Regulatory and Law Enforcement Reporting");
+            yPosition = addText("Have you reported the incident to the Information Commissioner’s Office (ICO)? (Include date, nature of notification, ICO feedback, and reason if not reported)", margin, yPosition, pageWidth, 12, "bold");
+            yPosition = addText(document.getElementById('ico-reporting').value || "No response provided", margin, yPosition, pageWidth, 11);
+
+            yPosition = addText("Have you reported the incident to law enforcement? (Include agency, date, report reference, nature of incident, and ongoing engagement)", margin, yPosition, pageWidth, 12, "bold");
+            yPosition = addText(document.getElementById('law-enforcement').value || "No response provided", margin, yPosition, pageWidth, 11);
+
+            yPosition = addText("Have you engaged with the National Cyber Security Centre (NCSC)? (Include date, reporting method, guidance received, and reason if not engaged)", margin, yPosition, pageWidth, 12, "bold");
+            yPosition = addText(document.getElementById('ncsc-engagement').value || "No response provided", margin, yPosition, pageWidth, 11);
+
+            // Incident Reporting to Customers
+            addSectionHeader("Incident Reporting to Customers");
+            yPosition = addText("How were you made aware of the incident? (Include method of detection, tools used, and time elapsed until detection)", margin, yPosition, pageWidth, 12, "bold");
+            yPosition = addText(document.getElementById('detection-method').value || "No response provided", margin, yPosition, pageWidth, 11);
+
+            yPosition = addText("When and how was this reported to our organization? (Include date, time, method, content, and compliance with deadlines)", margin, yPosition, pageWidth, 12, "bold");
+            yPosition = addText(document.getElementById('customer-notification').value || "No response provided", margin, yPosition, pageWidth, 11);
+
+            yPosition = addText("Who within your organization is responsible for coordinating incident communications? (Include name, role, contact info, and update frequency)", margin, yPosition, pageWidth, 12, "bold");
+            yPosition = addText(document.getElementById('communication-contact').value || "No response provided", margin, yPosition, pageWidth, 11);
+
+            // Restoring Services
+            addSectionHeader("Restoring Services");
+            yPosition = addText("Provide evidence of remediation (Include documentation or third-party validation of secure systems)", margin, yPosition, pageWidth, 12, "bold");
+            yPosition = addText(document.getElementById('remediation-evidence').value || "No response provided", margin, yPosition, pageWidth, 11);
+
+            yPosition = addText("Confirm account and access control measures (Include details on securing compromised accounts and strengthening access controls)", margin, yPosition, pageWidth, 12, "bold");
+            yPosition = addText(document.getElementById('account-controls').value || "No response provided", margin, yPosition, pageWidth, 11);
+
+            yPosition = addText("Detail how system integrity was verified (Include vulnerability scans, penetration testing, or system reimaging)", margin, yPosition, pageWidth, 12, "bold");
+            yPosition = addText(document.getElementById('system-integrity').value || "No response provided", margin, yPosition, pageWidth, 11);
+
+            yPosition = addText("Provide a data impact assessment (Include whether our data was compromised, type, volume, sensitivity, and mitigation steps)", margin, yPosition, pageWidth, 12, "bold");
+            yPosition = addText(document.getElementById('data-impact').value || "No response provided", margin, yPosition, pageWidth, 11);
+
+            yPosition = addText("Outline the restoration plan (Include timeline, process, and verification steps for restoring access)", margin, yPosition, pageWidth, 12, "bold");
+            yPosition = addText(document.getElementById('restoration-plan').value || "No response provided", margin, yPosition, pageWidth, 11);
+
+            yPosition = addText("Describe ongoing monitoring plans (Include monitoring for further compromise and shared telemetry or alerts)", margin, yPosition, pageWidth, 12, "bold");
+            yPosition = addText(document.getElementById('ongoing-monitoring').value || "No response provided", margin, yPosition, pageWidth, 11);
+
+            // Add footer with page numbers and "Strictly Confidential"
+            const pageCount = doc.internal.getNumberOfPages();
+            for (let i = 1; i <= pageCount; i++) {
+                doc.setPage(i);
+                doc.setFontSize(10);
+                doc.setTextColor(150);
+                doc.text(`Page ${i} of ${pageCount}`, 190, 280, { align: 'right' });
+                doc.setTextColor(255, 0, 0); // Red for emphasis
+                doc.text("Strictly Confidential", margin, 280);
+            }
+
+            // Save PDF
+            doc.save('Supplier_Breach_Report.pdf');
+        }
+    </script>
+</body>
+</html>
