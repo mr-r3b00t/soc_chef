@@ -33,6 +33,8 @@ Reactive Orgs that either do not have Policies, Processes and Procedures or ones
 
 📧 [Incident Response Overview UK Charity](https://mr-r3b00t.github.io/soc_chef/processes/ir/uk_charity_incident_response_overview.html)
 
+📧 [Data Breach Preparedness Assessment Tool](https://mr-r3b00t.github.io/soc_chef/processes/ir/Data%20Breach%20Preparedness%20Assessment%20Tool.html)
+
 ✏️ [Penetration Test Scoping](https://mr-r3b00t.github.io/soc_chef/processes/assurance/pentest_scoping.html)
 
 🧑‍🤝‍🧑 [Joiners, Movers, Leavers (JML)](https://mr-r3b00t.github.io/soc_chef/processes/identitymanagement/joinersmoversleavers.html)
