@@ -1,0 +1,309 @@
+<script type="text/javascript">
+        var gk_isXlsx = false;
+        var gk_xlsxFileLookup = {};
+        var gk_fileData = {};
+        function filledCell(cell) {
+          return cell !== '' && cell != null;
+        }
+        function loadFileData(filename) {
+        if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
+            try {
+                var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
+                var firstSheetName = workbook.SheetNames[0];
+                var worksheet = workbook.Sheets[firstSheetName];
+
+                // Convert sheet to JSON to filter blank rows
+                var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
+                // Filter out blank rows (rows where all cells are empty, null, or undefined)
+                var filteredData = jsonData.filter(row => row.some(filledCell));
+
+                // Heuristic to find the header row by ignoring rows with fewer filled cells than the next row
+                var headerRowIndex = filteredData.findIndex((row, index) =>
+                  row.filter(filledCell).length >= filteredData[index + 1]?.filter(filledCell).length
+                );
+                // Fallback
+                if (headerRowIndex === -1 || headerRowIndex > 25) {
+                  headerRowIndex = 0;
+                }
+
+                // Convert filtered JSON back to CSV
+                var csv = XLSX.utils.aoa_to_sheet(filteredData.slice(headerRowIndex)); // Create a new sheet from filtered array of arrays
+                csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
+                return csv;
+            } catch (e) {
+                console.error(e);
+                return "";
+            }
+        }
+        return gk_fileData[filename] || "";
+        }
+        </script><!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Data Breach Preparedness Assessment</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <style>
+        body { font-family: Arial, sans-serif; }
+        .question { margin-bottom: 1rem; }
+        .result { display: none; margin-top: 2rem; }
+        footer { margin-top: 2rem; text-align: center; color: #4a5568; }
+    </style>
+</head>
+<body class="bg-gray-100 p-6">
+    <div class="max-w-4xl mx-auto bg-white p-8 rounded-lg shadow-lg">
+        <h1 class="text-2xl font-bold mb-6 text-center">Data Breach Preparedness Assessment Tool</h1>
+        <p class="mb-4 text-gray-600">Assess your organization's readiness for a data breach by answering the questions below. Each question evaluates a key aspect of breach response preparedness. Your score will reflect your organization's readiness level. Upon submission, a PDF report will be generated.</p>
+        
+        <form id="assessmentForm" class="space-y-4">
+            <!-- Question 1: Insurance Engagement -->
+            <div class="question">
+                <label class="block font-medium text-gray-700">1. Insurance Engagement: Does your organization have cyber insurance, and is there a clear process for engaging with the insurer during a breach?</label>
+                <select name="q1" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm">
+                    <option value="0">Not Prepared: No cyber insurance or process in place</option>
+                    <option value="1">Partially Prepared: Insurance exists, but no clear engagement process</option>
+                    <option value="2">Prepared: Insurance and engagement process in place</option>
+                    <option value="3">Prepared and Practised: Insurance and process in place, tested in drills</option>
+                </select>
+            </div>
+            
+            <!-- Question 2: Legal Engagement -->
+            <div class="question">
+                <label class="block font-medium text-gray-700">2. Legal Engagement: Is there a defined process for engaging legal counsel during a data breach?</label>
+                <select name="q2" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm">
+                    <option value="0">Not Prepared: No process for legal engagement</option>
+                    <option value="1">Partially Prepared: Legal contacts identified, but no formal process</option>
+                    <option value="2">Prepared: Formal legal engagement process established</option>
+                    <option value="3">Prepared and Practised: Legal process established and tested in drills</option>
+                </select>
+            </div>
+            
+            <!-- Question 3: Technical Response -->
+            <div class="question">
+                <label class="block font-medium text-gray-700">3. Technical Response: Does your organization have a technical response plan for identifying, containing, and mitigating a data breach?</label>
+                <select name="q3" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm">
+                    <option value="0">Not Prepared: No technical response plan</option>
+                    <option value="1">Partially Prepared: Basic plan exists, but incomplete or untested</option>
+                    <option value="2">Prepared: Comprehensive technical response plan in place</option>
+                    <option value="3">Prepared and Practised: Plan in place and tested in drills</option>
+                </select>
+            </div>
+            
+            <!-- Question 4: ICO Reporting -->
+            <div class="question">
+                <label class="block font-medium text-gray-700">4. ICO Reporting: Is there a process for reporting breaches to the Information Commissioner's Office (ICO) within 72 hours, as required by GDPR?</label>
+                <select name="q4" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm">
+                    <option value="0">Not Prepared: No ICO reporting process</option>
+                    <option value="1">Partially Prepared: Awareness of ICO requirements, but no formal process</option>
+                    <option value="2">Prepared: Formal ICO reporting process established</option>
+                    <option value="3">Prepared and Practised: Process established and tested in drills</option>
+                </select>
+            </div>
+            
+            <!-- Question 5: Late Enforcement Reporting -->
+            <div class="question">
+                <label class="block font-medium text-gray-700">5. Late Enforcement Reporting: Is there a process to handle late reporting to enforcement authorities if the breach is discovered after the initial 72-hour window?</label>
+                <select name="q5" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm">
+                    <option value="0">Not Prepared: No process for late reporting</option>
+                    <option value="1">Partially Prepared: Informal process or awareness, but not documented</option>
+                    <option value="2">Prepared: Formal late reporting process in place</option>
+                    <option value="3">Prepared and Practised: Process established and tested in drills</option>
+                </select>
+            </div>
+            
+            <!-- Question 6: NCSC Reporting -->
+            <div class="question">
+                <label class="block font-medium text-gray-700">6. NCSC Reporting: Does your organization have a process for reporting incidents to the National Cyber Security Centre (NCSC)?</label>
+                <select name="q6" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm">
+                    <option value="0">Not Prepared: No NCSC reporting process</option>
+                    <option value="1">Partially Prepared: Awareness of NCSC, but no formal process</option>
+                    <option value="2">Prepared: Formal NCSC reporting process established</option>
+                    <option value="3">Prepared and Practised: Process established and tested in drills</option>
+                </select>
+            </div>
+            
+            <!-- Question 7: Intelligence Sharing -->
+            <div class="question">
+                <label class="block font-medium text-gray-700">7. Intelligence Sharing: Does your organization participate in intelligence sharing with industry peers or authorities to improve breach response?</label>
+                <select name="q7" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm">
+                    <option value="0">Not Prepared: No intelligence sharing</option>
+                    <option value="1">Partially Prepared: Informal sharing, but no structured process</option>
+                    <option value="2">Prepared: Formal intelligence sharing process in place</option>
+                    <option value="3">Prepared and Practised: Process established and tested in drills</option>
+                </select>
+            </div>
+            
+            <!-- Question 8: Victim Communications -->
+            <div class="question">
+                <label class="block font-medium text-gray-700">8. Victim Communications: Is there a plan for communicating with affected individuals or organizations during a breach?</label>
+                <select name="q8" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm">
+                    <option value="0">Not Prepared: No communication plan</option>
+                    <option value="1">Partially Prepared: Basic communication plan, but incomplete or untested</option>
+                    <option value="2">Prepared: Comprehensive communication plan in place</option>
+                    <option value="3">Prepared and Practised: Plan established and tested in drills</option>
+                </select>
+            </div>
+            
+            <!-- Question 9: Supply Chain Engagement -->
+            <div class="question">
+                <label class="block font-medium text-gray-700">9. Supply Chain Engagement: Does your organization have a process for engaging with the supply chain during a breach?</label>
+                <select name="q9" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm">
+                    <option value="0">Not Prepared: No supply chain engagement process</option>
+                    <option value="1">Partially Prepared: Informal engagement, but no formal process</option>
+                    <option value="2">Prepared: Formal supply chain engagement process in place</option>
+                    <option value="3">Prepared and Practised: Process established and tested in drills</option>
+                </select>
+            </div>
+            
+            <!-- Question 10: Restoration of Supplier Access -->
+            <div class="question">
+                <label class="block font-medium text-gray-700">10. Restoration of Supplier Access: Is there a process for safely restoring supplier access when suppliers are compromised?</label>
+                <select name="q10" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm">
+                    <option value="0">Not Prepared: No restoration process</option>
+                    <option value="1">Partially Prepared: Informal restoration process, but not documented</option>
+                    <option value="2">Prepared: Formal restoration process in place</option>
+                    <option value="3">Prepared and Practised: Process established and tested in drills</option>
+                </select>
+            </div>
+            
+            <!-- Question 11: Lessons Learned -->
+            <div class="question">
+                <label class="block font-medium text-gray-700">11. Lessons Learned: Does your organization have a process for conducting post-incident reviews and implementing lessons learned?</label>
+                <select name="q11" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm">
+                    <option value="0">Not Prepared: No lessons learned process</option>
+                    <option value="1">Partially Prepared: Informal reviews, but no formal process</option>
+                    <option value="2">Prepared: Formal lessons learned process in place</option>
+                    <option value="3">Prepared and Practised: Process established and tested in drills</option>
+                </select>
+            </div>
+            
+            <!-- Question 12: Drills Conducted -->
+            <div class="question">
+                <label class="block font-medium text-gray-700">12. Drills Conducted: Does your organization regularly conduct data breach response drills?</label>
+                <select name="q12" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm">
+                    <option value="0">Not Prepared: No drills conducted</option>
+                    <option value="1">Partially Prepared: Drills conducted irregularly or incompletely</option>
+                    <option value="2">Prepared: Drills conducted regularly</option>
+                    <option value="3">Prepared and Practised: Drills conducted regularly with comprehensive scenarios</option>
+                </select>
+            </div>
+            
+            <button type="submit" class="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700">Submit Assessment</button>
+        </form>
+        
+        <div id="result" class="result">
+            <h2 class="text-xl font-bold mb-4">Assessment Results</h2>
+            <p id="score" class="mb-2"></p>
+            <p id="readinessLevel" class="mb-4 font-semibold"></p>
+            <p id="recommendations" class="text-gray-600"></p>
+        </div>
+        
+        <footer>Copyright Xservus Limited - Use at Own Risk</footer>
+    </div>
+
+    <script>
+        const { jsPDF } = window.jspdf;
+        const form = document.getElementById('assessmentForm');
+        const resultDiv = document.getElementById('result');
+        const scoreEl = document.getElementById('score');
+        const readinessLevelEl = document.getElementById('readinessLevel');
+        const recommendationsEl = document.getElementById('recommendations');
+
+        form.addEventListener('submit', (e) => {
+            e.preventDefault();
+            let totalScore = 0;
+            const questions = form.querySelectorAll('select');
+            const maxScore = questions.length * 3; // Max score per question is 3
+
+            questions.forEach((select) => {
+                totalScore += parseInt(select.value);
+            });
+
+            const percentage = (totalScore / maxScore) * 100;
+            let readinessLevel = '';
+            let recommendations = '';
+
+            if (percentage < 25) {
+                readinessLevel = 'Not Prepared';
+                recommendations = 'Your organization is highly vulnerable to data breaches. Develop a comprehensive incident response plan, including insurance, legal, and technical processes. Start conducting regular drills.';
+            } else if (percentage < 50) {
+                readinessLevel = 'Partially Prepared';
+                recommendations = 'Your organization has some preparedness elements but needs improvement. Formalize processes for reporting, communication, and supply chain engagement. Increase the frequency and scope of drills.';
+            } else if (percentage < 75) {
+                readinessLevel = 'Prepared';
+                recommendations = 'Your organization has a solid foundation for breach response. Enhance preparedness by testing processes through regular, comprehensive drills and refining lessons learned.';
+            } else {
+                readinessLevel = 'Prepared and Practised';
+                recommendations = 'Your organization is well-prepared for a data breach. Continue regular drills, update processes based on lessons learned, and stay engaged with industry intelligence sharing.';
+            }
+
+            // Display results on the page
+            scoreEl.textContent = `Total Score: ${totalScore} out of ${maxScore} (${percentage.toFixed(2)}%)`;
+            readinessLevelEl.textContent = `Readiness Level: ${readinessLevel}`;
+            recommendationsEl.textContent = `Recommendations: ${recommendations}`;
+            resultDiv.style.display = 'block';
+
+            // Generate PDF
+            const doc = new jsPDF();
+            const pageWidth = doc.internal.pageSize.getWidth();
+            const margin = 20;
+            const lineHeight = 10;
+            let yPosition = 20;
+
+            // Add title
+            doc.setFont('helvetica', 'bold');
+            doc.setFontSize(16);
+            doc.setTextColor(0, 102, 204);
+            doc.text('Data Breach Preparedness Assessment Results', margin, yPosition, { align: 'left' });
+            yPosition += lineHeight;
+
+            // Add date
+            doc.setFontSize(12);
+            doc.setTextColor(0, 0, 0);
+            const today = new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'long', year: 'numeric' });
+            doc.text(today, margin, yPosition);
+            yPosition += lineHeight * 2;
+
+            // Add score
+            doc.setFont('helvetica', 'bold');
+            doc.setFontSize(14);
+            doc.setTextColor(0, 51, 102);
+            doc.text('Assessment Results', margin, yPosition);
+            yPosition += lineHeight;
+            doc.setFont('helvetica', 'normal');
+            doc.setFontSize(12);
+            doc.setTextColor(0, 0, 0);
+            doc.text(`Total Score: ${totalScore} out of ${maxScore} (${percentage.toFixed(2)}%)`, margin, yPosition);
+            yPosition += lineHeight;
+
+            // Add readiness level
+            doc.setFont('helvetica', 'bold');
+            doc.text(`Readiness Level: ${readinessLevel}`, margin, yPosition);
+            yPosition += lineHeight * 2;
+
+            // Add recommendations
+            doc.setFont('helvetica', 'bold');
+            doc.setTextColor(0, 51, 102);
+            doc.text('Recommendations', margin, yPosition);
+            yPosition += lineHeight;
+            doc.setFont('helvetica', 'normal');
+            doc.setTextColor(0, 0, 0);
+            const splitText = doc.splitTextToSize(recommendations, pageWidth - 2 * margin);
+            doc.text(splitText, margin, yPosition);
+            yPosition += splitText.length * lineHeight;
+
+            // Add footer
+            doc.setFontSize(10);
+            doc.setTextColor(255, 0, 0);
+            doc.text('Confidential', margin, doc.internal.pageSize.getHeight() - 10);
+            doc.setTextColor(0, 0, 0);
+            doc.text(`Page 1 of 1`, pageWidth - margin, doc.internal.pageSize.getHeight() - 10, { align: 'right' });
+
+            // Save the PDF
+            doc.save('Data_Breach_Assessment_Results.pdf');
+        });
+    </script>
+</body>
+</html>
