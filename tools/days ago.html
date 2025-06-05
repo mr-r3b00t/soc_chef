@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Days Ago Calculator</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 flex items-center justify-center min-h-screen">
+    <div class="bg-white p-6 rounded-lg shadow-lg w-full max-w-md">
+        <h1 class="text-2xl font-bold text-center mb-4">Days Ago Calculator</h1>
+        <div class="mb-4">
+            <label for="days" class="block text-sm font-medium text-gray-700">Enter number of days ago:</label>
+            <input type="number" id="days" min="0" class="mt-1 p-2 w-full border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="e.g., 72">
+        </div>
+        <button onclick="calculateDate()" class="w-full bg-blue-500 text-white p-2 rounded-md hover:bg-blue-600">Calculate</button>
+        <p id="result" class="mt-4 text-center text-gray-800"></p>
+    </div>
+    <script>
+        function calculateDate() {
+            const daysInput = document.getElementById('days').value;
+            const days = parseInt(daysInput);
+            const resultElement = document.getElementById('result');
+
+            if (isNaN(days) || days < 0) {
+                resultElement.textContent = 'Please enter a valid number of days.';
+                return;
+            }
+
+            const today = new Date('2025-06-05');
+            const pastDate = new Date(today);
+            pastDate.setDate(today.getDate() - days);
+
+            const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+            const formattedDate = pastDate.toLocaleDateString('en-US', options);
+            resultElement.textContent = `${days} days ago was ${formattedDate}.`;
+        }
+    </script>
+</body>
+</html>
