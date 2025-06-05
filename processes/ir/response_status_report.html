@@ -12,16 +12,25 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.3/jspdf.plugin.autotable.min.js"></script>
 </head>
 <body class="bg-gray-100 min-h-screen flex flex-col">
-  <div id="root" class="flex-grow"></div>
-  <footer class="bg-gray-800 text-white text-center py-4">
+  <div id="root" className="flex-grow"></div>
+  <footer className="bg-gray-800 text-white text-center py-4">
     <p className="text-sm font-semibold">CONFIDENTIAL</p>
   </footer>
 
   <script type="text/babel">
-    const { useState, useEffect } = React;
+    const { useState, useEffect, useRef } = React;
     const { jsPDF } = window.jspdf;
 
     const IncidentTrackerApp = () => {
+      // Debounce utility function
+      const debounce = (func, wait) => {
+        let timeout;
+        return (...args) => {
+          clearTimeout(timeout);
+          timeout = setTimeout(() => func(...args), wait);
+        };
+      };
+
       // Initial state for incident details
       const initialIncidentDetails = {
         responderName: '',
@@ -217,8 +226,14 @@
       // Helper function to add a log entry
       const addLogEntry = (action) => {
         const timestamp = new Date().toLocaleString('en-GB', { timeZone: 'Europe/London' });
+        console.log('Adding log entry:', { timestamp, action }); // Debug log
         setTrackingLog((prev) => [...prev, { timestamp, action }]);
       };
+
+      // Memoized debounced logging function
+      const debouncedLog = useRef(debounce((action) => {
+        addLogEntry(action);
+      }, 500)).current;
 
       // Save state to local storage whenever it changes
       useEffect(() => {
@@ -256,44 +271,44 @@
       // Handle input changes for incident details
       const handleInputChange = (e) => {
         const { name, value } = e.target;
-        addLogEntry(`Updated ${name} to ${value || 'empty'}`);
         setIncidentDetails((prev) => ({ ...prev, [name]: value }));
+        debouncedLog(`Updated ${name} to ${value || 'empty'}`);
       };
 
       // Handle notes changes for lifecycle phases
       const handleNotesChange = (phase, value) => {
-        addLogEntry(`Updated Notes in ${phase.charAt(0).toUpperCase() + phase.slice(1)}`);
         setLifecycle((prev) => ({
           ...prev,
           [phase]: { ...prev[phase], notes: value },
         }));
+        debouncedLog(`Updated Notes in ${phase.charAt(0).toUpperCase() + phase.slice(1)}`);
       };
 
       // Handle next actions changes for lifecycle phases
       const handleNextActionsChange = (phase, value) => {
-        addLogEntry(`Updated Next Actions in ${phase.charAt(0).toUpperCase() + phase.slice(1)}`);
         setLifecycle((prev) => ({
           ...prev,
           [phase]: { ...prev[phase], nextActions: value },
         }));
+        debouncedLog(`Updated Next Actions in ${phase.charAt(0).toUpperCase() + phase.slice(1)}`);
       };
 
       // Handle notes changes for close down
       const handleCloseDownNotesChange = (value) => {
-        addLogEntry('Updated Notes in Incident Close Down');
         setCloseDown((prev) => ({ ...prev, notes: value }));
+        debouncedLog('Updated Notes in Incident Close Down');
       };
 
       // Handle next actions changes for close down
       const handleCloseDownNextActionsChange = (value) => {
-        addLogEntry('Updated Next Actions in Incident Close Down');
         setCloseDown((prev) => ({ ...prev, nextActions: value }));
+        debouncedLog('Updated Next Actions in Incident Close Down');
       };
 
       // Handle recommendations changes
       const handleRecommendationsChange = (value) => {
-        addLogEntry('Updated Recommendations');
         setRecommendations((prev) => ({ ...prev, recommendations: value }));
+        debouncedLog('Updated Recommendations');
       };
 
       // Toggle task completion for lifecycle phases
@@ -333,7 +348,6 @@
         const isActive = lifecycle[currentPhase].active;
 
         if (isActive && currentIndex < phases.length - 1) {
-          // Mark current phase as complete and activate next phase
           addLogEntry(`Marked ${currentPhase.charAt(0).toUpperCase() + currentPhase.slice(1)} as complete`);
           setLifecycle((prev) => ({
             ...prev,
@@ -341,32 +355,35 @@
             [phases[currentIndex + 1]]: { ...prev[phases[currentIndex + 1]], active: true },
           }));
         } else if (!isActive && lifecycle[currentPhase].completed) {
-          // Re-open the phase and deactivate all subsequent phases
           addLogEntry(`Re-opened ${currentPhase.charAt(0).toUpperCase() + currentPhase.slice(1)}`);
           setLifecycle((prev) => {
             const updated = { ...prev };
-            // Deactivate all phases after the current one and reset completed status
             for (let i = currentIndex + 1; i < phases.length; i++) {
               updated[phases[i]] = { ...updated[phases[i]], active: false, completed: false };
             }
-            // Reactivate the current phase
             updated[currentPhase] = { ...updated[currentPhase], active: true, completed: false };
             return updated;
           });
         }
       };
 
-      // Calculate progress (including close down tasks, excluding recommendations and next actions)
+      // Calculate progress
       const calculateProgress = () => {
         const totalTasks = Object.values(lifecycle).reduce(
           (sum, phase) => sum + phase.tasks.length,
           0
         ) + closeDown.tasks.length;
-        const completedTasks = Object.values(lifecycle).reduce(
-          (sum, phase) =>
-            sum + phase.tasks.filter((task) => task.completed).length,
-          0
-        ) + closeDown.tasks.filter((task) => task.completed).length;
+
+        const completedTasks = Object.values(lifecycle).reduce((sum, phase) => {
+          if (phase.completed) {
+            // Count all tasks in completed phases as completed
+            return sum + phase.tasks.length;
+          } else {
+            // Count only individually completed tasks in non-completed phases
+            return sum + phase.tasks.filter((task) => task.completed).length;
+          }
+        }, 0) + closeDown.tasks.filter((task) => task.completed).length;
+
         return Math.round((completedTasks / totalTasks) * 100);
       };
 
@@ -397,36 +414,31 @@
         const margin = 10;
         let y = 10;
 
-        // Add footer to all pages
         const addFooter = () => {
           doc.setFontSize(8);
           doc.setFont('helvetica', 'bold');
-          doc.setTextColor(255, 0, 0); // Red color for CONFIDENTIAL
+          doc.setTextColor(255, 0, 0);
           doc.text('CONFIDENTIAL', pageWidth / 2, pageHeight - 10, { align: 'center' });
-          doc.setTextColor(0); // Reset to black
+          doc.setTextColor(0);
         };
 
-        // Helper function to add a new page
         const addNewPage = () => {
           doc.addPage();
           y = 10;
           addFooter();
         };
 
-        // Add footer to first page
         addFooter();
 
-        // Title
         doc.setFontSize(16);
         doc.setFont('helvetica', 'bold');
         doc.text('Cyber Incident Response Report', margin, y);
         y += 10;
         doc.setFontSize(10);
         doc.setFont('helvetica', 'normal');
-        doc.text(`Date: May 22, 2025`, margin, y);
+        doc.text(`Date: ${new Date().toLocaleDateString('en-GB', { timeZone: 'Europe/London' })}`, margin, y);
         y += 10;
 
-        // Incident Details
         addNewPage();
         doc.setFontSize(12);
         doc.setFont('helvetica', 'bold');
@@ -457,7 +469,6 @@
         });
         y = doc.lastAutoTable.finalY + 10;
 
-        // Lifecycle Phases
         Object.entries(lifecycle).forEach(([phase, { active, completed, tasks, notes, nextActions }]) => {
           addNewPage();
           doc.setFontSize(12);
@@ -465,7 +476,6 @@
           doc.text(`${phase.charAt(0).toUpperCase() + phase.slice(1)} ${active ? '(Active)' : completed ? '(Completed)' : ''}`, margin, y);
           y += 7;
 
-          // Tasks
           doc.setFontSize(10);
           doc.setFont('helvetica', 'bold');
           doc.text('Tasks:', margin, y);
@@ -478,7 +488,6 @@
             y += 6;
           });
 
-          // Notes
           doc.setFontSize(10);
           doc.setFont('helvetica', 'bold');
           doc.text('Notes:', margin, y);
@@ -491,7 +500,6 @@
             y += 6;
           });
 
-          // Next Actions
           doc.setFontSize(10);
           doc.setFont('helvetica', 'bold');
           doc.text('Next Actions:', margin, y);
@@ -506,14 +514,12 @@
           y += 5;
         });
 
-        // Incident Close Down
         addNewPage();
         doc.setFontSize(12);
         doc.setFont('helvetica', 'bold');
         doc.text('Incident Close Down', margin, y);
         y += 7;
 
-        // Tasks
         doc.setFontSize(10);
         doc.setFont('helvetica', 'bold');
         doc.text('Tasks:', margin, y);
@@ -526,7 +532,6 @@
           y += 6;
         });
 
-        // Notes
         doc.setFontSize(10);
         doc.setFont('helvetica', 'bold');
         doc.text('Notes:', margin, y);
@@ -539,7 +544,6 @@
           y += 6;
         });
 
-        // Next Actions
         doc.setFontSize(10);
         doc.setFont('helvetica', 'bold');
         doc.text('Next Actions:', margin, y);
@@ -552,7 +556,6 @@
           y += 6;
         });
 
-        // Recommendations
         addNewPage();
         doc.setFontSize(12);
         doc.setFont('helvetica', 'bold');
@@ -577,7 +580,6 @@
           });
         });
 
-        // Tracking Log
         addNewPage();
         doc.setFontSize(12);
         doc.setFont('helvetica', 'bold');
@@ -595,7 +597,6 @@
           styles: { fontSize: 8 },
         });
 
-        // Save PDF
         doc.save(`incident-${incidentDetails.incidentId}.pdf`);
       };
 
@@ -605,7 +606,6 @@
             Cyber Incident Response Tracker
           </h1>
 
-          {/* Incident Details Form */}
           <div className="bg-white p-6 rounded-lg shadow-md mb-6">
             <h2 className="text-xl font-semibold text-gray-700 mb-4">Incident Details</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -738,7 +738,6 @@
             </div>
           </div>
 
-          {/* Export and Print Buttons and Progress Bar */}
           <div className="mb-6">
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-xl font-semibold text-gray-700">Incident Progress</h2>
@@ -772,7 +771,6 @@
             <p className="text-sm text-gray-600 mt-2">{calculateProgress()}% Complete</p>
           </div>
 
-          {/* Lifecycle Phases */}
           {Object.entries(lifecycle).map(([phase, { active, completed, tasks, notes, nextActions }]) => (
             <div key={phase} className="bg-white p-6 rounded-lg shadow-md mb-4">
               <h2 className="text-xl font-semibold text-gray-700 capitalize mb-4">
@@ -832,7 +830,6 @@
             </div>
           ))}
 
-          {/* Incident Close Down Section */}
           <div className="bg-white p-6 rounded-lg shadow-md mb-4">
             <h2 className="text-xl font-semibold text-gray-700 mb-4">Incident Close Down</h2>
             <ul className="space-y-2">
@@ -876,7 +873,6 @@
             </div>
           </div>
 
-          {/* Recommendations Section */}
           <div className="bg-white p-6 rounded-lg shadow-md mb-4">
             <h2 className="text-xl font-semibold text-gray-700 mb-4">Recommendations</h2>
             <div className="mt-4">
@@ -891,7 +887,6 @@
             </div>
           </div>
 
-          {/* Tracking Log Section */}
           <div className="bg-white p-6 rounded-lg shadow-md mb-4">
             <h2 className="text-xl font-semibold text-gray-700 mb-4">Tracking Log</h2>
             <ul className="space-y-2">
