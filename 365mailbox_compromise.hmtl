@@ -1,0 +1,400 @@
+<script type="text/javascript">
+        var gk_isXlsx = false;
+        var gk_xlsxFileLookup = {};
+        var gk_fileData = {};
+        function filledCell(cell) {
+          return cell !== '' && cell != null;
+        }
+        function loadFileData(filename) {
+        if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
+            try {
+                var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
+                var firstSheetName = workbook.SheetNames[0];
+                var worksheet = workbook.Sheets[firstSheetName];
+
+                // Convert sheet to JSON to filter blank rows
+                var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
+                // Filter out blank rows (rows where all cells are empty, null, or undefined)
+                var filteredData = jsonData.filter(row => row.some(filledCell));
+
+                // Heuristic to find the header row by ignoring rows with fewer filled cells than the next row
+                var headerRowIndex = filteredData.findIndex((row, index) =>
+                  row.filter(filledCell).length >= filteredData[index + 1]?.filter(filledCell).length
+                );
+                // Fallback
+                if (headerRowIndex === -1 || headerRowIndex > 25) {
+                  headerRowIndex = 0;
+                }
+
+                // Convert filtered JSON back to CSV
+                var csv = XLSX.utils.aoa_to_sheet(filteredData.slice(headerRowIndex)); // Create a new sheet from filtered array of arrays
+                csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
+                return csv;
+            } catch (e) {
+                console.error(e);
+                return "";
+            }
+        }
+        return gk_fileData[filename] || "";
+        }
+        </script><!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Modern Office 365 Compromise Mind Map</title>
+  <link href="https://visjs.github.io/vis-network/standalone/umd/vis-network.min.css" rel="stylesheet" type="text/css" />
+  <script src="https://visjs.github.io/vis-network/standalone/umd/vis-network.min.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    #mynetwork {
+      width: 100%;
+      height: 600px;
+      border: 1px solid #e5e7eb;
+      background: linear-gradient(to bottom, #f3f4f6, #ffffff);
+    }
+    #filter {
+      margin-bottom: 1rem;
+      display: flex;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+    #descriptions {
+      margin-top: 2rem;
+      padding: 1.5rem;
+      background-color: #ffffff;
+      border-radius: 0.5rem;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+    #descriptions h2 {
+      font-size: 1.5rem;
+      font-weight: bold;
+      color: #1f2937;
+      margin-bottom: 1rem;
+    }
+    #descriptions h3 {
+      font-size: 1.25rem;
+      font-weight: 600;
+      color: #374151;
+      margin-top: 1.5rem;
+    }
+    #descriptions p {
+      font-size: 1rem;
+      color: #4b5563;
+      line-height: 1.5;
+      margin-bottom: 1rem;
+    }
+    .description-section {
+      margin-bottom: 2rem;
+      padding: 1rem;
+      border-radius: 0.5rem;
+      transition: background-color 0.3s ease;
+    }
+    .description-section:hover {
+      background-color: #f9fafb;
+    }
+  </style>
+</head>
+<body class="bg-gray-100">
+  <div class="container mx-auto p-4">
+    <h1 class="text-3xl font-bold text-center text-gray-800 mb-6">Threat Actor Actions After Compromising an Office 365 Mailbox</h1>
+    <div id="filter">
+      <label class="flex items-center"><input type="checkbox" checked onclick="toggleBranch('phishing')" class="mr-2"> Phishing Attacks</label>
+      <label class="flex items-center"><input type="checkbox" checked onclick="toggleBranch('stealing_data')" class="mr-2"> Stealing Data</label>
+      <label class="flex items-center"><input type="checkbox" checked onclick="toggleBranch('accessing_services')" class="mr-2"> Accessing Connected Services</label>
+      <label class="flex items-center"><input type="checkbox" checked onclick="toggleBranch('sharing_malicious')" class="mr-2"> Sharing Malicious Content</label>
+      <label class="flex items-center"><input type="checkbox" checked onclick="toggleBranch('mailbox_rules')" class="mr-2"> Setting Up Mailbox Rules</label>
+      <label class="flex items-center"><input type="checkbox" checked onclick="toggleBranch('fraud')" class="mr-2"> Attempting Fraud</label>
+    </div>
+    <div id="mynetwork"></div>
+    <div id="descriptions">
+      <h2>Detailed Descriptions of Threat Actor Actions</h2>
+      <p>The following section provides in-depth explanations of the various actions a threat actor might take after compromising an Office 365 mailbox. Each category from the mind map above is detailed below, with examples and real-world incidents where applicable. Understanding these potential threats is crucial for developing effective security measures.</p>
+      
+      <div class="description-section">
+        <h3>Phishing Attacks</h3>
+        <p>Phishing attacks involve using the compromised mailbox to send deceptive emails aimed at tricking recipients into revealing sensitive information or performing actions that compromise security.</p>
+        <h4>Internal Users</h4>
+        <p>Internal phishing targets colleagues within the same organization. The attacker leverages the trust between employees to send spear-phishing emails, often impersonating a high-level executive like the CEO. These emails may request urgent actions, such as transferring funds or sharing confidential data, exploiting the recipient's inclination to comply with authority figures.</p>
+        <h4>External Users</h4>
+        <p>External phishing targets clients, partners, or other external contacts. The attacker sends spoofed emails that appear to come from the compromised account, often containing malicious links or attachments. A common tactic is invoice scams, where fake invoices are sent to trick recipients into making payments to fraudulent accounts.</p>
+        <h4>Lateral Phishing</h4>
+        <p>Lateral phishing involves using the compromised account to target other Office 365 tenants. By exploiting the trust between organizations, the attacker can send phishing emails to external domains, potentially compromising multiple organizations. This tactic was notably observed in 2019 campaigns targeting various industries.</p>
+      </div>
+      
+      <div class="description-section">
+        <h3>Stealing Data</h3>
+        <p>Once inside the mailbox, the attacker can exfiltrate sensitive information, including emails, attachments, and credentials, which can be used for further attacks or sold on the dark web.</p>
+        <h4>Email Data</h4>
+        <p>The attacker can search for and download emails containing sensitive information, such as financial records, personal identifiable information (PII), or strategic business plans. In 2020, a major data breach at a financial institution was traced back to a compromised Office 365 mailbox, where thousands of emails were exfiltrated, leading to significant financial and reputational damage.</p>
+        <h4>Attachments</h4>
+        <p>Confidential files attached to emails, such as contracts, legal documents, or intellectual property, can be downloaded by the attacker. These files often contain valuable information that can be exploited for competitive advantage or blackmail.</p>
+        <h4>Credential Harvesting</h4>
+        <p>The attacker can extract saved credentials from email chains or auto-saved passwords in the mailbox. This can provide access to other systems or accounts, amplifying the scope of the breach.</p>
+      </div>
+      
+      <div class="description-section">
+        <h3>Accessing Connected Services</h3>
+        <p>With access to the mailbox, the attacker can leverage single sign-on (SSO) to access other Office 365 services, potentially gaining entry to sensitive data stored in those platforms.</p>
+        <h4>SharePoint Online</h4>
+        <p>SharePoint Online often hosts critical business documents, such as financial reports, strategic plans, or intellectual property. In 2020, several organizations reported breaches where attackers downloaded confidential files from SharePoint after compromising an employee's mailbox.</p>
+        <h4>OneDrive Online</h4>
+        <p>OneDrive stores personal and company files in the cloud. An attacker can access and steal these files, which may include sensitive personal data or proprietary business information.</p>
+        <h4>Other Apps</h4>
+        <p>Through SSO, the attacker can access other integrated applications like Microsoft Teams, Power BI, or third-party tools (e.g., CRM systems). This can lead to further data exfiltration or manipulation of business processes.</p>
+      </div>
+      
+      <div class="description-section">
+        <h3>Sharing Malicious Content</h3>
+        <p>The attacker can use Office 365 services to distribute malicious content, leveraging the trust associated with the compromised account to bypass security measures.</p>
+        <h4>OneDrive</h4>
+        <p>By uploading malware-laden files to OneDrive and sharing links with unsuspecting users, the attacker can spread malware within the organization or to external contacts.</p>
+        <h4>OneNote</h4>
+        <p>OneNote notebooks can be used to embed malicious scripts or links. Shared notebooks can serve as a vector for phishing or malware distribution.</p>
+        <h4>SharePoint</h4>
+        <p>The attacker can create SharePoint sites or pages with embedded malware or phishing forms, tricking users into entering sensitive information or downloading malicious content.</p>
+      </div>
+      
+      <div class="description-section">
+        <h3>Setting Up Mailbox Rules</h3>
+        <p>Mailbox rules can be manipulated to automate data theft, hide malicious activity, or maintain persistent access to the compromised account.</p>
+        <h4>Forwarding Emails</h4>
+        <p>The attacker can set up rules to automatically forward specific emails (e.g., those containing keywords like 'invoice' or 'payment') to an external address, allowing continuous data theft without maintaining direct access.</p>
+        <h4>Deleting Emails</h4>
+        <p>Rules can be created to delete emails that might alert the user to suspicious activity, such as notifications about account changes or security alerts, helping the attacker cover their tracks.</p>
+        <h4>Hiding Activity</h4>
+        <p>By setting rules to move or mark certain emails as read, the attacker can hide their presence and avoid detection, making it harder for the user to notice unusual activity in their mailbox.</p>
+      </div>
+      
+      <div class="description-section">
+        <h3>Attempting Fraud</h3>
+        <p>Using the compromised account, the attacker can engage in various forms of financial fraud, exploiting the trust and authority associated with the account holder's identity.</p>
+        <h4>Invoice Fraud</h4>
+        <p>The attacker can send fake invoices to clients or partners, tricking them into making payments to fraudulent accounts. This is a common tactic in Business Email Compromise (BEC) scams.</p>
+        <h4>Payroll Diversion</h4>
+        <p>By altering payroll information, the attacker can redirect employee salaries or bonuses to their own accounts, a tactic that has been used in several high-profile fraud cases.</p>
+        <h4>Gift Card Scams</h4>
+        <p>Pretending to be an executive, the attacker can request that employees purchase gift cards and share the codes, which can then be redeemed or sold for profit.</p>
+      </div>
+    </div>
+  </div>
+  <script>
+    // Define the mind map data with descriptions
+    var mindMapData = {
+      id: "root",
+      label: "Threat Actor Actions After Compromising an Office 365 Mailbox",
+      description: "Overview of potential actions a cyber criminal can take after gaining access to an Office 365 mailbox.",
+      children: [
+        {
+          id: "phishing",
+          label: "Phishing Attacks",
+          description: "Using the compromised mailbox to send phishing emails.",
+          children: [
+            {
+              id: "phishing_internal",
+              label: "Internal Users",
+              description: "Send spear-phishing emails to colleagues, leveraging trust (e.g., fake urgent requests from the CEO)."
+            },
+            {
+              id: "phishing_external",
+              label: "External Users",
+              description: "Target clients or partners with spoofed emails (e.g., invoice scams, as seen in past incidents)."
+            },
+            {
+              id: "phishing_lateral",
+              label: "Lateral Phishing",
+              description: "Use the compromised account to phish other Office 365 tenants (observed in 2019 campaigns)."
+            }
+          ]
+        },
+        {
+          id: "stealing_data",
+          label: "Stealing Data",
+          description: "Exfiltrating sensitive information from the mailbox.",
+          children: [
+            {
+              id: "stealing_email",
+              label: "Email Data",
+              description: "Exfiltrate sensitive emails (e.g., financial records, PII)."
+            },
+            {
+              id: "stealing_attachments",
+              label: "Attachments",
+              description: "Download confidential files attached to emails (e.g., contracts from past breaches)."
+            },
+            {
+              id: "stealing_credentials",
+              label: "Credential Harvesting",
+              description: "Extract saved credentials from email chains or auto-saved passwords."
+            }
+          ]
+        },
+        {
+          id: "accessing_services",
+          label: "Accessing Connected Services",
+          description: "Using the compromised account to access other Office 365 services.",
+          children: [
+            {
+              id: "sharepoint",
+              label: "SharePoint Online",
+              description: "Access and download sensitive documents (e.g., 2020 SharePoint breaches)."
+            },
+            {
+              id: "onedrive",
+              label: "OneDrive Online",
+              description: "Steal personal or company files stored in the cloud."
+            },
+            {
+              id: "other_apps",
+              label: "Other Apps",
+              description: "Exploit single sign-on (SSO) to access Teams, Power BI, or third-party apps (e.g., CRM tools)."
+            }
+          ]
+        },
+        {
+          id: "sharing_malicious",
+          label: "Sharing Malicious Content",
+          description: "Using Office 365 services to distribute malicious content.",
+          children: [
+            {
+              id: "onedrive_malicious",
+              label: "OneDrive",
+              description: "Upload malware-laden files and share links with unsuspecting users."
+            },
+            {
+              id: "onenote_malicious",
+              label: "OneNote",
+              description: "Embed malicious scripts or links in shared notebooks."
+            },
+            {
+              id: "sharepoint_malicious",
+              label: "SharePoint",
+              description: "Create sites or pages with embedded malware or phishing forms."
+            }
+          ]
+        },
+        {
+          id: "mailbox_rules",
+          label: "Setting Up Mailbox Rules",
+          description: "Creating rules to manipulate email flow and hide activity.",
+          children: [
+            {
+              id: "forwarding",
+              label: "Forwarding Emails",
+              description: "Automatically forward emails to an external address for data theft."
+            },
+            {
+              id: "deleting",
+              label: "Deleting Emails",
+              description: "Set rules to delete specific emails to cover tracks."
+            },
+            {
+              id: "hiding",
+              label: "Hiding Activity",
+              description: "Create rules to move or mark emails as read to avoid detection."
+            }
+          ]
+        },
+        {
+          id: "fraud",
+          label: "Attempting Fraud",
+          description: "Using the compromised account to commit financial fraud.",
+          children: [
+            {
+              id: "invoice_fraud",
+              label: "Invoice Fraud",
+              description: "Send fake invoices to clients or partners (common in BEC scams)."
+            },
+            {
+              id: "payroll_diversion",
+              label: "Payroll Diversion",
+              description: "Alter payroll information to redirect funds (a common fraud tactic)."
+            },
+            {
+              id: "gift_card_scams",
+              label: "Gift Card Scams",
+              description: "Request gift cards from employees, pretending to be executives."
+            }
+          ]
+        }
+      ]
+    };
+
+    // Function to flatten the mind map data into nodes and edges
+    function flattenMindMap(data, nodes, edges, parentId = null) {
+      var node = {
+        id: data.id,
+        label: data.label,
+        title: data.description, // Add description as tooltip
+        group: parentId ? parentId : 'root' // Group by parent for filtering
+      };
+      nodes.push(node);
+      if (parentId) {
+        edges.push({from: parentId, to: data.id});
+      }
+      if (data.children) {
+        data.children.forEach(child => flattenMindMap(child, nodes, edges, data.id));
+      }
+    }
+
+    // Initialize nodes and edges
+    var nodes = [];
+    var edges = [];
+    flattenMindMap(mindMapData, nodes, edges);
+
+    // Create the vis.js network with modern styling
+    var container = document.getElementById('mynetwork');
+    var data = {
+      nodes: new vis.DataSet(nodes),
+      edges: new vis.DataSet(edges)
+    };
+    var options = {
+      layout: {
+        hierarchical: {
+          direction: "UD", // Up-Down layout
+          sortMethod: "directed"
+        }
+      },
+      nodes: {
+        shape: 'box',
+        widthConstraint: { maximum: 250 }, // Wrap text at 250px
+        font: {
+          size: 12,
+          face: 'Arial, sans-serif'
+        },
+        color: {
+          background: '#e0f2fe', // Light blue background
+          border: '#0284c7', // Darker blue border
+          highlight: {
+            background: '#bae6fd',
+            border: '#0369a1'
+          }
+        },
+        shadow: true // Add subtle shadow
+      },
+      edges: {
+        arrows: 'to', // Directed edges
+        color: '#9ca3af' // Gray edges
+      }
+    };
+    var network = new vis.Network(container, data, options);
+
+    // Function to toggle branch visibility
+    function toggleBranch(branchId) {
+      var checkbox = document.querySelector(`input[onclick="toggleBranch('${branchId}')"]`);
+      var isVisible = checkbox.checked;
+      var updateNodes = nodes.filter(node => node.group === branchId || node.id === branchId);
+      updateNodes.forEach(node => {
+        node.hidden = !isVisible;
+      });
+      data.nodes.update(updateNodes);
+      // Also hide/show edges connected to hidden nodes
+      var updateEdges = edges.filter(edge => updateNodes.some(node => node.id === edge.from || node.id === edge.to));
+      updateEdges.forEach(edge => {
+        edge.hidden = !isVisible;
+      });
+      data.edges.update(updateEdges);
+    }
+  </script>
+</body>
+</html>
