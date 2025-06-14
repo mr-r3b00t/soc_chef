@@ -97,6 +97,8 @@ Reactive Orgs that either do not have Policies, Processes and Procedures or ones
 
 🎨 [Steg Decode](https://mr-r3b00t.github.io/soc_chef/tools/steg_decode.html)
 
+🎨 [Fishbone Diagram Tool](https://mr-r3b00t.github.io/soc_chef/tools/fishbone.html)
+
 🗒️ [Days Ago](https://mr-r3b00t.github.io/soc_chef/tools/daysago.html)
 
 
@@ -106,4 +108,4 @@ Reactive Orgs that either do not have Policies, Processes and Procedures or ones
 Copyright (c) Xservus Limited
 Created by mRr3b00t
 
-Version 0.25 - Experimental - Use at own risk
+Version 0.26 - Experimental - Use at own risk
