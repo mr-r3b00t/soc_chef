@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Fishbone Diagram for Root Cause Analysis</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <style>
+    canvas { max-width: 100%; }
+  </style>
+</head>
+<body class="bg-gray-100 min-h-screen flex items-center justify-center">
+  <div class="bg-white p-6 rounded-lg shadow-lg w-full max-w-4xl">
+    <h1 class="text-2xl font-bold mb-4 text-center">Fishbone Diagram</h1>
+
+    <!-- Problem Statement -->
+    <div class="mb-4">
+      <label class="block text-sm font-medium">Problem Statement</label>
+      <input
+        type="text"
+        id="problem"
+        value="Enter Problem Statement"
+        class="w-full p-2 border rounded"
+        placeholder="Enter the problem statement"
+      />
+    </div>
+
+    <!-- Add Category -->
+    <div class="mb-4">
+      <label class="block text-sm font-medium">Add Category</label>
+      <div class="flex">
+        <input
+          type="text"
+          id="newCategory"
+          class="w-full p-2 border rounded"
+          placeholder="e.g., People, Process"
+        />
+        <button
+          onclick="addCategory()"
+          class="ml-2 bg-blue-500 text-white p-2 rounded hover:bg-blue-600"
+        >
+          Add
+        </button>
+      </div>
+      <p id="categoryWarning" class="text-red-500 text-sm hidden">Maximum 4 categories allowed.</p>
+    </div>
+
+    <!-- Add Cause -->
+    <div class="mb-4">
+      <label class="block text-sm font-medium">Add Cause</label>
+      <div class="flex">
+        <select id="categorySelect" class="p-2 border rounded">
+          <option value="">Select Category</option>
+        </select>
+        <input
+          type="text"
+          id="newCause"
+          class="w-full p-2 border rounded ml-2"
+          placeholder="Enter cause"
+        />
+        <button
+          onclick="addCause()"
+          class="ml-2 bg-green-500 text-white p-2 rounded hover:bg-green-600"
+        >
+          Add
+        </button>
+      </div>
+    </div>
+
+    <!-- Export to PDF -->
+    <div class="mb-4 flex justify-center">
+      <button
+        onclick="exportToPDF()"
+        class="bg-purple-500 text-white p-2 rounded hover:bg-purple-600"
+      >
+        Export to PDF
+      </button>
+    </div>
+
+    <!-- Canvas for Diagram -->
+    <div class="flex justify-center">
+      <canvas id="fishboneCanvas" class="border"></canvas>
+    </div>
+  </div>
+
+  <script>
+    let categories = [];
+    const maxCategories = 4;
+    const canvas = document.getElementById('fishboneCanvas');
+    const ctx = canvas.getContext('2d');
+    const { jsPDF } = window.jspdf;
+
+    function addCategory() {
+      const newCategory = document.getElementById('newCategory').value.trim();
+      const warning = document.getElementById('categoryWarning');
+      if (newCategory && categories.length < maxCategories) {
+        categories.push({ name: newCategory, causes: [] });
+        document.getElementById('newCategory').value = '';
+        warning.classList.add('hidden');
+        updateCategorySelect();
+        drawDiagram();
+      } else if (categories.length >= maxCategories) {
+        warning.classList.remove('hidden');
+      }
+    }
+
+    function addCause() {
+      const selectedCategory = document.getElementById('categorySelect').value;
+      const newCause = document.getElementById('newCause').value.trim();
+      if (selectedCategory && newCause) {
+        const category = categories.find(cat => cat.name === selectedCategory);
+        if (category) {
+          category.causes.push(newCause);
+          document.getElementById('newCause').value = '';
+          drawDiagram();
+        }
+      }
+    }
+
+    function updateCategorySelect() {
+      const select = document.getElementById('categorySelect');
+      select.innerHTML = '<option value="">Select Category</option>';
+      categories.forEach(cat => {
+        const option = document.createElement('option');
+        option.value = cat.name;
+        option.textContent = cat.name;
+        select.appendChild(option);
+      });
+    }
+
+    function drawDiagram() {
+      const width = 800;
+      const height = 400;
+      canvas.width = width;
+      canvas.height = height;
+      ctx.clearRect(0, 0, width, height);
+      ctx.font = '14px Arial';
+      ctx.lineWidth = 2;
+
+      // Draw main spine
+      ctx.beginPath();
+      ctx.moveTo(50, height / 2);
+      ctx.lineTo(width - 150, height / 2);
+      ctx.stroke();
+
+      // Draw problem box
+      const problem = document.getElementById('problem').value;
+      ctx.fillStyle = '#f87171';
+      ctx.fillRect(width - 150, height / 2 - 30, 100, 60);
+      ctx.fillStyle = 'black';
+      ctx.fillText(problem, width - 140, height / 2, 80);
+
+      // Draw categories and causes
+      categories.forEach((category, i) => {
+        const xStart = 100 + (i * 125);
+        const y = (i % 2 === 0) ? height / 2 - 50 : height / 2 + 50;
+        const angle = (i % 2 === 0) ? -Math.PI / 4 : Math.PI / 4;
+
+        // Draw category line
+        ctx.beginPath();
+        ctx.moveTo(xStart, height / 2);
+        ctx.lineTo(xStart + 50 * Math.cos(angle), y);
+        ctx.stroke();
+
+        // Draw category label
+        ctx.fillText(category.name, xStart + 60, y + (i % 2 === 0 ? -10 : 20));
+
+        // Draw causes
+        category.causes.forEach((cause, j) => {
+          const causeY = y + (i % 2 === 0 ? -(j + 1) * 30 : (j + 1) * 30);
+          ctx.beginPath();
+          ctx.moveTo(xStart + 50 * Math.cos(angle), y);
+          ctx.lineTo(xStart + 100 * Math.cos(angle), causeY);
+          ctx.stroke();
+          ctx.fillText(cause, xStart + 110 * Math.cos(angle), causeY);
+        });
+      });
+    }
+
+    function exportToPDF() {
+      const doc = new jsPDF({
+        orientation: 'landscape',
+        unit: 'px',
+        format: [800, 400]
+      });
+      const imgData = canvas.toDataURL('image/png');
+      doc.addImage(imgData, 'PNG', 0, 0, 800, 400);
+      doc.save('fishbone_diagram.pdf');
+    }
+
+    // Redraw diagram when problem statement changes
+    document.getElementById('problem').addEventListener('input', drawDiagram);
+
+    // Initial draw
+    drawDiagram();
+  </script>
+</body>
+</html>
