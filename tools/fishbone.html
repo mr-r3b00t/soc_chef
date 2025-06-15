@@ -8,6 +8,7 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <style>
     canvas { max-width: 100%; }
+    .error { display: none; color: red; font-size: 0.875rem; }
   </style>
 </head>
 <body class="bg-gray-100 min-h-screen flex items-center justify-center">
@@ -20,10 +21,10 @@
       <input
         type="text"
         id="problem"
-        value="Enter Problem Statement"
         class="w-full p-2 border rounded"
         placeholder="Enter the problem statement"
       />
+      <p id="problemError" class="error">Problem statement cannot be empty.</p>
     </div>
 
     <!-- Add Category -->
@@ -43,7 +44,8 @@
           Add
         </button>
       </div>
-      <p id="categoryWarning" class="text-red-500 text-sm hidden">Maximum 4 categories allowed.</p>
+      <p id="categoryWarning" class="error">Maximum 4 categories allowed.</p>
+      <p id="categoryError" class="error">Category cannot be empty or duplicate.</p>
     </div>
 
     <!-- Add Cause -->
@@ -66,17 +68,25 @@
           Add
         </button>
       </div>
+      <p id="causeError" class="error">Select a category and enter a non-empty, non-duplicate cause.</p>
     </div>
 
-    <!-- Export to PDF -->
-    <div class="mb-4 flex justify-center">
+    <!-- Export to PDF and Reset -->
+    <div class="mb-4 flex justify-center space-x-4">
       <button
         onclick="exportToPDF()"
         class="bg-purple-500 text-white p-2 rounded hover:bg-purple-600"
       >
         Export to PDF
       </button>
+      <button
+        onclick="resetDiagram()"
+        class="bg-red-500 text-white p-2 rounded hover:bg-red-600"
+      >
+        Reset Diagram
+      </button>
     </div>
+    <p id="exportError" class="error text-center">Failed to export PDF. Try again or check console.</p>
 
     <!-- Canvas for Diagram -->
     <div class="flex justify-center">
@@ -86,36 +96,92 @@
 
   <script>
     let categories = [];
+    let problem = "Enter Problem Statement";
     const maxCategories = 4;
     const canvas = document.getElementById('fishboneCanvas');
     const ctx = canvas.getContext('2d');
-    const { jsPDF } = window.jspdf;
+    const { jsPDF } = window.jspdf || {};
+
+    // Load state from localStorage
+    function loadState() {
+      try {
+        const savedState = localStorage.getItem('fishboneState');
+        if (savedState) {
+          const state = JSON.parse(savedState);
+          categories = state.categories || [];
+          problem = state.problem || "Enter Problem Statement";
+          document.getElementById('problem').value = problem;
+          updateCategorySelect();
+          drawDiagram();
+        }
+      } catch (e) {
+        console.error('Failed to load state:', e);
+      }
+    }
+
+    // Save state to localStorage
+    function saveState() {
+      try {
+        const state = { categories, problem };
+        localStorage.setItem('fishboneState', JSON.stringify(state));
+      } catch (e) {
+        console.error('Failed to save state:', e);
+      }
+    }
 
     function addCategory() {
       const newCategory = document.getElementById('newCategory').value.trim();
       const warning = document.getElementById('categoryWarning');
-      if (newCategory && categories.length < maxCategories) {
-        categories.push({ name: newCategory, causes: [] });
-        document.getElementById('newCategory').value = '';
-        warning.classList.add('hidden');
-        updateCategorySelect();
-        drawDiagram();
-      } else if (categories.length >= maxCategories) {
-        warning.classList.remove('hidden');
+      const error = document.getElementById('categoryError');
+
+      warning.classList.add('error');
+      error.classList.add('error');
+
+      if (!newCategory) {
+        error.textContent = 'Category cannot be empty.';
+        error.classList.remove('error');
+        return;
       }
+      if (categories.some(cat => cat.name.toLowerCase() === newCategory.toLowerCase())) {
+        error.textContent = 'Category already exists.';
+        error.classList.remove('error');
+        return;
+      }
+      if (categories.length >= maxCategories) {
+        warning.classList.remove('error');
+        return;
+      }
+
+      categories.push({ name: newCategory, causes: [] });
+      document.getElementById('newCategory').value = '';
+      updateCategorySelect();
+      drawDiagram();
+      saveState();
     }
 
     function addCause() {
       const selectedCategory = document.getElementById('categorySelect').value;
       const newCause = document.getElementById('newCause').value.trim();
-      if (selectedCategory && newCause) {
-        const category = categories.find(cat => cat.name === selectedCategory);
-        if (category) {
-          category.causes.push(newCause);
-          document.getElementById('newCause').value = '';
-          drawDiagram();
-        }
+      const error = document.getElementById('causeError');
+
+      error.classList.add('error');
+
+      if (!selectedCategory || !newCause) {
+        error.textContent = 'Select a category and enter a cause.';
+        error.classList.remove('error');
+        return;
       }
+      const category = categories.find(cat => cat.name === selectedCategory);
+      if (category.causes.some(cause => cause.toLowerCase() === newCause.toLowerCase())) {
+        error.textContent = 'Cause already exists in this category.';
+        error.classList.remove('error');
+        return;
+      }
+
+      category.causes.push(newCause);
+      document.getElementById('newCause').value = '';
+      drawDiagram();
+      saveState();
     }
 
     function updateCategorySelect() {
@@ -130,70 +196,109 @@
     }
 
     function drawDiagram() {
-      const width = 800;
-      const height = 400;
-      canvas.width = width;
-      canvas.height = height;
-      ctx.clearRect(0, 0, width, height);
-      ctx.font = '14px Arial';
-      ctx.lineWidth = 2;
+      try {
+        const width = 800;
+        const height = 400;
+        canvas.width = width;
+        canvas.height = height;
+        ctx.clearRect(0, 0, width, height);
+        ctx.font = '14px Arial';
+        ctx.lineWidth = 2;
 
-      // Draw main spine
-      ctx.beginPath();
-      ctx.moveTo(50, height / 2);
-      ctx.lineTo(width - 150, height / 2);
-      ctx.stroke();
-
-      // Draw problem box
-      const problem = document.getElementById('problem').value;
-      ctx.fillStyle = '#f87171';
-      ctx.fillRect(width - 150, height / 2 - 30, 100, 60);
-      ctx.fillStyle = 'black';
-      ctx.fillText(problem, width - 140, height / 2, 80);
-
-      // Draw categories and causes
-      categories.forEach((category, i) => {
-        const xStart = 100 + (i * 125);
-        const y = (i % 2 === 0) ? height / 2 - 50 : height / 2 + 50;
-        const angle = (i % 2 === 0) ? -Math.PI / 4 : Math.PI / 4;
-
-        // Draw category line
+        // Draw main spine
         ctx.beginPath();
-        ctx.moveTo(xStart, height / 2);
-        ctx.lineTo(xStart + 50 * Math.cos(angle), y);
+        ctx.moveTo(50, height / 2);
+        ctx.lineTo(width - 150, height / 2);
         ctx.stroke();
 
-        // Draw category label
-        ctx.fillText(category.name, xStart + 60, y + (i % 2 === 0 ? -10 : 20));
+        // Draw problem box
+        ctx.fillStyle = '#f87171';
+        ctx.fillRect(width - 150, height / 2 - 30, 100, 60);
+        ctx.fillStyle = 'black';
+        ctx.fillText(problem || 'No Problem', width - 140, height / 2, 80);
 
-        // Draw causes
-        category.causes.forEach((cause, j) => {
-          const causeY = y + (i % 2 === 0 ? -(j + 1) * 30 : (j + 1) * 30);
+        // Draw categories and causes
+        categories.forEach((category, i) => {
+          const xStart = 100 + (i * 125); // Keep categories in x=100 to x=600
+          const y = (i % 2 === 0) ? height / 2 - 50 : height / 2 + 50;
+          const angle = (i % 2 === 0) ? -Math.PI / 4 : Math.PI / 4;
+
+          // Draw category line
           ctx.beginPath();
-          ctx.moveTo(xStart + 50 * Math.cos(angle), y);
-          ctx.lineTo(xStart + 100 * Math.cos(angle), causeY);
+          ctx.moveTo(xStart, height / 2);
+          ctx.lineTo(xStart + 50 * Math.cos(angle), y);
           ctx.stroke();
-          ctx.fillText(cause, xStart + 110 * Math.cos(angle), causeY);
+
+          // Draw category label
+          ctx.fillText(category.name, xStart + 60, y + (i % 2 === 0 ? -10 : 20));
+
+          // Draw causes
+          category.causes.forEach((cause, j) => {
+            const causeY = y + (i % 2 === 0 ? -(j + 1) * 30 : (j + 1) * 30);
+            ctx.beginPath();
+            ctx.moveTo(xStart + 50 * Math.cos(angle), y);
+            ctx.lineTo(xStart + 100 * Math.cos(angle), causeY);
+            ctx.stroke();
+            ctx.fillText(cause, xStart + 110 * Math.cos(angle), causeY);
+          });
         });
-      });
+      } catch (e) {
+        console.error('Failed to draw diagram:', e);
+      }
     }
 
     function exportToPDF() {
-      const doc = new jsPDF({
-        orientation: 'landscape',
-        unit: 'px',
-        format: [800, 400]
-      });
-      const imgData = canvas.toDataURL('image/png');
-      doc.addImage(imgData, 'PNG', 0, 0, 800, 400);
-      doc.save('fishbone_diagram.pdf');
+      try {
+        if (!jsPDF) throw new Error('jsPDF not loaded');
+        const doc = new jsPDF({
+          orientation: 'landscape',
+          unit: 'px',
+          format: [800, 400]
+        });
+        const imgData = canvas.toDataURL('image/png');
+        doc.addImage(imgData, 'PNG', 0, 0, 800, 400);
+        doc.save('fishbone_diagram.pdf');
+        document.getElementById('exportError').classList.add('error');
+      } catch (e) {
+        console.error('Failed to export PDF:', e);
+        document.getElementById('exportError').classList.remove('error');
+      }
     }
 
-    // Redraw diagram when problem statement changes
-    document.getElementById('problem').addEventListener('input', drawDiagram);
+    function resetDiagram() {
+      try {
+        localStorage.removeItem('fishboneState');
+        categories = [];
+        problem = "Enter Problem Statement";
+        document.getElementById('problem').value = problem;
+        document.getElementById('newCategory').value = '';
+        document.getElementById('newCause').value = '';
+        document.getElementById('categoryWarning').classList.add('error');
+        document.getElementById('categoryError').classList.add('error');
+        document.getElementById('causeError').classList.add('error');
+        updateCategorySelect();
+        drawDiagram();
+      } catch (e) {
+        console.error('Failed to reset diagram:', e);
+      }
+    }
 
-    // Initial draw
-    drawDiagram();
+    // Update problem statement and save state
+    document.getElementById('problem').addEventListener('input', () => {
+      const newProblem = document.getElementById('problem').value.trim();
+      const error = document.getElementById('problemError');
+      if (!newProblem) {
+        error.classList.remove('error');
+        return;
+      }
+      error.classList.add('error');
+      problem = newProblem;
+      drawDiagram();
+      saveState();
+    });
+
+    // Load state on page load
+    loadState();
   </script>
 </body>
 </html>
