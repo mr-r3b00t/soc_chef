@@ -1,0 +1,283 @@
+<script type="text/javascript">
+        var gk_isXlsx = false;
+        var gk_xlsxFileLookup = {};
+        var gk_fileData = {};
+        function filledCell(cell) {
+          return cell !== '' && cell != null;
+        }
+        function loadFileData(filename) {
+        if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
+            try {
+                var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
+                var firstSheetName = workbook.SheetNames[0];
+                var worksheet = workbook.Sheets[firstSheetName];
+
+                // Convert sheet to JSON to filter blank rows
+                var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
+                // Filter out blank rows (rows where all cells are empty, null, or undefined)
+                var filteredData = jsonData.filter(row => row.some(filledCell));
+
+                // Heuristic to find the header row by ignoring rows with fewer filled cells than the next row
+                var headerRowIndex = filteredData.findIndex((row, index) =>
+                  row.filter(filledCell).length >= filteredData[index + 1]?.filter(filledCell).length
+                );
+                // Fallback
+                if (headerRowIndex === -1 || headerRowIndex > 25) {
+                  headerRowIndex = 0;
+                }
+
+                // Convert filtered JSON back to CSV
+                var csv = XLSX.utils.aoa_to_sheet(filteredData.slice(headerRowIndex)); // Create a new sheet from filtered array of arrays
+                csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
+                return csv;
+            } catch (e) {
+                console.error(e);
+                return "";
+            }
+        }
+        return gk_fileData[filename] || "";
+        }
+        </script><!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Camera Distance Calculator</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 20px auto;
+            padding: 20px;
+            background-color: #f4f4f4;
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+        }
+        .container {
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        label {
+            display: block;
+            margin: 10px 0 5px;
+            font-weight: bold;
+        }
+        select, input {
+            width: 100%;
+            padding: 8px;
+            margin-bottom: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        button {
+            display: block;
+            width: 100%;
+            padding: 10px;
+            background-color: #28a745;
+            color: #fff;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:hover {
+            background-color: #218838;
+        }
+        #result {
+            margin-top: 20px;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            background-color: #e9ecef;
+            text-align: center;
+        }
+        .error {
+            color: red;
+            font-size: 14px;
+            margin-top: -10px;
+            margin-bottom: 10px;
+        }
+        #customHeight {
+            display: none;
+        }
+        .footnote {
+            margin-top: 20px;
+            font-size: 12px;
+            color: #555;
+            text-align: left;
+            border-top: 1px solid #ccc;
+            padding-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Camera Distance Calculator</h1>
+        <p>Calculate the distance from the camera to a person based on their size in the footage.</p>
+        
+        <label for="cameraModel">Select Camera Model:</label>
+        <select id="cameraModel" onchange="updateCameraSpecs()">
+            <option value="iphone16promax">iPhone 16 Pro Max</option>
+            <option value="samsungs23ultra">Samsung Galaxy S23 Ultra</option>
+            <option value="pixel9pro">Google Pixel 9 Pro</option>
+            <option value="iphone14pro">iPhone 14 Pro</option>
+            <option value="custom">Custom</option>
+        </select>
+        
+        <label for="focalLength">Focal Length (mm):</label>
+        <input type="number" id="focalLength" step="0.1" value="6.86" readonly>
+        
+        <label for="sensorHeight">Sensor Height (mm):</label>
+        <input type="number" id="sensorHeight" step="0.01" value="9.21" readonly>
+        
+        <label for="sensorResolution">Sensor Resolution Height (pixels):</label>
+        <input type="number" id="sensorResolution" step="1" value="6048" readonly>
+        
+        <label for="personHeight">Person's Real-World Height:</label>
+        <select id="personHeight" onchange="toggleCustomHeight()">
+            <option value="1.75">Average Male (1.75 m)</option>
+            <option value="1.62">Average Female (1.62 m)</option>
+            <option value="custom">Custom</option>
+        </select>
+        <input type="number" id="customHeight" step="0.01" placeholder="Enter height in meters">
+        
+        <label for="imageHeightUnit">Image Height Unit:</label>
+        <select id="imageHeightUnit" onchange="updateImageHeightLabel()">
+            <option value="mm">Millimeters (on sensor)</option>
+            <option value="pixels">Pixels (in footage)</option>
+        </select>
+        
+        <label for="imageHeight" id="imageHeightLabel">Person's Image Height (mm):</label>
+        <input type="number" id="imageHeight" step="0.001" placeholder="e.g., 5.0">
+        
+        <button onclick="calculateDistance()">Calculate Distance</button>
+        
+        <div id="result"></div>
+        
+        <div class="footnote">
+            <p><em>Note</em>: Real-world testing shows that facial features can be discerned in a 48 MP Apple ProRAW photo taken with the iPhone 16 Pro Max’s main camera at approximately 20 meters in good lighting conditions, with a practical limit of 26 meters. This corresponds to a face height of ~17 cm occupying ~29–38 pixels, made feasible by ProRAW’s detail retention and post-processing. This estimate is based on the camera’s 6.86 mm focal length, 9.21 mm sensor height, and 6048-pixel vertical resolution.</p>
+        </div>
+    </div>
+
+    <script>
+        // Camera specifications
+        const cameraSpecs = {
+            iphone16promax: { focalLength: 6.86, sensorHeight: 9.21, sensorResolution: 6048 },
+            samsungs23ultra: { focalLength: 6.3, sensorHeight: 7.39, sensorResolution: 12240 },
+            pixel9pro: { focalLength: 5.5, sensorHeight: 7.33, sensorResolution: 6120 },
+            iphone14pro: { focalLength: 6.86, sensorHeight: 7.5, sensorResolution: 6048 },
+            custom: { focalLength: 0, sensorHeight: 0, sensorResolution: 0 }
+        };
+
+        function updateCameraSpecs() {
+            const cameraModel = document.getElementById('cameraModel').value;
+            const specs = cameraSpecs[cameraModel];
+            const focalLengthInput = document.getElementById('focalLength');
+            const sensorHeightInput = document.getElementById('sensorHeight');
+            const sensorResolutionInput = document.getElementById('sensorResolution');
+
+            focalLengthInput.value = specs.focalLength;
+            sensorHeightInput.value = specs.sensorHeight;
+            sensorResolutionInput.value = specs.sensorResolution;
+
+            // Make inputs editable for custom model
+            focalLengthInput.readOnly = cameraModel !== 'custom';
+            sensorHeightInput.readOnly = cameraModel !== 'custom';
+            sensorResolutionInput.readOnly = cameraModel !== 'custom';
+        }
+
+        function toggleCustomHeight() {
+            const heightSelect = document.getElementById('personHeight').value;
+            const customHeightInput = document.getElementById('customHeight');
+            customHeightInput.style.display = heightSelect === 'custom' ? 'block' : 'none';
+        }
+
+        function updateImageHeightLabel() {
+            const unit = document.getElementById('imageHeightUnit').value;
+            const label = document.getElementById('imageHeightLabel');
+            label.innerText = `Person's Image Height (${unit}):`;
+        }
+
+        function calculateDistance() {
+            // Get input values
+            const cameraModel = document.getElementById('cameraModel').value;
+            let personHeight = parseFloat(document.getElementById('personHeight').value);
+            if (personHeight === 'custom') {
+                personHeight = parseFloat(document.getElementById('customHeight').value);
+            }
+            const focalLength = parseFloat(document.getElementById('focalLength').value);
+            const sensorHeight = parseFloat(document.getElementById('sensorHeight').value);
+            const sensorResolution = parseFloat(document.getElementById('sensorResolution').value);
+            let imageHeight = parseFloat(document.getElementById('imageHeight').value);
+            const imageHeightUnit = document.getElementById('imageHeightUnit').value;
+            const resultDiv = document.getElementById('result');
+
+            // Clear previous results
+            resultDiv.innerHTML = '';
+            removeErrorMessages();
+
+            // Validate inputs
+            let hasError = false;
+            if (isNaN(personHeight) || personHeight <= 0) {
+                showError('personHeight', 'Please select a valid height or enter a custom height greater than 0.');
+                hasError = true;
+            }
+            if (isNaN(focalLength) || focalLength <= 0) {
+                showError('focalLength', 'Please enter a valid focal length greater than 0.');
+                hasError = true;
+            }
+            if (isNaN(sensorHeight) || sensorHeight <= 0) {
+                showError('sensorHeight', 'Please enter a valid sensor height greater than 0.');
+                hasError = true;
+            }
+            if (isNaN(sensorResolution) || sensorResolution <= 0) {
+                showError('sensorResolution', 'Please enter a valid sensor resolution greater than 0.');
+                hasError = true;
+            }
+            if (isNaN(imageHeight) || imageHeight <= 0) {
+                showError('imageHeight', 'Please enter a valid image height greater than 0.');
+                hasError = true;
+            }
+
+            if (hasError) return;
+
+            // Convert image height to millimeters if provided in pixels
+            let imageHeightMm = imageHeight;
+            if (imageHeightUnit === 'pixels') {
+                const pixelSize = sensorHeight / sensorResolution; // mm per pixel
+                imageHeightMm = imageHeight * pixelSize;
+            }
+
+            // Calculate distance (D = H * f / h)
+            const distance = (personHeight * focalLength) / imageHeightMm;
+
+            // Display result
+            resultDiv.innerHTML = `The camera is approximately <strong>${distance.toFixed(2)} meters</strong> away from the person.`;
+        }
+
+        function showError(inputId, message) {
+            const input = document.getElementById(inputId);
+            const errorDiv = document.createElement('div');
+            errorDiv.className = 'error';
+            errorDiv.innerText = message;
+            input.parentNode.insertBefore(errorDiv, input.nextSibling);
+        }
+
+        function removeErrorMessages() {
+            const errors = document.getElementsByClassName('error');
+            while (errors.length > 0) {
+                errors[0].parentNode.removeChild(errors[0]);
+            }
+        }
+
+        // Initialize
+        updateCameraSpecs();
+        updateImageHeightLabel();
+    </script>
+</body>
+</html>
