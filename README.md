@@ -97,7 +97,8 @@ Reactive Orgs that either do not have Policies, Processes and Procedures or ones
 
 🎨 [Steg Decode](https://mr-r3b00t.github.io/soc_chef/tools/steg_decode.html)
 
-🎨 [Fishbone Diagram Tool](https://mr-r3b00t.github.io/soc_chef/tools/fishbone.html)
+🎨 [Camera Distance Calculator](https://mr-r3b00t.github.io/soc_chef/tools/camera_distance_calculator.html)
+
 
 🗒️ [Days Ago](https://mr-r3b00t.github.io/soc_chef/tools/daysago.html)
 
