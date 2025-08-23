@@ -1,0 +1,253 @@
+<script type="text/javascript">
+        var gk_isXlsx = false;
+        var gk_xlsxFileLookup = {};
+        var gk_fileData = {};
+        function filledCell(cell) {
+          return cell !== '' && cell != null;
+        }
+        function loadFileData(filename) {
+        if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
+            try {
+                var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
+                var firstSheetName = workbook.SheetNames[0];
+                var worksheet = workbook.Sheets[firstSheetName];
+
+                // Convert sheet to JSON to filter blank rows
+                var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
+                // Filter out blank rows (rows where all cells are empty, null, or undefined)
+                var filteredData = jsonData.filter(row => row.some(filledCell));
+
+                // Heuristic to find the header row by ignoring rows with fewer filled cells than the next row
+                var headerRowIndex = filteredData.findIndex((row, index) =>
+                  row.filter(filledCell).length >= filteredData[index + 1]?.filter(filledCell).length
+                );
+                // Fallback
+                if (headerRowIndex === -1 || headerRowIndex > 25) {
+                  headerRowIndex = 0;
+                }
+
+                // Convert filtered JSON back to CSV
+                var csv = XLSX.utils.aoa_to_sheet(filteredData.slice(headerRowIndex)); // Create a new sheet from filtered array of arrays
+                csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
+                return csv;
+            } catch (e) {
+                console.error(e);
+                return "";
+            }
+        }
+        return gk_fileData[filename] || "";
+        }
+        </script>```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Risk Scenario Analysis</title>
+    <script src="https://unpkg.com/react@18.3.1/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone@7.25.6/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body>
+    <div id="root"></div>
+    <script type="text/babel">
+        console.log("Script loaded, rendering React app...");
+
+        function RiskAnalysisApp() {
+            const [formData, setFormData] = React.useState({
+                proximity: 'physical',
+                setupCosts: 'medium',
+                detectionRisk: 'high',
+                attackComplexity: 'medium',
+                payloadTargeting: 'tailored',
+                targetVolume: 'low',
+                successLikelihood: 'low',
+                impact: 'physicalImplant'
+            });
+
+            const [riskScore, setRiskScore] = React.useState(null);
+            const [riskSummary, setRiskSummary] = React.useState('');
+            const [rawScore, setRawScore] = React.useState(0); // Add rawScore to state
+            const [error, setError] = React.useState(null);
+
+            const handleChange = (e) => {
+                try {
+                    setFormData({ ...formData, [e.target.name]: e.target.value });
+                } catch (err) {
+                    console.error("Error in handleChange:", err);
+                    setError("An error occurred while updating inputs.");
+                }
+            };
+
+            const calculateRisk = () => {
+                try {
+                    const weights = {
+                        proximity: { far: 1, nearby: 0.5, physical: 0.1 },
+                        setupCosts: { low: 1, medium: 0.5, high: 0.2 },
+                        detectionRisk: { low: 1, medium: 0.5, high: 0.2 },
+                        attackComplexity: { low: 1, medium: 0.5, high: 0.2 },
+                        payloadTargeting: { generic: 1, tailored: 0.3 },
+                        targetVolume: { high: 1, medium: 0.5, low: 0.2 },
+                        successLikelihood: { 'very unlikely': 0.05, low: 0.2, medium: 0.5, high: 1 }
+                    };
+
+                    const impactWeights = {
+                        deviceTheft: 1.0,
+                        deviceDamage: 0.8,
+                        dataTheft: 0.6,
+                        softwareImplant: 0.4,
+                        physicalImplant: 0.2,
+                        deviceDestruction: 0.5
+                    };
+
+                    const baseProbabilityProduct = (
+                        weights.proximity[formData.proximity] *
+                        weights.setupCosts[formData.setupCosts] *
+                        weights.detectionRisk[formData.detectionRisk] *
+                        weights.attackComplexity[formData.attackComplexity] *
+                        weights.payloadTargeting[formData.payloadTargeting] *
+                        weights.targetVolume[formData.targetVolume] *
+                        weights.successLikelihood[formData.successLikelihood]
+                    );
+
+                    const minBaseProbability = 0.0001; // Minimum risk floor
+                    const baseProbability = Math.max(minBaseProbability, baseProbabilityProduct);
+                    const impactProbability = impactWeights[formData.impact];
+                    const maxProbability = 1.0;
+                    const calculatedRawScore = baseProbability * impactProbability / maxProbability;
+                    const normalizedScore = calculatedRawScore * 100;
+
+                    let summary = '';
+                    if (normalizedScore < 15) {
+                        summary = 'Very Low Risk: The threat scenario poses minimal risk due to very low likelihood and impact.';
+                    } else if (normalizedScore < 30) {
+                        summary = 'Low Risk: The threat scenario poses minimal risk due to low likelihood and impact.';
+                    } else if (normalizedScore < 60) {
+                        summary = 'Medium Risk: The threat scenario has moderate likelihood or impact, requiring attention.';
+                    } else {
+                        summary = 'High Risk: The threat scenario is highly concerning due to high likelihood and severe impact.';
+                    }
+
+                    setRiskScore(normalizedScore.toFixed(2));
+                    setRawScore(calculatedRawScore); // Update rawScore state
+                    setRiskSummary(summary);
+                    setError(null);
+                } catch (err) {
+                    console.error("Error in calculateRisk:", err);
+                    setError("An error occurred while calculating the risk score.");
+                }
+            };
+
+            return (
+                <div className="max-w-2xl mx-auto p-6 bg-gray-100 min-h-screen">
+                    <h1 className="text-3xl font-bold mb-6 text-center text-gray-800">Physical Threat Risk Analysis</h1>
+                    {error && (
+                        <div className="mb-4 p-4 bg-red-100 text-red-700 rounded">
+                            {error}
+                        </div>
+                    )}
+                    <div className="bg-white p-6 rounded-lg shadow-md">
+                        <div className="mb-4">
+                            <label className="block text-gray-700 font-semibold mb-2">Proximity Requirements</label>
+                            <select name="proximity" value={formData.proximity} onChange={handleChange} className="w-full p-2 border rounded">
+                                <option value="far">Far (e.g., wireless network attack)</option>
+                                <option value="nearby">Nearby (e.g., Bluetooth attack)</option>
+                                <option value="physical">Physical Access (e.g., USB attack)</option>
+                            </select>
+                        </div>
+                        <div className="mb-4">
+                            <label className="block text-gray-700 font-semibold mb-2">Attack Setup Costs</label>
+                            <select name="setupCosts" value={formData.setupCosts} onChange={handleChange} className="w-full p-2 border rounded">
+                                <option value="low">Low (minimal resources)</option>
+                                <option value="medium">Medium (moderate resources)</option>
+                                <option value="high">High (significant resources)</option>
+                            </select>
+                        </div>
+                        <div className="mb-4">
+                            <label className="block text-gray-700 font-semibold mb-2">Risk of Attacker Detection</label>
+                            <select name="detectionRisk" value={formData.detectionRisk} onChange={handleChange} className="w-full p-2 border rounded">
+                                <option value="low">Low (e.g., no CCTV)</option>
+                                <option value="medium">Medium (e.g., some surveillance)</option>
+                                <option value="high">High (e.g., extensive CCTV)</option>
+                            </select>
+                        </div>
+                        <div className="mb-4">
+                            <label className="block text-gray-700 font-semibold mb-2">Attack Complexity</label>
+                            <select name="attackComplexity" value={formData.attackComplexity} onChange={handleChange} className="w-full p-2 border rounded">
+                                <option value="low">Low (simple execution)</option>
+                                <option value="medium">Medium (moderate skill needed)</option>
+                                <option value="high">High (advanced skills required)</option>
+                            </select>
+                        </div>
+                        <div className="mb-4">
+                            <label className="block text-gray-700 font-semibold mb-2">Payload Targeting Requirements</label>
+                            <select name="payloadTargeting" value={formData.payloadTargeting} onChange={handleChange} className="w-full p-2 border rounded">
+                                <option value="generic">Generic Payload</option>
+                                <option value="tailored">Tailored Payload</option>
+                            </select>
+                        </div>
+                        <div className="mb-4">
+                            <label className="block text-gray-700 font-semibold mb-2">Target Volume</label>
+                            <select name="targetVolume" value={formData.targetVolume} onChange={handleChange} className="w-full p-2 border rounded">
+                                <option value="high">High</option>
+                                <option value="medium">Medium</option>
+                                <option value="low">Low</option>
+                            </select>
+                        </div>
+                        <div className="mb-4">
+                            <label className="block text-gray-700 font-semibold mb-2">Likelihood of Success</label>
+                            <select name="successLikelihood" value={formData.successLikelihood} onChange={handleChange} className="w-full p-2 border rounded">
+                                <option value="very unlikely">Very Unlikely</option>
+                                <option value="low">Low</option>
+                                <option value="medium">Medium</option>
+                                <option value="high">High</option>
+                            </select>
+                        </div>
+                        <div className="mb-4">
+                            <label className="block text-gray-700 font-semibold mb-2">Impact Category</label>
+                            <select name="impact" value={formData.impact} onChange={handleChange} className="w-full p-2 border rounded">
+                                <option value="deviceTheft">Device Theft</option>
+                                <option value="deviceDamage">Device Damage</option>
+                                <option value="dataTheft">Data Theft</option>
+                                <option value="softwareImplant">Software Implant</option>
+                                <option value="physicalImplant">Physical Implant</option>
+                                <option value="deviceDestruction">Device Destruction</option>
+                            </select>
+                        </div>
+                        <button
+                            onClick={calculateRisk}
+                            className="w-full bg-blue-500 text-white p-2 rounded hover:bg-blue-600 transition"
+                        >
+                            Calculate Risk
+                        </button>
+                    </div>
+                    {riskScore && (
+                        <div className="mt-6 bg-white p-6 rounded-lg shadow-md">
+                            <h2 className="text-2xl font-semibold mb-4 text-gray-800">Risk Assessment</h2>
+                            <p className="text-lg">Risk Score: <span className="font-bold">{riskScore}%</span></p>
+                            <p className="text-sm text-gray-500">Detailed Risk Score: {(rawScore * 100).toFixed(6)}%</p>
+                            <p className="text-lg mt-2">{riskSummary}</p>
+                        </div>
+                    )}
+                </div>
+            );
+        }
+
+        try {
+            const root = ReactDOM.createRoot(document.getElementById('root'));
+            root.render(<RiskAnalysisApp />);
+            console.log("React app rendered successfully");
+        } catch (err) {
+            console.error("Error rendering React app:", err);
+            document.getElementById('root').innerHTML = `
+                <div style="color: red; text-align: center; padding: 20px;">
+                    <h1>Error Loading Application</h1>
+                    <p>Please check the console for details or ensure your browser supports modern JavaScript.</p>
+                </div>
+            `;
+        }
+    </script>
+</body>
+</html>
+```
