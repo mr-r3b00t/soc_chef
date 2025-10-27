@@ -247,7 +247,7 @@
     }
 
     canvas {
-      display: none; /* Hidden as before */
+      display: none;
     }
 
     @media (max-width: 600px) {
@@ -501,7 +501,7 @@
 
       // Generate variants for a password based on enabled rules
       function generateVariants(pw) {
-        const variants = new Set([pw]); // Always include original
+        const variants = new Set([pw]);
         const capitalizeFirst = document.getElementById('capitalizeFirst').checked;
         const uppercaseAll = document.getElementById('uppercaseAll').checked;
         const customPrefixes = document.getElementById('customPrefixes').value.split('\n').map(s => s.trim()).filter(s => s.length > 0);
@@ -521,6 +521,7 @@
 
         // Apply custom prefixes
         if (customPrefixes.length > 0) {
+          console.log('Applying prefixes:', customPrefixes); // Debug log
           const current = Array.from(variants);
           variants.clear();
           for (let v of current) {
@@ -533,6 +534,7 @@
 
         // Apply custom suffixes
         if (customSuffixes.length > 0) {
+          console.log('Applying suffixes:', customSuffixes); // Debug log
           const current = Array.from(variants);
           variants.clear();
           for (let v of current) {
@@ -618,24 +620,49 @@
         ms -= minutes * (1000 * 60);
         const seconds = Math.floor(ms / 1000);
         ms -= seconds * 1000;
-        const nanoseconds = Math.round((ms % 1) * 1e6); // Approximate sub-ms to ns
+        const nanoseconds = Math.round((ms % 1) * 1e6);
         ms = Math.floor(ms);
         return `${days}d ${hours.toString().padStart(2, '0')}h ${minutes.toString().padStart(2, '0')}m ${seconds.toString().padStart(2, '0')}s ${ms.toString().padStart(3, '0')}ms ${nanoseconds.toString().padStart(9, '0')}ns`;
       }
 
+      // Estimate total variants for progress and hashes per second
+      function estimateTotalVariants(numPass) {
+        let multiplier = 1; // Base word
+        if (document.getElementById('capitalizeFirst').checked) multiplier += 1;
+        if (document.getElementById('uppercaseAll').checked) multiplier += 1;
+        const customPrefixes = document.getElementById('customPrefixes').value.split('\n').map(s => s.trim()).filter(s => s.length > 0);
+        if (customPrefixes.length > 0) multiplier *= (1 + customPrefixes.length);
+        const customSuffixes = document.getElementById('customSuffixes').value.split('\n').map(s => s.trim()).filter(s => s.length > 0);
+        if (customSuffixes.length > 0) multiplier *= (1 + customSuffixes.length);
+        const includeYearPrefix = document.getElementById('includeYearPrefix').checked;
+        const includeYearSuffix = document.getElementById('includeYearSuffix').checked;
+        const minYear = parseInt(document.getElementById('minYear').value);
+        const maxYear = parseInt(document.getElementById('maxYear').value);
+        const numYears = maxYear - minYear + 1;
+        if (includeYearPrefix) multiplier *= (1 + numYears);
+        if (includeYearSuffix) multiplier *= (1 + numYears);
+        return numPass * multiplier;
+      }
+
       // Async batch processor
-      async function processBatch(b, numBatches, originalBatchSize, targetHash, numPass) {
+      async function processBatch(b, numBatches, originalBatchSize, targetHash, numPass, totalVariantsCounter, totalVariants, resultEl) {
         const start = b * originalBatchSize;
         const end = Math.min(start + originalBatchSize, numPass);
         const originals = dictionaryData.slice(start, end);
         const numOriginals = originals.length;
         let testPasswords = [];
         for (let orig of originals) {
-          testPasswords.push(...generateVariants(orig));
+          const variants = generateVariants(orig);
+          testPasswords.push(...variants);
+          totalVariantsCounter.count += variants.length;
+          // Debug: Log variants for the first few words in the first batch
+          if (b === 0 && testPasswords.length <= 10) {
+            console.log(`Variants for "${orig}":`, variants);
+          }
         }
         const numTests = testPasswords.length;
 
-        const maxPassesPerRender = 512; // Safe limit to avoid exceeding texture size (512 * 16 = 8192)
+        const maxPassesPerRender = 512; // Safe limit to avoid exceeding texture size
         const numSubBatches = Math.ceil(numTests / maxPassesPerRender);
         const pixelsPerPass = 16;
 
@@ -647,11 +674,17 @@
           const subNum = subEnd - subStart;
           const subTests = testPasswords.slice(subStart, subEnd);
 
-          // Update progress (finer-grained within batch)
-          const overallProgress = (b / numBatches + (sub + 1) / (numSubBatches * numBatches)) * 100;
+          // Update status to "In Progress..." on first sub-batch of first batch
+          if (b === 0 && sub === 0) {
+            resultEl.textContent = 'In Progress...';
+          }
+
+          // Update progress based on total variants
+          const variantsProcessed = totalVariantsCounter.count - (numTests - subNum);
+          const overallProgress = totalVariants > 0 ? (variantsProcessed / totalVariants) * 100 : 0;
           const progressFill = document.getElementById('progressFill');
           const progressText = document.getElementById('progressText');
-          progressFill.style.width = `${overallProgress}%`;
+          progressFill.style.width = `${Math.min(overallProgress, 100)}%`;
           progressText.textContent = `Processing batch ${b + 1}/${numBatches} (sub ${sub + 1}/${numSubBatches}, ${numOriginals} originals, ${numTests} tests) - ${Math.round(overallProgress)}% complete`;
 
           const texWidth = subNum * pixelsPerPass;
@@ -731,6 +764,21 @@
           return;
         }
 
+        // Clear previous output
+        const resultEl = document.getElementById('result');
+        const progressContainer = document.getElementById('progressContainer');
+        const progressFill = document.getElementById('progressFill');
+        const progressText = document.getElementById('progressText');
+        const timingInfo = document.getElementById('timingInfo');
+        resultEl.textContent = 'Result: Waiting...';
+        resultEl.style.color = '';
+        resultEl.classList.remove('processing');
+        progressContainer.classList.remove('active');
+        progressFill.style.width = '0%';
+        progressText.textContent = '';
+        timingInfo.style.display = 'none';
+        timingInfo.innerHTML = '';
+
         // Compute for rules
         const customPrefixes = document.getElementById('customPrefixes').value.split('\n').map(s => s.trim()).filter(s => s.length > 0);
         const customSuffixes = document.getElementById('customSuffixes').value.split('\n').map(s => s.trim()).filter(s => s.length > 0);
@@ -739,7 +787,11 @@
         const hasCustomPref = customPrefixes.length > 0;
         const hasCustomSuff = customSuffixes.length > 0;
 
-        // Dynamic batch size based on rules (smaller if many rules enabled to avoid explosion)
+        // Log custom prefixes and suffixes for debugging
+        console.log('Custom prefixes:', customPrefixes);
+        console.log('Custom suffixes:', customSuffixes);
+
+        // Dynamic batch size based on rules
         const numEnabledRules = [
           document.getElementById('capitalizeFirst').checked,
           document.getElementById('uppercaseAll').checked,
@@ -748,13 +800,10 @@
           includeYearPrefix,
           includeYearSuffix
         ].filter(Boolean).length;
-        const originalBatchSize = Math.max(10, 1024 - (numEnabledRules * 200)); // Adjust down with more rules
+        const originalBatchSize = Math.max(10, 1024 - (numEnabledRules * 200));
 
         const numBatches = Math.ceil(numPass / originalBatchSize);
-
-        const resultEl = document.getElementById('result');
-        const progressContainer = document.getElementById('progressContainer');
-        const timingInfo = document.getElementById('timingInfo');
+        const totalVariants = estimateTotalVariants(numPass); // Estimate total variants for progress
 
         // Disable button and start
         crackButton.disabled = true;
@@ -771,9 +820,10 @@
 
         let foundPassword = null;
         let completedBatches = 0;
+        const totalVariantsCounter = { count: 0 };
 
         for (let b = 0; b < numBatches; b++) {
-          const result = await processBatch(b, numBatches, originalBatchSize, targetHash, numPass);
+          const result = await processBatch(b, numBatches, originalBatchSize, targetHash, numPass, totalVariantsCounter, totalVariants, resultEl);
           completedBatches = result.batch + 1;
           if (result.foundPassword) {
             foundPassword = result.foundPassword;
@@ -785,6 +835,8 @@
         const endDate = new Date();
         const endPerf = performance.now();
         const durationMs = endPerf - startPerf;
+        const durationSeconds = durationMs / 1000;
+        const hashesPerSecond = durationSeconds > 0 ? Math.round(totalVariantsCounter.count / durationSeconds) : 0;
 
         // Hide progress bar
         progressContainer.classList.remove('active');
@@ -800,11 +852,13 @@
           resultEl.style.color = '#ff6b6b';
         }
 
-        // Display timing info
+        // Display timing info with hashes per second
         const timingHtml = `
 Started: ${startDate.toLocaleString()}
 Ended: ${endDate.toLocaleString()}
 Time taken: ${formatDuration(durationMs)}
+Hashes per second: ${hashesPerSecond.toLocaleString()}
+Total variants tested: ${totalVariantsCounter.count.toLocaleString()}
         `;
         timingInfo.innerHTML = timingHtml;
         timingInfo.style.display = 'block';
