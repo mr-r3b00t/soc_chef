@@ -1,0 +1,275 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>NTLM Hash Calculator</title>
+  <style>
+    :root{font-family:system-ui,-apple-system,Segoe UI,Roboto,"Helvetica Neue",Arial;line-height:1.4}
+    body{display:flex;min-height:100vh;align-items:center;justify-content:center;padding:24px;background:#f6f8fa}
+    .card{width:100%;max-width:760px;background:white;border-radius:12px;box-shadow:0 6px 24px rgba(20,30,40,0.08);padding:24px}
+    h1{margin:0 0 6px;font-size:20px}
+    p.lead{margin:0 0 18px;color:#444}
+    label{display:block;margin-top:12px;font-weight:600}
+    textarea,input{width:100%;padding:10px 12px;border:1px solid #d9dbe0;border-radius:8px;font-size:14px}
+    .row{display:flex;gap:12px;margin-top:12px}
+    button{background:#2563eb;color:white;padding:10px 14px;border-radius:8px;border:0;cursor:pointer}
+    button.secondary{background:#e6eefc;color:#123}
+    .output{margin-top:14px;background:#f8fafc;padding:12px;border-radius:8px;border:1px solid #eef2f7;font-family:monospace}
+    .meta{margin-top:8px;color:#666;font-size:13px}
+    .actions{display:flex;gap:8px;margin-top:12px}
+    small.note{display:block;margin-top:10px;color:#666}
+    .flex-between{display:flex;justify-content:space-between;align-items:center}
+    .copy-btn{background:#111827;color:white;border-radius:6px;padding:6px 8px;font-size:13px}
+  </style>
+</head>
+<body>
+  <main class="card" role="main">
+    <div class="flex-between">
+      <div>
+        <h1>NTLM Hash Calculator</h1>
+        <p class="lead">Enter a string (password) below and this page will compute its NTLM hash (MD4 of UTF-16LE bytes).</p>
+      </div>
+      <div style="text-align:right;color:#888;font-size:12px">Single-file • Runs locally</div>
+    </div>
+
+    <label for="inputText">String to hash</label>
+    <textarea id="inputText" rows="3" placeholder="Type or paste the password here"></textarea>
+
+    <div class="row">
+      <button id="calcBtn">Compute NTLM Hash</button>
+      <button id="clearBtn" class="secondary">Clear</button>
+      <button id="exampleBtn" class="secondary">Fill example</button>
+    </div>
+
+    <div class="meta">Results</div>
+
+    <div class="output" id="hexOut">Hex (upper): <span id="hexVal">—</span></div>
+    <div class="output" id="hexLowerOut">Hex (lower): <span id="hexLowerVal">—</span></div>
+    <div class="output" id="b64Out">Base64: <span id="b64Val">—</span></div>
+
+    <div class="actions">
+      <button id="copyHex" class="copy-btn">Copy Hex</button>
+      <button id="copyB64" class="copy-btn">Copy Base64</button>
+    </div>
+
+    <small class="note">Note: NTLM hash = MD4(UTF-16LE(password)). This page performs all hashing locally in your browser and doesn’t send data anywhere.</small>
+  </main>
+
+  <script>
+  // === Utilities ===
+  function toUTF16LEBytes(str) {
+    // Encode JavaScript UTF-16 code units to UTF-16LE bytes
+    const out = new Uint8Array(str.length * 2);
+    for (let i = 0, j = 0; i < str.length; i++, j += 2) {
+      const code = str.charCodeAt(i);
+      out[j] = code & 0xff;
+      out[j + 1] = (code >>> 8) & 0xff;
+    }
+    return out;
+  }
+
+  function bytesToHex(bytes) {
+    let s = '';
+    for (let i = 0; i < bytes.length; i++) {
+      const b = bytes[i];
+      s += (b < 16 ? '0' : '') + b.toString(16);
+    }
+    return s;
+  }
+
+  function bytesToBase64(bytes) {
+    let bin = '';
+    for (let i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]);
+    return btoa(bin);
+  }
+
+  // === MD4 (RFC 1320) ===
+  function md4(messageBytes) {
+    // Convert to a mutable Uint8Array
+    const m = new Uint8Array(messageBytes);
+    const origLenBits = m.length * 8 >>> 0; // low 32 bits
+
+    // Padding: append 0x80, then 0x00 until length ≡ 56 (mod 64), then append 64-bit length (LE)
+    const padLen = (56 - ((m.length + 1) % 64) + 64) % 64;
+    const withPad = new Uint8Array(m.length + 1 + padLen + 8);
+    withPad.set(m);
+    withPad[m.length] = 0x80;
+    // 64-bit length in little-endian (we only handle up to 2^32-1 * 8 bits here; high dword is 0)
+    withPad[withPad.length - 8] = origLenBits & 0xff;
+    withPad[withPad.length - 7] = (origLenBits >>> 8) & 0xff;
+    withPad[withPad.length - 6] = (origLenBits >>> 16) & 0xff;
+    withPad[withPad.length - 5] = (origLenBits >>> 24) & 0xff;
+    // High 32 bits are zero for typical inputs in browsers
+    // withPad[-4..-1] remain 0
+
+    let A = 0x67452301 >>> 0;
+    let B = 0xefcdab89 >>> 0;
+    let C = 0x98badcfe >>> 0;
+    let D = 0x10325476 >>> 0;
+
+    const F = (x, y, z) => (x & y) | (~x & z);
+    const G = (x, y, z) => (x & y) | (x & z) | (y & z);
+    const H = (x, y, z) => x ^ y ^ z;
+    const rotl = (x, n) => ((x << n) | (x >>> (32 - n))) >>> 0;
+
+    const X = new Uint32Array(16);
+
+    for (let i = 0; i < withPad.length; i += 64) {
+      // load 16 little-endian 32-bit words
+      for (let j = 0; j < 16; j++) {
+        const k = i + j * 4;
+        X[j] = (withPad[k] | (withPad[k + 1] << 8) | (withPad[k + 2] << 16) | (withPad[k + 3] << 24)) >>> 0;
+      }
+
+      let a = A, b = B, c = C, d = D;
+
+      // Round 1
+      a = rotl((a + F(b, c, d) + X[0]) >>> 0, 3);
+      d = rotl((d + F(a, b, c) + X[1]) >>> 0, 7);
+      c = rotl((c + F(d, a, b) + X[2]) >>> 0, 11);
+      b = rotl((b + F(c, d, a) + X[3]) >>> 0, 19);
+
+      a = rotl((a + F(b, c, d) + X[4]) >>> 0, 3);
+      d = rotl((d + F(a, b, c) + X[5]) >>> 0, 7);
+      c = rotl((c + F(d, a, b) + X[6]) >>> 0, 11);
+      b = rotl((b + F(c, d, a) + X[7]) >>> 0, 19);
+
+      a = rotl((a + F(b, c, d) + X[8]) >>> 0, 3);
+      d = rotl((d + F(a, b, c) + X[9]) >>> 0, 7);
+      c = rotl((c + F(d, a, b) + X[10]) >>> 0, 11);
+      b = rotl((b + F(c, d, a) + X[11]) >>> 0, 19);
+
+      a = rotl((a + F(b, c, d) + X[12]) >>> 0, 3);
+      d = rotl((d + F(a, b, c) + X[13]) >>> 0, 7);
+      c = rotl((c + F(d, a, b) + X[14]) >>> 0, 11);
+      b = rotl((b + F(c, d, a) + X[15]) >>> 0, 19);
+
+      // Round 2
+      a = rotl((a + G(b, c, d) + X[0] + 0x5a827999) >>> 0, 3);
+      d = rotl((d + G(a, b, c) + X[4] + 0x5a827999) >>> 0, 5);
+      c = rotl((c + G(d, a, b) + X[8] + 0x5a827999) >>> 0, 9);
+      b = rotl((b + G(c, d, a) + X[12] + 0x5a827999) >>> 0, 13);
+
+      a = rotl((a + G(b, c, d) + X[1] + 0x5a827999) >>> 0, 3);
+      d = rotl((d + G(a, b, c) + X[5] + 0x5a827999) >>> 0, 5);
+      c = rotl((c + G(d, a, b) + X[9] + 0x5a827999) >>> 0, 9);
+      b = rotl((b + G(c, d, a) + X[13] + 0x5a827999) >>> 0, 13);
+
+      a = rotl((a + G(b, c, d) + X[2] + 0x5a827999) >>> 0, 3);
+      d = rotl((d + G(a, b, c) + X[6] + 0x5a827999) >>> 0, 5);
+      c = rotl((c + G(d, a, b) + X[10] + 0x5a827999) >>> 0, 9);
+      b = rotl((b + G(c, d, a) + X[14] + 0x5a827999) >>> 0, 13);
+
+      a = rotl((a + G(b, c, d) + X[3] + 0x5a827999) >>> 0, 3);
+      d = rotl((d + G(a, b, c) + X[7] + 0x5a827999) >>> 0, 5);
+      c = rotl((c + G(d, a, b) + X[11] + 0x5a827999) >>> 0, 9);
+      b = rotl((b + G(c, d, a) + X[15] + 0x5a827999) >>> 0, 13);
+
+      // Round 3
+      a = rotl((a + H(b, c, d) + X[0] + 0x6ed9eba1) >>> 0, 3);
+      d = rotl((d + H(a, b, c) + X[8] + 0x6ed9eba1) >>> 0, 9);
+      c = rotl((c + H(d, a, b) + X[4] + 0x6ed9eba1) >>> 0, 11);
+      b = rotl((b + H(c, d, a) + X[12] + 0x6ed9eba1) >>> 0, 15);
+
+      a = rotl((a + H(b, c, d) + X[2] + 0x6ed9eba1) >>> 0, 3);
+      d = rotl((d + H(a, b, c) + X[10] + 0x6ed9eba1) >>> 0, 9);
+      c = rotl((c + H(d, a, b) + X[6] + 0x6ed9eba1) >>> 0, 11);
+      b = rotl((b + H(c, d, a) + X[14] + 0x6ed9eba1) >>> 0, 15);
+
+      a = rotl((a + H(b, c, d) + X[1] + 0x6ed9eba1) >>> 0, 3);
+      d = rotl((d + H(a, b, c) + X[9] + 0x6ed9eba1) >>> 0, 9);
+      c = rotl((c + H(d, a, b) + X[5] + 0x6ed9eba1) >>> 0, 11);
+      b = rotl((b + H(c, d, a) + X[13] + 0x6ed9eba1) >>> 0, 15);
+
+      a = rotl((a + H(b, c, d) + X[3] + 0x6ed9eba1) >>> 0, 3);
+      d = rotl((d + H(a, b, c) + X[11] + 0x6ed9eba1) >>> 0, 9);
+      c = rotl((c + H(d, a, b) + X[7] + 0x6ed9eba1) >>> 0, 11);
+      b = rotl((b + H(c, d, a) + X[15] + 0x6ed9eba1) >>> 0, 15);
+
+      A = (A + a) >>> 0;
+      B = (B + b) >>> 0;
+      C = (C + c) >>> 0;
+      D = (D + d) >>> 0;
+    }
+
+    // Output little-endian digest
+    const out = new Uint8Array(16);
+    const v = [A, B, C, D];
+    for (let i = 0, j = 0; i < 4; i++, j += 4) {
+      const x = v[i];
+      out[j] = x & 0xff;
+      out[j + 1] = (x >>> 8) & 0xff;
+      out[j + 2] = (x >>> 16) & 0xff;
+      out[j + 3] = (x >>> 24) & 0xff;
+    }
+    return out;
+  }
+
+  // NTLM: MD4(UTF-16LE(password))
+  function ntlmHash(password) {
+    const bytes = toUTF16LEBytes(password);
+    return md4(bytes);
+  }
+
+  // === DOM wiring ===
+  const input = document.getElementById('inputText');
+  const calcBtn = document.getElementById('calcBtn');
+  const clearBtn = document.getElementById('clearBtn');
+  const exampleBtn = document.getElementById('exampleBtn');
+  const hexVal = document.getElementById('hexVal');
+  const hexLowerVal = document.getElementById('hexLowerVal');
+  const b64Val = document.getElementById('b64Val');
+  const copyHex = document.getElementById('copyHex');
+  const copyB64 = document.getElementById('copyB64');
+
+  function computeAndDisplay() {
+    const pwd = input.value || '';
+    const digest = ntlmHash(pwd);
+    const hexLower = bytesToHex(digest);
+    const hexUpper = hexLower.toUpperCase();
+    hexVal.textContent = hexUpper;
+    hexLowerVal.textContent = hexLower;
+    b64Val.textContent = bytesToBase64(digest);
+  }
+
+  calcBtn.addEventListener('click', computeAndDisplay);
+
+  clearBtn.addEventListener('click', () => {
+    input.value = '';
+    hexVal.textContent = '—';
+    hexLowerVal.textContent = '—';
+    b64Val.textContent = '—';
+    input.focus();
+  });
+
+  exampleBtn.addEventListener('click', () => {
+    // Known NTLM vectors:
+    // "Password" -> 8846f7eaee8fb117ad06bdd830b7586c
+    // empty string -> 31d6cfe0d16ae931b73c59d7e0c089c0
+    input.value = 'Password';
+    computeAndDisplay();
+  });
+
+  copyHex.addEventListener('click', async () => {
+    const txt = hexVal.textContent || '';
+    if (!txt || txt === '—') return;
+    await navigator.clipboard.writeText(txt);
+    copyHex.textContent = 'Copied!';
+    setTimeout(()=>copyHex.textContent='Copy Hex',1200);
+  });
+
+  copyB64.addEventListener('click', async () => {
+    const txt = b64Val.textContent || '';
+    if (!txt || txt === '—') return;
+    await navigator.clipboard.writeText(txt);
+    copyB64.textContent = 'Copied!';
+    setTimeout(()=>copyB64.textContent='Copy Base64',1200);
+  });
+
+  input.addEventListener('keydown', (e) => {
+    if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') computeAndDisplay();
+  });
+  </script>
+</body>
+</html>
