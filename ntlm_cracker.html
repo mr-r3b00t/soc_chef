@@ -1,0 +1,763 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WebGL NTLM Hash Cracker</title>
+  <style>
+    :root {
+      --bg-primary: #0a0a0a;
+      --bg-secondary: #1a1a1a;
+      --text-primary: #ffffff;
+      --text-secondary: #b0b0b0;
+      --accent: #00ff88;
+      --border: #333333;
+      --input-bg: #2a2a2a;
+      --input-border: #444444;
+      --button-bg: #00ff88;
+      --button-hover: #00cc6a;
+      --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      line-height: 1.6;
+      padding: 2rem;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .container {
+      max-width: 500px;
+      width: 100%;
+      background: var(--bg-secondary);
+      padding: 2rem;
+      border-radius: 12px;
+      box-shadow: var(--shadow);
+      border: 1px solid var(--border);
+    }
+
+    h1 {
+      text-align: center;
+      margin-bottom: 2rem;
+      color: var(--accent);
+      font-size: 1.5rem;
+      font-weight: 600;
+    }
+
+    .form-group {
+      margin-bottom: 1.5rem;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 0.5rem;
+      color: var(--text-secondary);
+      font-size: 0.875rem;
+      font-weight: 500;
+    }
+
+    input[type="text"],
+    input[type="file"],
+    input[type="number"] {
+      width: 100%;
+      padding: 0.75rem;
+      background: var(--input-bg);
+      border: 1px solid var(--input-border);
+      border-radius: 8px;
+      color: var(--text-primary);
+      font-size: 1rem;
+      transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    input[type="checkbox"] {
+      margin-right: 0.5rem;
+      width: auto;
+    }
+
+    input[type="text"]:focus,
+    input[type="file"]:focus,
+    input[type="number"]:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(0, 255, 136, 0.1);
+    }
+
+    input[type="file"] {
+      padding: 0.5rem;
+    }
+
+    .options-toggle {
+      width: 100%;
+      padding: 0.75rem;
+      background: var(--input-bg);
+      border: 1px solid var(--input-border);
+      border-radius: 8px;
+      color: var(--text-primary);
+      font-size: 1rem;
+      cursor: pointer;
+      transition: background-color 0.2s ease;
+      margin-bottom: 1rem;
+      text-align: left;
+    }
+
+    .options-toggle:hover {
+      background: var(--border);
+    }
+
+    .options-toggle.expanded {
+      background: var(--accent);
+      color: #000;
+    }
+
+    .options-content {
+      display: none;
+      margin-top: 1rem;
+      padding: 1rem;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: var(--bg-primary);
+    }
+
+    .options-content.expanded {
+      display: block;
+    }
+
+    .rule-group {
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 1rem;
+      margin-bottom: 1rem;
+    }
+
+    .rule-group h3 {
+      margin-bottom: 0.5rem;
+      color: var(--accent);
+      font-size: 1rem;
+    }
+
+    button {
+      width: 100%;
+      padding: 1rem;
+      background: var(--button-bg);
+      color: #000000;
+      border: none;
+      border-radius: 8px;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background-color 0.2s ease, transform 0.1s ease;
+      margin-top: 1rem;
+    }
+
+    button:hover:not(:disabled) {
+      background: var(--button-hover);
+      transform: translateY(-1px);
+    }
+
+    button:disabled {
+      background: var(--text-secondary);
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    button:active {
+      transform: translateY(0);
+    }
+
+    #result {
+      margin-top: 1.5rem;
+      padding: 1rem;
+      background: var(--bg-primary);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      text-align: center;
+      font-weight: 500;
+      min-height: 1.25rem;
+      white-space: pre-line;
+    }
+
+    #result.processing {
+      color: var(--accent);
+    }
+
+    .progress-container {
+      margin-top: 1rem;
+      display: none;
+    }
+
+    .progress-container.active {
+      display: block;
+    }
+
+    .progress-bar {
+      width: 100%;
+      height: 8px;
+      background: var(--input-bg);
+      border-radius: 4px;
+      overflow: hidden;
+      border: 1px solid var(--border);
+    }
+
+    .progress-fill {
+      height: 100%;
+      background: var(--accent);
+      width: 0%;
+      transition: width 0.3s ease;
+    }
+
+    .progress-text {
+      text-align: center;
+      margin-top: 0.5rem;
+      font-size: 0.875rem;
+      color: var(--text-secondary);
+    }
+
+    .timing {
+      font-size: 0.875rem;
+      color: var(--text-secondary);
+      margin-top: 0.5rem;
+      text-align: left;
+    }
+
+    canvas {
+      display: none; /* Hidden as before */
+    }
+
+    @media (max-width: 600px) {
+      body {
+        padding: 1rem;
+      }
+      .container {
+        padding: 1.5rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>NTLM Hash Cracker</h1>
+    <div class="form-group">
+      <label for="hashInput">NTLM Hash (32 hex characters)</label>
+      <input type="text" id="hashInput" placeholder="e.g., 8846f7eaee8fb117ad06bdd830b7586c" maxlength="32">
+    </div>
+    <div class="form-group">
+      <label for="dictionaryInput">Dictionary File (.txt)</label>
+      <input type="file" id="dictionaryInput" accept=".txt">
+    </div>
+    <button class="options-toggle" onclick="toggleOptions()">Expand Rules Options</button>
+    <div class="options-content" id="optionsContent">
+      <div class="rule-group">
+        <h3>Case Rules</h3>
+        <label><input type="checkbox" id="capitalizeFirst" checked> Capitalize first character</label>
+        <label><input type="checkbox" id="uppercaseAll"> Uppercase entire password</label>
+      </div>
+      <div class="rule-group">
+        <h3>Suffix Rules</h3>
+        <label><input type="checkbox" id="appendExclam" checked> Append '!'</label>
+        <label><input type="checkbox" id="appendYear" checked> Append '2025'</label>
+      </div>
+      <div class="rule-group">
+        <h3>Year Range Rules (e.g., customer numbers)</h3>
+        <label>Year Range: <input type="number" id="minYear" value="1990" min="1900" max="2100" style="width: 80px; display: inline;"> to <input type="number" id="maxYear" value="2025" min="1900" max="2100" style="width: 80px; display: inline;"></label>
+        <label style="margin-top: 0.5rem; display: block;"><input type="checkbox" id="prependYear"> Prepend year (e.g., 2025sherlock)</label>
+        <label><input type="checkbox" id="appendYearRange"> Append year (e.g., sherlock2025)</label>
+      </div>
+    </div>
+    <canvas id="webglCanvas"></canvas>
+    <button id="crackButton" onclick="startCracking()">Start Cracking</button>
+    <div class="progress-container" id="progressContainer">
+      <div class="progress-bar">
+        <div class="progress-fill" id="progressFill"></div>
+      </div>
+      <div class="progress-text" id="progressText"></div>
+    </div>
+    <p id="result">Result: Waiting...</p>
+    <div class="timing" id="timingInfo" style="display: none;"></div>
+  </div>
+
+  <script>
+    function toggleOptions() {
+      const toggleBtn = event.target;
+      const content = document.getElementById('optionsContent');
+      const isExpanded = content.classList.contains('expanded');
+      if (isExpanded) {
+        content.classList.remove('expanded');
+        toggleBtn.textContent = 'Expand Rules Options';
+        toggleBtn.classList.remove('expanded');
+      } else {
+        content.classList.add('expanded');
+        toggleBtn.textContent = 'Collapse Rules Options';
+        toggleBtn.classList.add('expanded');
+      }
+    }
+
+    (function() {
+      // WebGL2 setup
+      const canvas = document.getElementById('webglCanvas');
+      const gl = canvas.getContext('webgl2');
+      if (!gl) {
+        alert('WebGL2 not supported!');
+        return;
+      }
+
+      // Vertex shader
+      const vertexShaderSource = `#version 300 es
+        in vec2 a_position;
+        void main() {
+          gl_Position = vec4(a_position, 0.0, 1.0);
+        }
+      `;
+
+      // Fragment shader with full MD4 implementation (1 block)
+      const fragmentShaderSource = `#version 300 es
+        precision highp float;
+        precision highp int;
+        out vec4 fragColor;
+        uniform sampler2D u_dictionary;
+        uniform ivec2 u_texSize;
+        uniform int u_numPass;
+        uniform uvec4 u_targetHash;
+
+        uint F(uint x, uint y, uint z) {
+          return (x & y) | ((~x) & z);
+        }
+
+        uint G(uint x, uint y, uint z) {
+          return (x & y) | (x & z) | (y & z);
+        }
+
+        uint H(uint x, uint y, uint z) {
+          return x ^ y ^ z;
+        }
+
+        uint lrot(uint value, uint n) {
+          return (value << n) | (value >> (32u - n));
+        }
+
+        void main() {
+          int pass_id = int(gl_FragCoord.x);
+          if (pass_id >= u_numPass) {
+            fragColor = vec4(0.0);
+            return;
+          }
+          float tex_w = float(u_texSize.x);
+          float base_start = float(pass_id * 16);
+          uint message[64];
+          for (int px = 0; px < 16; px++) {
+            float tex_x = (base_start + float(px) + 0.5) / tex_w;
+            vec2 texc = vec2(tex_x, 0.5);
+            vec4 samp = texture(u_dictionary, texc);
+            int off = px * 4;
+            message[off + 0] = uint(round(samp.r * 255.0));
+            message[off + 1] = uint(round(samp.g * 255.0));
+            message[off + 2] = uint(round(samp.b * 255.0));
+            message[off + 3] = uint(round(samp.a * 255.0));
+          }
+          // Compute MD4 (1 block)
+          uvec4 hash_val = uvec4(0x67452301u, 0xefcdab89u, 0x98badcfeu, 0x10325476u);
+          for (int blk = 0; blk < 1; blk++) {
+            int base = blk * 64;
+            uint X[16];
+            for (int i = 0; i < 16; i++) {
+              int off = base + i * 4;
+              X[i] = message[off + 0] | (message[off + 1] << 8u) | (message[off + 2] << 16u) | (message[off + 3] << 24u);
+            }
+            uvec4 working = hash_val;
+            // Round 1
+            int S1[4] = int[](3, 7, 11, 19);
+            for (int n = 0; n < 16; n++) {
+              int r = n % 4;
+              int i = (4 - r) % 4;
+              int j = (i + 1) % 4;
+              int k = (i + 2) % 4;
+              int l = (i + 3) % 4;
+              uint f = F(working[j], working[k], working[l]);
+              uint hn = working[i] + f + X[n];
+              working[i] = lrot(hn, uint(S1[r]));
+            }
+            // Round 2
+            int S2[4] = int[](3, 5, 9, 13);
+            for (int n = 0; n < 16; n++) {
+              int r = n % 4;
+              int i = (4 - r) % 4;
+              int j = (i + 1) % 4;
+              int k = (i + 2) % 4;
+              int l = (i + 3) % 4;
+              int Kn = (n % 4) * 4 + (n / 4);
+              uint f = G(working[j], working[k], working[l]);
+              uint hn = working[i] + f + X[Kn] + 0x5a827999u;
+              working[i] = lrot(hn, uint(S2[r]));
+            }
+            // Round 3
+            int S3[4] = int[](3, 9, 11, 15);
+            int Ki[16] = int[](0, 8, 4, 12, 2, 10, 6, 14, 1, 9, 5, 13, 3, 11, 7, 15);
+            for (int n = 0; n < 16; n++) {
+              int r = n % 4;
+              int i = (4 - r) % 4;
+              int j = (i + 1) % 4;
+              int k = (i + 2) % 4;
+              int l = (i + 3) % 4;
+              int Kn = Ki[n];
+              uint f = H(working[j], working[k], working[l]);
+              uint hn = working[i] + f + X[Kn] + 0x6ed9eba1u;
+              working[i] = lrot(hn, uint(S3[r]));
+            }
+            hash_val += working;
+          }
+          if (hash_val == u_targetHash) {
+            fragColor = vec4(1.0, 0.0, 0.0, 1.0);
+          } else {
+            fragColor = vec4(0.0, 0.0, 0.0, 0.0);
+          }
+        }
+      `;
+
+      // Compile shader
+      function compileShader(source, type) {
+        const shader = gl.createShader(type);
+        gl.shaderSource(shader, source);
+        gl.compileShader(shader);
+        if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
+          console.error('Shader compile error:', gl.getShaderInfoLog(shader));
+          gl.deleteShader(shader);
+          return null;
+        }
+        return shader;
+      }
+
+      // Create program
+      const vertexShader = compileShader(vertexShaderSource, gl.VERTEX_SHADER);
+      const fragmentShader = compileShader(fragmentShaderSource, gl.FRAGMENT_SHADER);
+      const program = gl.createProgram();
+      gl.attachShader(program, vertexShader);
+      gl.attachShader(program, fragmentShader);
+      gl.linkProgram(program);
+      if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
+        console.error('Program link error:', gl.getProgramInfoLog(program));
+        return;
+      }
+      gl.useProgram(program);
+
+      // Set up vertex buffer for full-screen quad
+      const positionBuffer = gl.createBuffer();
+      gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
+      const positions = new Float32Array([
+        -1, -1,
+         1, -1,
+        -1,  1,
+         1,  1,
+      ]);
+      gl.bufferData(gl.ARRAY_BUFFER, positions, gl.STATIC_DRAW);
+      const positionLocation = gl.getAttribLocation(program, 'a_position');
+      gl.enableVertexAttribArray(positionLocation);
+      gl.vertexAttribPointer(positionLocation, 2, gl.FLOAT, false, 0, 0);
+
+      // Handle dictionary file upload
+      let dictionaryData = [];
+      document.getElementById('dictionaryInput').addEventListener('change', (event) => {
+        const file = event.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          dictionaryData = e.target.result.split('\n').map(line => line.trim()).filter(line => line.length > 0);
+          console.log('Dictionary loaded:', dictionaryData.length, 'entries');
+        };
+        reader.readAsText(file);
+      });
+
+      // Generate variants for a password based on enabled rules
+      function generateVariants(pw) {
+        const variants = new Set([pw]); // Always include original
+        const capitalizeFirst = document.getElementById('capitalizeFirst').checked;
+        const uppercaseAll = document.getElementById('uppercaseAll').checked;
+        const appendExclam = document.getElementById('appendExclam').checked;
+        const appendYear = document.getElementById('appendYear').checked;
+        const prependYear = document.getElementById('prependYear').checked;
+        const appendYearRange = document.getElementById('appendYearRange').checked;
+        const minYear = parseInt(document.getElementById('minYear').value);
+        const maxYear = parseInt(document.getElementById('maxYear').value);
+
+        // Case variants
+        if (capitalizeFirst && pw.length > 0) {
+          variants.add(pw[0].toUpperCase() + pw.slice(1));
+        }
+        if (uppercaseAll) {
+          variants.add(pw.toUpperCase());
+        }
+
+        // Suffix variants (applied to all current variants)
+        const currentVariants = Array.from(variants);
+        variants.clear();
+        for (let v of currentVariants) {
+          variants.add(v);
+          if (appendExclam) {
+            variants.add(v + '!');
+          }
+          if (appendYear) {
+            variants.add(v + '2025');
+          }
+        }
+
+        // Year range variants
+        if ((prependYear || appendYearRange) && minYear <= maxYear) {
+          const currentVariants2 = Array.from(variants);
+          variants.clear();
+          for (let v of currentVariants2) {
+            variants.add(v);
+            for (let year = minYear; year <= maxYear; year++) {
+              const yearStr = year.toString();
+              if (prependYear) {
+                variants.add(yearStr + v);
+              }
+              if (appendYearRange) {
+                variants.add(v + yearStr);
+              }
+            }
+          }
+        }
+
+        return Array.from(variants);
+      }
+
+      // Convert string to UTF-16LE Uint8Array
+      function stringToUTF16LE(str) {
+        const buf = new ArrayBuffer(str.length * 2);
+        const view = new Uint16Array(buf);
+        for (let i = 0; i < str.length; i++) {
+          view[i] = str.charCodeAt(i);
+        }
+        return new Uint8Array(buf);
+      }
+
+      // Pad message for MD4
+      function padForMD4(inputBytes) {
+        let index = inputBytes.length;
+        let msg = new Uint8Array(inputBytes.length + 1 + 8 + 64);
+        msg.set(inputBytes);
+        msg[index++] = 0x80;
+        while ((index % 64) !== 56) {
+          msg[index++] = 0;
+        }
+        const dv = new DataView(msg.buffer);
+        dv.setBigUint64(index, BigInt(inputBytes.length * 8), true);
+        const fullLen = index + 8;
+        return msg.slice(0, fullLen);
+      }
+
+      // Parse NTLM hash to uvec4
+      function parseNTLMHash(hexStr) {
+        if (!/^[0-9a-fA-F]{32}$/.test(hexStr)) {
+          alert('Invalid NTLM hash. Must be 32 hexadecimal characters.');
+          return null;
+        }
+        const bytes = new Uint8Array(16);
+        for (let i = 0; i < 32; i += 2) {
+          bytes[i / 2] = parseInt(hexStr.substr(i, 2), 16);
+        }
+        const u32 = new Uint32Array(4);
+        const dv = new DataView(bytes.buffer);
+        for (let i = 0; i < 4; i++) {
+          u32[i] = dv.getUint32(i * 4, true);
+        }
+        return u32;
+      }
+
+      // Format duration
+      function formatDuration(durationMs) {
+        let ms = durationMs;
+        const days = Math.floor(ms / (1000 * 60 * 60 * 24));
+        ms -= days * (1000 * 60 * 60 * 24);
+        const hours = Math.floor(ms / (1000 * 60 * 60));
+        ms -= hours * (1000 * 60 * 60);
+        const minutes = Math.floor(ms / (1000 * 60));
+        ms -= minutes * (1000 * 60);
+        const seconds = Math.floor(ms / 1000);
+        ms -= seconds * 1000;
+        const nanoseconds = Math.round((ms % 1) * 1e6); // Approximate sub-ms to ns
+        ms = Math.floor(ms);
+        return `${days}d ${hours.toString().padStart(2, '0')}h ${minutes.toString().padStart(2, '0')}m ${seconds.toString().padStart(2, '0')}s ${ms.toString().padStart(3, '0')}ms ${nanoseconds.toString().padStart(9, '0')}ns`;
+      }
+
+      // Async batch processor
+      async function processBatch(b, numBatches, originalBatchSize, targetHash, numPass) {
+        const start = b * originalBatchSize;
+        const end = Math.min(start + originalBatchSize, numPass);
+        const originals = dictionaryData.slice(start, end);
+        const numOriginals = originals.length;
+        let testPasswords = [];
+        for (let orig of originals) {
+          testPasswords.push(...generateVariants(orig));
+        }
+        const numTests = testPasswords.length;
+        const progressPercent = ((b + 1) / numBatches) * 100;
+        const progressFill = document.getElementById('progressFill');
+        const progressText = document.getElementById('progressText');
+        progressFill.style.width = `${progressPercent}%`;
+        progressText.textContent = `Processing batch ${b + 1}/${numBatches} (${numOriginals} originals, ${numTests} tests) - ${Math.round(progressPercent)}% complete`;
+
+        const pixelsPerPass = 16;
+        const texWidth = numTests * pixelsPerPass;
+        const texHeight = 1;
+        const maxBatchPass = numTests;
+
+        // Set canvas size
+        canvas.width = numTests;
+        canvas.height = 1;
+
+        // Create and populate texture data for batch
+        const texData = new Uint8Array(texWidth * texHeight * 4);
+        for (let p = 0; p < numTests; p++) {
+          const inputBytes = stringToUTF16LE(testPasswords[p]);
+          if (inputBytes.length > 56) {
+            console.warn(`Password "${testPasswords[p]}" is long (${inputBytes.length} bytes); hash may be incorrect (1-block limit).`);
+          }
+          const paddedBytes = padForMD4(inputBytes);
+          const passBytes = new Uint8Array(64).fill(0);
+          passBytes.set(paddedBytes.slice(0, 64));
+          const baseIdx = p * pixelsPerPass * 4;
+          for (let px = 0; px < pixelsPerPass; px++) {
+            const dataIdx = baseIdx + px * 4;
+            const msgOff = px * 4;
+            texData[dataIdx + 0] = passBytes[msgOff + 0];
+            texData[dataIdx + 1] = passBytes[msgOff + 1];
+            texData[dataIdx + 2] = passBytes[msgOff + 2];
+            texData[dataIdx + 3] = passBytes[msgOff + 3];
+          }
+        }
+
+        // Create texture
+        const texture = gl.createTexture();
+        gl.bindTexture(gl.TEXTURE_2D, texture);
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA8, texWidth, texHeight, 0, gl.RGBA, gl.UNSIGNED_BYTE, texData);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+
+        // Set uniforms
+        const texSizeLoc = gl.getUniformLocation(program, 'u_texSize');
+        gl.uniform2i(texSizeLoc, texWidth, texHeight);
+        const numPassLoc = gl.getUniformLocation(program, 'u_numPass');
+        gl.uniform1i(numPassLoc, numTests);
+        const targetLoc = gl.getUniformLocation(program, 'u_targetHash');
+        gl.uniform4ui(targetLoc, targetHash[0], targetHash[1], targetHash[2], targetHash[3]);
+
+        // Render
+        gl.viewport(0, 0, canvas.width, canvas.height);
+        gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+
+        // Read result
+        const pixels = new Uint8Array(numTests * 4);
+        gl.readPixels(0, 0, numTests, 1, gl.RGBA, gl.UNSIGNED_BYTE, pixels);
+        for (let p = 0; p < numTests; p++) {
+          const off = p * 4;
+          if (pixels[off] === 255) {
+            return { foundPassword: testPasswords[p], batch: b };
+          }
+        }
+
+        // Yield to UI thread
+        await new Promise(resolve => setTimeout(resolve, 0));
+
+        return { foundPassword: null, batch: b };
+      }
+
+      // Expose startCracking to global
+      window.startCracking = async function() {
+        const crackButton = document.getElementById('crackButton');
+        const hashInput = document.getElementById('hashInput').value.trim();
+        const targetHash = parseNTLMHash(hashInput);
+        if (!targetHash) return;
+
+        const numPass = dictionaryData.length;
+        if (numPass === 0) {
+          alert('Please upload a dictionary file.');
+          return;
+        }
+
+        // Dynamic batch size based on rules (smaller if many rules enabled to avoid explosion)
+        const numEnabledRules = [
+          document.getElementById('capitalizeFirst').checked,
+          document.getElementById('uppercaseAll').checked,
+          document.getElementById('appendExclam').checked,
+          document.getElementById('appendYear').checked,
+          document.getElementById('prependYear').checked,
+          document.getElementById('appendYearRange').checked
+        ].filter(Boolean).length;
+        const originalBatchSize = Math.max(10, 1024 - (numEnabledRules * 200)); // Adjust down with more rules
+
+        const numBatches = Math.ceil(numPass / originalBatchSize);
+
+        const resultEl = document.getElementById('result');
+        const progressContainer = document.getElementById('progressContainer');
+        const timingInfo = document.getElementById('timingInfo');
+
+        // Disable button and start
+        crackButton.disabled = true;
+        crackButton.textContent = 'Cracking...';
+
+        // Record start time
+        const startDate = new Date();
+        const startPerf = performance.now();
+
+        // Show progress bar
+        progressContainer.classList.add('active');
+        resultEl.classList.add('processing');
+        resultEl.textContent = 'Starting...';
+
+        let foundPassword = null;
+        let completedBatches = 0;
+
+        for (let b = 0; b < numBatches; b++) {
+          const result = await processBatch(b, numBatches, originalBatchSize, targetHash, numPass);
+          completedBatches = result.batch + 1;
+          if (result.foundPassword) {
+            foundPassword = result.foundPassword;
+            break;
+          }
+        }
+
+        // Record end time
+        const endDate = new Date();
+        const endPerf = performance.now();
+        const durationMs = endPerf - startPerf;
+
+        // Hide progress bar
+        progressContainer.classList.remove('active');
+        resultEl.classList.remove('processing');
+        crackButton.disabled = false;
+        crackButton.textContent = 'Start Cracking';
+
+        if (foundPassword) {
+          resultEl.textContent = `Match found! Password: ${foundPassword}`;
+          resultEl.style.color = '#00ff88';
+        } else {
+          resultEl.textContent = 'No match found.';
+          resultEl.style.color = '#ff6b6b';
+        }
+
+        // Display timing info
+        const timingHtml = `
+Started: ${startDate.toLocaleString()}
+Ended: ${endDate.toLocaleString()}
+Time taken: ${formatDuration(durationMs)}
+        `;
+        timingInfo.innerHTML = timingHtml;
+        timingInfo.style.display = 'block';
+      };
+    })();
+  </script>
+</body>
+</html>
