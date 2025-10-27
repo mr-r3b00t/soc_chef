@@ -103,6 +103,9 @@ Reactive Orgs that either do not have Policies, Processes and Procedures or ones
 
 🗒️ [Days Ago](https://mr-r3b00t.github.io/soc_chef/tools/daysago.html)
 
+💻 [Create NTLM Hash](https://mr-r3b00t.github.io/soc_chef/tools/create_ntlm_hash.html)
+
+
 
 ☕ [Buy me a coffee](https://buymeacoffee.com/mrr3b00t)
 
