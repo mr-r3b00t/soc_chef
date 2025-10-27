@@ -634,75 +634,86 @@
           testPasswords.push(...generateVariants(orig));
         }
         const numTests = testPasswords.length;
-        const progressPercent = ((b + 1) / numBatches) * 100;
-        const progressFill = document.getElementById('progressFill');
-        const progressText = document.getElementById('progressText');
-        progressFill.style.width = `${progressPercent}%`;
-        progressText.textContent = `Processing batch ${b + 1}/${numBatches} (${numOriginals} originals, ${numTests} tests) - ${Math.round(progressPercent)}% complete`;
 
+        const maxPassesPerRender = 512; // Safe limit to avoid exceeding texture size (512 * 16 = 8192)
+        const numSubBatches = Math.ceil(numTests / maxPassesPerRender);
         const pixelsPerPass = 16;
-        const texWidth = numTests * pixelsPerPass;
-        const texHeight = 1;
-        const maxBatchPass = numTests;
 
-        // Set canvas size
-        canvas.width = numTests;
-        canvas.height = 1;
+        let foundPassword = null;
 
-        // Create and populate texture data for batch
-        const texData = new Uint8Array(texWidth * texHeight * 4);
-        for (let p = 0; p < numTests; p++) {
-          const inputBytes = stringToUTF16LE(testPasswords[p]);
-          if (inputBytes.length > 56) {
-            console.warn(`Password "${testPasswords[p]}" is long (${inputBytes.length} bytes); hash may be incorrect (1-block limit).`);
+        for (let sub = 0; sub < numSubBatches; sub++) {
+          const subStart = sub * maxPassesPerRender;
+          const subEnd = Math.min(subStart + maxPassesPerRender, numTests);
+          const subNum = subEnd - subStart;
+          const subTests = testPasswords.slice(subStart, subEnd);
+
+          // Update progress (finer-grained within batch)
+          const overallProgress = (b / numBatches + (sub + 1) / (numSubBatches * numBatches)) * 100;
+          const progressFill = document.getElementById('progressFill');
+          const progressText = document.getElementById('progressText');
+          progressFill.style.width = `${overallProgress}%`;
+          progressText.textContent = `Processing batch ${b + 1}/${numBatches} (sub ${sub + 1}/${numSubBatches}, ${numOriginals} originals, ${numTests} tests) - ${Math.round(overallProgress)}% complete`;
+
+          const texWidth = subNum * pixelsPerPass;
+          const texHeight = 1;
+          const texData = new Uint8Array(texWidth * texHeight * 4);
+
+          for (let p = 0; p < subNum; p++) {
+            const inputBytes = stringToUTF16LE(subTests[p]);
+            if (inputBytes.length > 55) {
+              console.warn(`Password "${subTests[p]}" is long (${inputBytes.length} bytes); hash may be incorrect (1-block limit).`);
+            }
+            const paddedBytes = padForMD4(inputBytes);
+            const passBytes = new Uint8Array(64).fill(0);
+            passBytes.set(paddedBytes.slice(0, 64));
+            const baseIdx = p * pixelsPerPass * 4;
+            for (let px = 0; px < pixelsPerPass; px++) {
+              const dataIdx = baseIdx + px * 4;
+              const msgOff = px * 4;
+              texData[dataIdx + 0] = passBytes[msgOff + 0];
+              texData[dataIdx + 1] = passBytes[msgOff + 1];
+              texData[dataIdx + 2] = passBytes[msgOff + 2];
+              texData[dataIdx + 3] = passBytes[msgOff + 3];
+            }
           }
-          const paddedBytes = padForMD4(inputBytes);
-          const passBytes = new Uint8Array(64).fill(0);
-          passBytes.set(paddedBytes.slice(0, 64));
-          const baseIdx = p * pixelsPerPass * 4;
-          for (let px = 0; px < pixelsPerPass; px++) {
-            const dataIdx = baseIdx + px * 4;
-            const msgOff = px * 4;
-            texData[dataIdx + 0] = passBytes[msgOff + 0];
-            texData[dataIdx + 1] = passBytes[msgOff + 1];
-            texData[dataIdx + 2] = passBytes[msgOff + 2];
-            texData[dataIdx + 3] = passBytes[msgOff + 3];
+
+          // Create texture
+          const texture = gl.createTexture();
+          gl.bindTexture(gl.TEXTURE_2D, texture);
+          gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA8, texWidth, texHeight, 0, gl.RGBA, gl.UNSIGNED_BYTE, texData);
+          gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+          gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+          gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+          gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+
+          // Set uniforms
+          const texSizeLoc = gl.getUniformLocation(program, 'u_texSize');
+          gl.uniform2i(texSizeLoc, texWidth, texHeight);
+          const numPassLoc = gl.getUniformLocation(program, 'u_numPass');
+          gl.uniform1i(numPassLoc, subNum);
+          const targetLoc = gl.getUniformLocation(program, 'u_targetHash');
+          gl.uniform4ui(targetLoc, targetHash[0], targetHash[1], targetHash[2], targetHash[3]);
+
+          // Render
+          canvas.width = subNum;
+          canvas.height = 1;
+          gl.viewport(0, 0, canvas.width, canvas.height);
+          gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+
+          // Read result
+          const pixels = new Uint8Array(subNum * 4);
+          gl.readPixels(0, 0, subNum, 1, gl.RGBA, gl.UNSIGNED_BYTE, pixels);
+          for (let p = 0; p < subNum; p++) {
+            const off = p * 4;
+            if (pixels[off] === 255) {
+              foundPassword = subTests[p];
+              return { foundPassword, batch: b };
+            }
           }
+
+          // Yield to UI thread
+          await new Promise(resolve => setTimeout(resolve, 0));
         }
-
-        // Create texture
-        const texture = gl.createTexture();
-        gl.bindTexture(gl.TEXTURE_2D, texture);
-        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA8, texWidth, texHeight, 0, gl.RGBA, gl.UNSIGNED_BYTE, texData);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-
-        // Set uniforms
-        const texSizeLoc = gl.getUniformLocation(program, 'u_texSize');
-        gl.uniform2i(texSizeLoc, texWidth, texHeight);
-        const numPassLoc = gl.getUniformLocation(program, 'u_numPass');
-        gl.uniform1i(numPassLoc, numTests);
-        const targetLoc = gl.getUniformLocation(program, 'u_targetHash');
-        gl.uniform4ui(targetLoc, targetHash[0], targetHash[1], targetHash[2], targetHash[3]);
-
-        // Render
-        gl.viewport(0, 0, canvas.width, canvas.height);
-        gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
-
-        // Read result
-        const pixels = new Uint8Array(numTests * 4);
-        gl.readPixels(0, 0, numTests, 1, gl.RGBA, gl.UNSIGNED_BYTE, pixels);
-        for (let p = 0; p < numTests; p++) {
-          const off = p * 4;
-          if (pixels[off] === 255) {
-            return { foundPassword: testPasswords[p], batch: b };
-          }
-        }
-
-        // Yield to UI thread
-        await new Promise(resolve => setTimeout(resolve, 0));
 
         return { foundPassword: null, batch: b };
       }
