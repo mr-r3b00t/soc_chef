@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ZIP Bomb Detector - Tactical Scan</title>
+    <title>ZIP Bomb Detector - Tactical Scan (Fixed v2.4)</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
     <style>
@@ -28,14 +28,14 @@
             background: rgba(0, 0, 0, 0.8);
             border: 2px solid #333;
             border-radius: 10px;
-            padding: 30px;
+            padding: 40px 30px 30px; /* Increased top padding to prevent overlap */
             box-shadow: 0 0 20px rgba(255, 0, 0, 0.2);
             position: relative;
         }
         .container::before {
-            content: '🛡️ TACTICAL ZIP SCAN 🛡️';
+            content: '🛡️ TACTICAL ZIP SCAN v2.4 🛡️';
             position: absolute;
-            top: -10px;
+            top: -15px; /* Adjusted top for clearance */
             left: 50%;
             transform: translateX(-50%);
             background: #1a1a1a;
@@ -61,15 +61,25 @@
             line-height: 1.4;
             color: #b0b0b0;
         }
-        #fileInput {
+        #fileInput, #thresholdInput {
             display: block;
-            margin: 0 auto 20px;
+            margin: 0 auto 10px;
             padding: 10px;
             background: #333;
             color: #e0e0e0;
             border: 1px solid #555;
             border-radius: 5px;
             font-family: inherit;
+            width: 80%;
+        }
+        #thresholdInput {
+            width: 40%;
+            display: inline-block;
+            margin-right: 10px;
+        }
+        label {
+            color: #ff0000;
+            font-weight: bold;
         }
         button {
             display: block;
@@ -158,72 +168,136 @@
             font-style: italic;
             color: #ffaa00;
         }
+        #progress {
+            margin: 10px 0;
+            text-align: center;
+            color: #ffaa00;
+        }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>BOMB SQUAD ZIP SCANNER</h1>
-        <p>Secure upload and tactical analysis for potential decompression threats. Scan for explosive expansion risks before breach.</p>
-        
+        <h1>BOMB SQUAD ZIP SCANNER v2.4</h1>
+        <p>Added compression ratio: Original ZIP size vs. extraction estimate. Flags deceptive ratios <1:100.</p>
+       
         <input type="file" id="fileInput" accept=".zip">
+        <br>
+        <label for="thresholdInput">Size Threshold (MB):</label>
+        <input type="number" id="thresholdInput" value="100" min="1" max="10000">
         <br><br>
         <button onclick="analyzeZip()">INITIATE SCAN</button>
-        
+       
+        <div id="progress"></div>
         <div id="results"></div>
     </div>
-
     <script>
+        async function updateProgress(msg) {
+            document.getElementById('progress').innerHTML = `<p class="loading">${msg}</p>`;
+        }
+
+        async function scanZipRecursive(zip, currentDepth = 0, maxDepth = 20, sizeThreshold = 100 * 1024 * 1024) {
+            if (currentDepth > maxDepth) {
+                throw new Error(`Max recursion depth (${maxDepth}) exceeded - potential deep bomb.`);
+            }
+            let totalUncompressedSize = 0;
+            let fileCount = 0;
+            let maxNestDepth = currentDepth;
+            updateProgress(`Scanning depth ${currentDepth}...`);
+
+            // Use for...of for better compatibility
+            const entries = Object.entries(zip.files);
+            const promises = [];
+            for (const [relativePath, zipObject] of entries) {
+                if (zipObject.dir) continue; // Skip directories
+
+                const promise = (async () => {
+                    let uncompressedSize = (zipObject._data && zipObject._data.uncompressedSize) || 0;
+                    // Fix signed 32-bit overflow: convert to unsigned
+                    if (uncompressedSize < 0) {
+                        uncompressedSize += 4294967296; // 2^32
+                        console.log(`Fixed overflow for ${relativePath}: ${uncompressedSize} bytes (~${(uncompressedSize / (1024*1024)).toFixed(2)} MB)`);
+                    }
+                    // Clamp per-file huge sizes
+                    if (uncompressedSize > 10 * 1024 * 1024 * 1024) { // 10GB
+                        uncompressedSize = 10 * 1024 * 1024 * 1024;
+                        console.warn(`Clamped huge file ${relativePath} to 10GB for safety.`);
+                    }
+                    console.log(`Entry ${relativePath} at depth ${currentDepth}: uncompressedSize = ${uncompressedSize} bytes`);
+
+                    if (relativePath.toLowerCase().endsWith('.zip')) {
+                        // Potential nesting: mark depth
+                        maxNestDepth = Math.max(maxNestDepth, currentDepth + 1);
+                        try {
+                            const nestedZipData = await zipObject.async('uint8array');
+                            const nestedZip = await JSZip.loadAsync(nestedZipData);
+                            const nestedResult = await scanZipRecursive(nestedZip, currentDepth + 1, maxDepth, sizeThreshold);
+                            totalUncompressedSize += nestedResult.totalSize;
+                            fileCount += nestedResult.fileCount;
+                            maxNestDepth = Math.max(maxNestDepth, nestedResult.maxDepth);
+                        } catch (e) {
+                            // Invalid ZIP (e.g., renamed payload): treat as leaf
+                            totalUncompressedSize += uncompressedSize;
+                            fileCount++;
+                        }
+                    } else {
+                        // True leaf file
+                        totalUncompressedSize += uncompressedSize;
+                        fileCount++;
+                    }
+                })();
+                promises.push(promise);
+            }
+
+            await Promise.all(promises);
+
+            // Safety: Abort if total projected size too huge
+            if (totalUncompressedSize > 10 * 1024 * 1024 * 1024) { // 10GB
+                throw new Error('Projected expansion >10GB - aborting scan for safety.');
+            }
+
+            return { totalSize: totalUncompressedSize, fileCount, maxDepth: maxNestDepth };
+        }
+
         async function analyzeZip() {
             const fileInput = document.getElementById('fileInput');
+            const thresholdInput = document.getElementById('thresholdInput');
             const file = fileInput.files[0];
             const results = document.getElementById('results');
+            const progress = document.getElementById('progress');
+            const threshold = parseInt(thresholdInput.value) * 1024 * 1024; // MB to bytes
 
             if (!file) {
                 alert('Target ZIP required for scan.');
                 return;
             }
-
             if (!file.name.toLowerCase().endsWith('.zip')) {
                 results.innerHTML = '<p class="loading" style="color: #ff8800;">Invalid target: ZIP format required.</p>';
                 return;
             }
 
-            results.innerHTML = '<p class="loading">🔍 Initiating tactical scan... Stand by.</p>';
+            progress.innerHTML = '<p class="loading">🔍 Initiating tactical scan... Stand by.</p>';
+            results.innerHTML = '';
+            console.clear(); // Clear console for fresh logs
 
             try {
                 const zip = await JSZip.loadAsync(file);
-                let totalUncompressedSize = 0;
-                let fileCount = 0;
-                let maxDepth = 0;
+                const scanResult = await scanZipRecursive(zip, 0, 20, threshold);
 
-                // Function to calculate max nesting depth (for detecting deep recursion bombs)
-                function getDepth(path) {
-                    return (path.match(/\//g) || []).length;
-                }
-
-                zip.forEach((relativePath, zipObject) => {
-                    if (!zipObject.dir) { // Skip directories
-                        const uncompressedSize = zipObject.uncompressedSize || 0;
-                        totalUncompressedSize += uncompressedSize;
-                        fileCount++;
-                        const currentDepth = getDepth(relativePath);
-                        if (currentDepth > maxDepth) {
-                            maxDepth = currentDepth;
-                        }
-                    }
-                });
-
-                const sizeInMB = (totalUncompressedSize / (1024 * 1024)).toFixed(2);
-                const threshold = 1024 * 1024 * 1024; // 1 GB threshold
-                const isBombBySize = totalUncompressedSize > threshold;
-                const isBombByDepth = maxDepth > 50; // Arbitrary threshold for deep nesting (e.g., >50 levels)
+                const sizeInMB = (scanResult.totalSize / (1024 * 1024)).toFixed(2);
+                const originalSizeInMB = (file.size / (1024 * 1024)).toFixed(2);
+                const ratio = file.size / scanResult.totalSize;
+                const expansionRatio = Math.round(1 / ratio); // e.g., 1:24,000
+                const isBombBySize = scanResult.totalSize > threshold;
+                const isBombByDepth = scanResult.maxDepth > 2;
+                const isBombByRatio = ratio < 0.01; // <1:100
+                const recursionRisk = scanResult.maxDepth > 0 ? ` (Recursion detected: ${scanResult.maxDepth} levels - exponential risk!)` : '';
 
                 let statusClass = '';
                 let statusMessage = '';
                 let icon = '';
-                if (isBombBySize || isBombByDepth) {
+                if (isBombBySize || isBombByDepth || isBombByRatio) {
                     statusClass = 'warning';
-                    statusMessage = '🚨 THREAT CONFIRMED - ZIP BOMB DETECTED. EVACUATE AND ISOLATE.';
+                    statusMessage = `🚨 THREAT CONFIRMED - ZIP BOMB DETECTED.${recursionRisk} EVACUATE AND ISOLATE.`;
                     icon = '🚨';
                 } else {
                     statusClass = 'safe';
@@ -234,15 +308,19 @@
                 results.innerHTML = `
                     <h3>SCAN REPORT</h3>
                     <ul>
-                        <li><strong>Hostiles (Files):</strong> ${fileCount}</li>
+                        <li><strong>Hostiles (Leaf Files):</strong> ${scanResult.fileCount}</li>
+                        <li><strong>Original ZIP Size:</strong> ${originalSizeInMB} MB</li>
                         <li><strong>Expansion Payload:</strong> ${sizeInMB} MB</li>
-                        <li><strong>Nesting Perimeter:</strong> ${maxDepth} levels</li>
+                        <li><strong>Compression Ratio:</strong> 1:${expansionRatio}</li>
+                        <li><strong>Nesting Perimeter:</strong> ${scanResult.maxDepth} levels</li>
                         <li class="status"><span class="status-icon">${icon}</span><strong>STATUS:</strong> <span class="${statusClass}">${statusMessage}</span></li>
                     </ul>
-                    <p><em>⚠️ Advisory: All scans are estimates. Maintain containment protocols during extraction. Report anomalies to command.</em></p>
+                    <p><em>⚠️ Advisory: Recursive scan complete. Threshold: ${threshold / (1024*1024)} MB. All scans are estimates. Maintain containment protocols.</em></p>
                 `;
             } catch (error) {
-                results.innerHTML = `<p class="loading" style="color: #ff4444;">❌ Scan failed: ${error.message}. Target may be corrupted or non-ZIP.</p>`;
+                results.innerHTML = `<p class="loading" style="color: #ff4444;">❌ Scan failed: ${error.message}. Target may be a sophisticated bomb - isolate immediately.</p>`;
+            } finally {
+                progress.innerHTML = '';
             }
         }
     </script>
