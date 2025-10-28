@@ -107,6 +107,8 @@ Reactive Orgs that either do not have Policies, Processes and Procedures or ones
 
 💻 [NTLM Cracker WEBGL](https://mr-r3b00t.github.io/soc_chef/tools/ntlm_cracker.html)
 
+💻 [Zip Checker](https://mr-r3b00t.github.io/soc_chef/tools/zipcheck.html)
+
 ☕ [Buy me a coffee](https://buymeacoffee.com/mrr3b00t)
 
 
