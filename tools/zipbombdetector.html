@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ZIP Bomb Detector - Tactical Scan</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Orbitron', monospace;
+            background: linear-gradient(135deg, #1a1a1a 0%, #0d0d0d 100%);
+            color: #e0e0e0;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+        }
+        .container {
+            max-width: 600px;
+            width: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            border: 2px solid #333;
+            border-radius: 10px;
+            padding: 30px;
+            box-shadow: 0 0 20px rgba(255, 0, 0, 0.2);
+            position: relative;
+        }
+        .container::before {
+            content: '🛡️ TACTICAL ZIP SCAN 🛡️';
+            position: absolute;
+            top: -10px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #1a1a1a;
+            padding: 5px 20px;
+            font-size: 14px;
+            font-weight: 700;
+            color: #ff0000;
+            letter-spacing: 2px;
+        }
+        h1 {
+            text-align: center;
+            color: #ff0000;
+            font-size: 2em;
+            font-weight: 900;
+            text-shadow: 0 0 10px rgba(255, 0, 0, 0.5);
+            margin-bottom: 10px;
+            letter-spacing: 2px;
+        }
+        p {
+            text-align: center;
+            margin-bottom: 20px;
+            font-size: 14px;
+            line-height: 1.4;
+            color: #b0b0b0;
+        }
+        #fileInput {
+            display: block;
+            margin: 0 auto 20px;
+            padding: 10px;
+            background: #333;
+            color: #e0e0e0;
+            border: 1px solid #555;
+            border-radius: 5px;
+            font-family: inherit;
+        }
+        button {
+            display: block;
+            margin: 0 auto;
+            padding: 15px 30px;
+            background: linear-gradient(45deg, #ff0000, #cc0000);
+            color: #fff;
+            border: none;
+            border-radius: 5px;
+            font-family: inherit;
+            font-size: 16px;
+            font-weight: 700;
+            cursor: pointer;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(255, 0, 0, 0.3);
+        }
+        button:hover {
+            background: linear-gradient(45deg, #cc0000, #ff0000);
+            box-shadow: 0 6px 20px rgba(255, 0, 0, 0.4);
+            transform: translateY(-2px);
+        }
+        button:active {
+            transform: translateY(0);
+        }
+        #results {
+            margin-top: 30px;
+            padding: 20px;
+            background: rgba(20, 20, 20, 0.9);
+            border: 1px solid #444;
+            border-radius: 8px;
+            box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.5);
+        }
+        #results h3 {
+            color: #ff0000;
+            font-size: 18px;
+            margin-bottom: 15px;
+            text-align: center;
+            letter-spacing: 1px;
+        }
+        #results ul {
+            list-style: none;
+            padding: 0;
+        }
+        #results li {
+            padding: 8px 0;
+            border-bottom: 1px solid #333;
+            display: flex;
+            justify-content: space-between;
+        }
+        #results li:last-child {
+            border-bottom: none;
+            font-weight: 700;
+            font-size: 16px;
+            padding: 15px 0;
+            text-align: center;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 5px;
+            margin-top: 10px;
+        }
+        .warning {
+            color: #ff4444;
+            font-weight: bold;
+            text-shadow: 0 0 5px rgba(255, 68, 68, 0.7);
+        }
+        .safe {
+            color: #44ff44;
+            font-weight: bold;
+            text-shadow: 0 0 5px rgba(68, 255, 68, 0.7);
+        }
+        .status-icon {
+            font-size: 1.5em;
+            margin-right: 10px;
+        }
+        p em {
+            color: #888;
+            font-style: italic;
+            display: block;
+            text-align: center;
+            margin-top: 15px;
+            font-size: 12px;
+        }
+        .loading {
+            text-align: center;
+            font-style: italic;
+            color: #ffaa00;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>BOMB SQUAD ZIP SCANNER</h1>
+        <p>Secure upload and tactical analysis for potential decompression threats. Scan for explosive expansion risks before breach.</p>
+        
+        <input type="file" id="fileInput" accept=".zip">
+        <br><br>
+        <button onclick="analyzeZip()">INITIATE SCAN</button>
+        
+        <div id="results"></div>
+    </div>
+
+    <script>
+        async function analyzeZip() {
+            const fileInput = document.getElementById('fileInput');
+            const file = fileInput.files[0];
+            const results = document.getElementById('results');
+
+            if (!file) {
+                alert('Target ZIP required for scan.');
+                return;
+            }
+
+            if (!file.name.toLowerCase().endsWith('.zip')) {
+                results.innerHTML = '<p class="loading" style="color: #ff8800;">Invalid target: ZIP format required.</p>';
+                return;
+            }
+
+            results.innerHTML = '<p class="loading">🔍 Initiating tactical scan... Stand by.</p>';
+
+            try {
+                const zip = await JSZip.loadAsync(file);
+                let totalUncompressedSize = 0;
+                let fileCount = 0;
+                let maxDepth = 0;
+
+                // Function to calculate max nesting depth (for detecting deep recursion bombs)
+                function getDepth(path) {
+                    return (path.match(/\//g) || []).length;
+                }
+
+                zip.forEach((relativePath, zipObject) => {
+                    if (!zipObject.dir) { // Skip directories
+                        const uncompressedSize = zipObject.uncompressedSize || 0;
+                        totalUncompressedSize += uncompressedSize;
+                        fileCount++;
+                        const currentDepth = getDepth(relativePath);
+                        if (currentDepth > maxDepth) {
+                            maxDepth = currentDepth;
+                        }
+                    }
+                });
+
+                const sizeInMB = (totalUncompressedSize / (1024 * 1024)).toFixed(2);
+                const threshold = 1024 * 1024 * 1024; // 1 GB threshold
+                const isBombBySize = totalUncompressedSize > threshold;
+                const isBombByDepth = maxDepth > 50; // Arbitrary threshold for deep nesting (e.g., >50 levels)
+
+                let statusClass = '';
+                let statusMessage = '';
+                let icon = '';
+                if (isBombBySize || isBombByDepth) {
+                    statusClass = 'warning';
+                    statusMessage = '🚨 THREAT CONFIRMED - ZIP BOMB DETECTED. EVACUATE AND ISOLATE.';
+                    icon = '🚨';
+                } else {
+                    statusClass = 'safe';
+                    statusMessage = '🟢 CLEAR FOR EXTRACTION - NO THREAT DETECTED.';
+                    icon = '🟢';
+                }
+
+                results.innerHTML = `
+                    <h3>SCAN REPORT</h3>
+                    <ul>
+                        <li><strong>Hostiles (Files):</strong> ${fileCount}</li>
+                        <li><strong>Expansion Payload:</strong> ${sizeInMB} MB</li>
+                        <li><strong>Nesting Perimeter:</strong> ${maxDepth} levels</li>
+                        <li class="status"><span class="status-icon">${icon}</span><strong>STATUS:</strong> <span class="${statusClass}">${statusMessage}</span></li>
+                    </ul>
+                    <p><em>⚠️ Advisory: All scans are estimates. Maintain containment protocols during extraction. Report anomalies to command.</em></p>
+                `;
+            } catch (error) {
+                results.innerHTML = `<p class="loading" style="color: #ff4444;">❌ Scan failed: ${error.message}. Target may be corrupted or non-ZIP.</p>`;
+            }
+        }
+    </script>
+</body>
+</html>
