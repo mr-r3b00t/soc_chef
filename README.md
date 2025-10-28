@@ -113,6 +113,9 @@ Reactive Orgs that either do not have Policies, Processes and Procedures or ones
 
 💻 [Zip Cracker](https://mr-r3b00t.github.io/soc_chef/tools/zipcracker.html)
 
+💻 [PDF Password Auditor](https://mr-r3b00t.github.io/soc_chef/tools/pdf_password_audit.html)
+
+
 
 
 ☕ [Buy me a coffee](https://buymeacoffee.com/mrr3b00t)
