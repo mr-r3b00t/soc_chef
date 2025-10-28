@@ -1,0 +1,600 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ZIP File Analyzer</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/spark-md5@3.0.2/spark-md5.min.js"></script>
+    <style>
+        :root {
+            --primary-color: #6366f1;
+            --secondary-color: #8b5cf6;
+            --bg-color: #f8fafc;
+            --card-bg: #ffffff;
+            --text-primary: #1e293b;
+            --text-secondary: #64748b;
+            --border-color: #e2e8f0;
+            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            --shadow-hover: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            --success-color: #10b981;
+            --success-bg: #d1fae5;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-primary);
+            margin: 0;
+            padding: 2rem;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            font-weight: 600;
+            font-size: 2.5rem;
+            margin-bottom: 2rem;
+            color: var(--primary-color);
+            text-align: center;
+        }
+
+        .upload-section {
+            background: var(--card-bg);
+            border-radius: 12px;
+            padding: 2rem;
+            box-shadow: var(--shadow);
+            margin-bottom: 2rem;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+
+        #zipInput {
+            flex: 1;
+            padding: 0.75rem;
+            border: 2px dashed var(--border-color);
+            border-radius: 8px;
+            background: var(--bg-color);
+            transition: border-color 0.2s;
+        }
+
+        #zipInput:focus {
+            outline: none;
+            border-color: var(--primary-color);
+        }
+
+        button {
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            box-shadow: var(--shadow);
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-hover);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        #output {
+            margin-top: 2rem;
+        }
+
+        .metadata-card, .table-card {
+            background: var(--card-bg);
+            border-radius: 12px;
+            padding: 2rem;
+            box-shadow: var(--shadow);
+            margin-bottom: 2rem;
+        }
+
+        .metadata-card h2, .table-card h2 {
+            font-weight: 600;
+            font-size: 1.5rem;
+            margin-bottom: 1.5rem;
+            color: var(--text-primary);
+            border-bottom: 2px solid var(--border-color);
+            padding-bottom: 0.5rem;
+        }
+
+        ul {
+            list-style: none;
+            padding: 0;
+        }
+
+        li {
+            padding: 0.75rem 0;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        li:last-child {
+            border-bottom: none;
+        }
+
+        strong {
+            color: var(--primary-color);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: var(--shadow);
+        }
+
+        th {
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            color: white;
+            padding: 1rem;
+            text-align: left;
+            font-weight: 500;
+        }
+
+        td {
+            padding: 1rem;
+            border-bottom: 1px solid var(--border-color);
+            word-break: break-all;
+        }
+
+        tr:hover {
+            background-color: var(--bg-color);
+        }
+
+        tr:last-child td {
+            border-bottom: none;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 2rem;
+            font-style: italic;
+            color: var(--text-secondary);
+        }
+
+        .error {
+            background: #fee2e2;
+            color: #dc2626;
+            padding: 1rem;
+            border-radius: 8px;
+            border-left: 4px solid #dc2626;
+        }
+
+        .success {
+            background: var(--success-bg);
+            color: var(--success-color);
+            padding: 1rem;
+            border-radius: 8px;
+            border-left: 4px solid var(--success-color);
+            font-weight: 500;
+            margin-bottom: 1rem;
+        }
+
+        #passwordPrompt {
+            background: var(--card-bg);
+            border-radius: 12px;
+            padding: 2rem;
+            box-shadow: var(--shadow);
+            margin-bottom: 2rem;
+            text-align: center;
+        }
+
+        #pwdInput {
+            padding: 0.75rem;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            margin-right: 1rem;
+            width: 200px;
+        }
+
+        #dictSection {
+            display: none;
+            background: var(--card-bg);
+            border-radius: 12px;
+            padding: 2rem;
+            box-shadow: var(--shadow);
+            margin-bottom: 2rem;
+            text-align: center;
+        }
+
+        #dictInput {
+            margin-bottom: 1rem;
+        }
+
+        @media (max-width: 768px) {
+            body {
+                padding: 1rem;
+            }
+
+            h1 {
+                font-size: 2rem;
+            }
+
+            .upload-section {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            table {
+                font-size: 0.875rem;
+            }
+
+            th, td {
+                padding: 0.75rem 0.5rem;
+            }
+
+            #pwdInput {
+                width: 100%;
+                margin-right: 0;
+                margin-bottom: 1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>ZIP File Analyzer</h1>
+        <div class="upload-section">
+            <input type="file" id="zipInput" accept=".zip">
+            <button id="analyzeBtn">Analyze ZIP</button>
+        </div>
+        <div id="passwordPrompt" style="display: none;">
+            <h3>ZIP is Encrypted</h3>
+            <p>Enter the password to decrypt and analyze:</p>
+            <input type="password" id="pwdInput" placeholder="Password">
+            <button id="submitPwd">Submit Password</button>
+            <button id="dictAttackBtn">Try Dictionary Attack</button>
+        </div>
+        <div id="dictSection">
+            <h3>Dictionary Attack</h3>
+            <p>Select a dictionary file (one password per line):</p>
+            <input type="file" id="dictInput" accept=".txt">
+            <button id="startDict">Start Attack</button>
+        </div>
+        <div id="output"></div>
+    </div>
+
+    <script type="module">
+        import * as zip from 'https://esm.sh/@zip.js/zip.js@2.8.8';
+
+        zip.configure({ useWebWorkers: false });
+
+        const fileInput = document.getElementById('zipInput');
+        const analyzeBtn = document.getElementById('analyzeBtn');
+        const submitPwdBtn = document.getElementById('submitPwd');
+        const dictAttackBtn = document.getElementById('dictAttackBtn');
+        const startDictBtn = document.getElementById('startDict');
+        const output = document.getElementById('output');
+        const passwordPrompt = document.getElementById('passwordPrompt');
+        const dictSection = document.getElementById('dictSection');
+        const pwdInput = document.getElementById('pwdInput');
+        const dictInput = document.getElementById('dictInput');
+
+        let currentFile = null;
+        let foundPassword = '';
+        let fileHashes = { md5: '', sha256: '' };
+
+        analyzeBtn.addEventListener('click', processZip);
+        submitPwdBtn.addEventListener('click', verifyAndProcess);
+        dictAttackBtn.addEventListener('click', showDictSection);
+        startDictBtn.addEventListener('click', startDictionaryAttack);
+
+        function formatBytes(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+
+        async function computeHashes(file) {
+            const buffer = await file.arrayBuffer();
+            const md5 = SparkMD5.ArrayBuffer.hash(buffer);
+            const hashBuffer = await crypto.subtle.digest('SHA-256', buffer);
+            const hashArray = Array.from(new Uint8Array(hashBuffer));
+            const sha256 = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+            return { md5, sha256 };
+        }
+
+        async function computeHash(data) {
+            const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+            const hashArray = Array.from(new Uint8Array(hashBuffer));
+            return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+        }
+
+        function showDictSection() {
+            passwordPrompt.style.display = 'none';
+            dictSection.style.display = 'block';
+        }
+
+        async function startDictionaryAttack() {
+            const dictFile = dictInput.files[0];
+            if (!dictFile) {
+                alert('Please select a dictionary file.');
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = async (e) => {
+                let text = e.target.result;
+                // Handle UTF-8 BOM if present
+                if (text.charCodeAt(0) === 0xFEFF) {
+                    text = text.slice(1);
+                }
+                const passwords = text.split(/\r?\n|\r/).map(p => p.trim()).filter(p => p.length > 0);
+                if (passwords.length === 0) {
+                    alert('No passwords found in the dictionary file.');
+                    return;
+                }
+
+                output.innerHTML = '<div class="loading">Starting dictionary attack... (0/' + passwords.length + ')</div>';
+                dictSection.style.display = 'none';
+
+                for (let i = 0; i < passwords.length; i++) {
+                    const pwd = passwords[i];
+                    output.innerHTML = `<div class="loading">Trying "${pwd}" (${i + 1}/${passwords.length})...</div>`;
+
+                    try {
+                        const zipReader = new zip.ZipReader(new zip.BlobReader(currentFile), { password: pwd });
+                        const entries = await zipReader.getEntries();
+                        const comment = zipReader.comment || 'None';
+                        await zipReader.close();
+
+                        foundPassword = pwd;
+                        output.innerHTML = `
+                            <div class="success">✅ Password found via dictionary attack: <strong>${pwd}</strong></div>
+                        `;
+
+                        // Compute hashes
+                        const fileEntries = entries.filter(e => !e.directory);
+                        const hashPromises = fileEntries.map(async (entry) => {
+                            const data = await entry.getData(new zip.Uint8ArrayWriter());
+                            const hash = await computeHash(data);
+                            return { entry, hash };
+                        });
+
+                        const fileResults = await Promise.all(hashPromises);
+
+                        await analyzeZip(entries, currentFile, true, fileResults, comment);
+                        return;
+                    } catch (e) {
+                        if (e.code === zip.ERR_INVALID_PASSWORD) {
+                            // Continue
+                        } else {
+                            console.error('Unexpected error during password try:', e);
+                        }
+                        // Continue to next password
+                        if (i === passwords.length - 1) {
+                            output.innerHTML = '<div class="error">No password found in the dictionary.</div>';
+                            passwordPrompt.style.display = 'block';
+                            dictSection.style.display = 'none';
+                        }
+                    }
+                }
+            };
+            reader.readAsText(dictFile, 'utf-8');
+        }
+
+        async function processZip() {
+            const file = fileInput.files[0];
+            if (!file) {
+                alert('Please select a ZIP file.');
+                return;
+            }
+            currentFile = file;
+
+            output.innerHTML = '<div class="loading">Computing file hashes...</div>';
+            passwordPrompt.style.display = 'none';
+            dictSection.style.display = 'none';
+            pwdInput.value = '';
+            foundPassword = '';
+
+            try {
+                fileHashes = await computeHashes(file);
+                output.innerHTML = '<div class="loading">Loading ZIP file...</div>';
+
+                const reader = new zip.ZipReader(new zip.BlobReader(file));
+                const entries = await reader.getEntries();
+                const comment = reader.comment || 'None';
+                await reader.close();
+
+                const isEncrypted = entries.some(e => e.encrypted);
+
+                if (isEncrypted) {
+                    passwordPrompt.style.display = 'block';
+                    output.innerHTML = `
+                        <div class="metadata-card">
+                            <h2>ZIP Metadata (Encrypted)</h2>
+                            <ul>
+                                <li><strong>ZIP File Size:</strong> ${formatBytes(file.size)}</li>
+                                <li><strong>MD5 Hash:</strong> ${fileHashes.md5}</li>
+                                <li><strong>SHA-256 Hash:</strong> ${fileHashes.sha256}</li>
+                                <li><strong>Number of Encrypted Files:</strong> ${entries.filter(e => e.encrypted).length}</li>
+                            </ul>
+                        </div>
+                        <p>Enter password or try dictionary attack below.</p>
+                    `;
+                    return;
+                }
+
+                await analyzeZip(entries, file, false, [], comment);
+            } catch (e) {
+                if (e.code === zip.ERR_ENCRYPTED) {
+                    passwordPrompt.style.display = 'block';
+                    output.innerHTML = `
+                        <div class="metadata-card">
+                            <h2>ZIP Metadata (Encrypted)</h2>
+                            <ul>
+                                <li><strong>ZIP File Size:</strong> ${formatBytes(file.size)}</li>
+                                <li><strong>MD5 Hash:</strong> ${fileHashes.md5}</li>
+                                <li><strong>SHA-256 Hash:</strong> ${fileHashes.sha256}</li>
+                                <li><strong>Note:</strong> ZIP is password protected. Provide password to view contents.</li>
+                            </ul>
+                        </div>
+                        <p>Enter password or try dictionary attack below.</p>
+                    `;
+                    return;
+                } else {
+                    output.innerHTML = `<div class="error">Error loading ZIP: ${e.message}</div>`;
+                }
+            }
+        }
+
+        async function verifyAndProcess() {
+            const password = pwdInput.value.trim();
+            if (!password) {
+                alert('Please enter a password.');
+                return;
+            }
+
+            output.innerHTML = '<div class="loading">Verifying password and loading...</div>';
+            passwordPrompt.style.display = 'none';
+            dictSection.style.display = 'none';
+
+            try {
+                const reader = new zip.ZipReader(new zip.BlobReader(currentFile), { password });
+                const entries = await reader.getEntries();
+                const comment = reader.comment || 'None';
+
+                foundPassword = password;
+                output.innerHTML = `
+                    <div class="success">✅ Password verified successfully: <strong>${password}</strong></div>
+                `;
+
+                // Compute hashes for all files
+                const fileEntries = entries.filter(e => !e.directory);
+                const hashPromises = fileEntries.map(async (entry) => {
+                    const data = await entry.getData(new zip.Uint8ArrayWriter());
+                    const hash = await computeHash(data);
+                    return { entry, hash };
+                });
+
+                const fileResults = await Promise.all(hashPromises);
+                await reader.close();
+
+                await analyzeZip(entries, currentFile, true, fileResults, comment);
+            } catch (e) {
+                if (e.code === zip.ERR_INVALID_PASSWORD) {
+                    output.innerHTML = `<div class="error">Invalid password.</div>`;
+                } else {
+                    output.innerHTML = `<div class="error">Decryption error: ${e.message}</div>`;
+                }
+                passwordPrompt.style.display = 'block';
+                pwdInput.value = '';
+            }
+        }
+
+        async function analyzeZip(entries, file, isEncrypted, fileResults = [], comment = 'None') {
+            const files = entries.filter(e => !e.directory);
+            const numFiles = files.length;
+
+            // Count unique folders
+            const dirs = new Set();
+            for (const entry of entries) {
+                const parts = entry.filename.split('/');
+                let dir = '';
+                for (let i = 0; i < parts.length - 1; i++) {
+                    dir += parts[i] + '/';
+                    if (dir) dirs.add(dir);
+                }
+            }
+            if (entries.length > 0) dirs.add('');
+            const numFolders = dirs.size;
+
+            // Calculate sizes
+            let totalUncompressed = 0;
+            let totalCompressed = 0;
+            for (const f of files) {
+                totalUncompressed += f.uncompressedSize || 0;
+                totalCompressed += f.compressedSize || 0;
+            }
+
+            const zipSize = file.size;
+
+            // Sort files by name
+            files.sort((a, b) => a.filename.localeCompare(b.filename));
+
+            // Build table rows with hashes
+            let tableRows = '';
+            for (let i = 0; i < files.length; i++) {
+                const f = files[i];
+                const result = fileResults.find(r => r.entry === f);
+                const hash = result ? result.hash : 'N/A';
+                const uncompressed = formatBytes(f.uncompressedSize || 0);
+                const compressed = formatBytes(f.compressedSize || 0);
+                const date = f.lastModDate ? f.lastModDate.toLocaleString() : 'N/A';
+                tableRows += `<tr>
+                    <td>${f.filename}</td>
+                    <td>${uncompressed}</td>
+                    <td>${compressed}</td>
+                    <td>${date}</td>
+                    <td>${hash}</td>
+                </tr>`;
+            }
+
+            const encryptedStatus = isEncrypted ? 'Yes' : 'No';
+
+            let passwordLi = '';
+            if (foundPassword) {
+                passwordLi = `<li><strong>Password Used:</strong> ${foundPassword}</li>`;
+            }
+
+            output.innerHTML = `
+                <div class="metadata-card">
+                    <h2>ZIP Metadata</h2>
+                    <ul>
+                        <li><strong>ZIP File Size:</strong> ${formatBytes(zipSize)}</li>
+                        <li><strong>MD5 Hash:</strong> ${fileHashes.md5}</li>
+                        <li><strong>SHA-256 Hash:</strong> ${fileHashes.sha256}</li>
+                        <li><strong>Number of Files:</strong> ${numFiles}</li>
+                        <li><strong>Number of Folders:</strong> ${numFolders}</li>
+                        <li><strong>Total Uncompressed Size:</strong> ${formatBytes(totalUncompressed)}</li>
+                        <li><strong>Total Compressed Size:</strong> ${formatBytes(totalCompressed)}</li>
+                        <li><strong>ZIP Comment:</strong> ${comment}</li>
+                        <li><strong>Encrypted:</strong> ${encryptedStatus}</li>
+                        ${passwordLi}
+                    </ul>
+                </div>
+                <div class="table-card">
+                    <h2>Files Table</h2>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Uncompressed Size</th>
+                                <th>Compressed Size</th>
+                                <th>Last Modified</th>
+                                <th>SHA-256 Hash</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${tableRows}
+                        </tbody>
+                    </table>
+                </div>
+            `;
+        }
+
+        // Expose for onclick if needed, but using addEventListener
+        window.processZip = processZip;
+    </script>
+</body>
+</html>
