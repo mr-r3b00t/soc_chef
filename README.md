@@ -107,8 +107,6 @@ Reactive Orgs that either do not have Policies, Processes and Procedures or ones
 
 💻 [NTLM Cracker WEBGL](https://mr-r3b00t.github.io/soc_chef/tools/ntlm_cracker.html)
 
-💻 [Zip Checker](https://mr-r3b00t.github.io/soc_chef/tools/zipcheck.html)
-
 💻 [Zip Analyzer](https://mr-r3b00t.github.io/soc_chef/tools/zip_analyszer.html)
 
 💻 [Zip Bomb Detector](https://mr-r3b00t.github.io/soc_chef/tools/zipbombdetector.html)
