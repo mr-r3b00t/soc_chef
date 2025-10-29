@@ -13,6 +13,10 @@
         button:hover{background:#2980b9}
         button.copy{background:#27ae60}
         button.copy:hover{background:#219653}
+        button.export{background:#9b59b6}
+        button.export:hover{background:#8e44ad}
+        button.cmd{background:#e67e22}
+        button.cmd:hover{background:#d35400}
         #output{margin-top:20px;max-height:600px;overflow-y:auto;font-family:'Courier New',monospace;font-size:14px;line-height:1.7}
         .hash-line{display:flex;align-items:flex-start;background:#2c3e50;color:#1abc9c;padding:12px;border-radius:5px;margin-bottom:8px;overflow-x:auto;overflow-y:hidden;min-width:0}
         .hash-text{flex:1;white-space:pre;overflow-x:auto;overflow-y:hidden;min-width:0;padding-right:10px}
@@ -20,16 +24,17 @@
         .no-hash{background:#f8f9fa;color:#6c757d;padding:15px;border-radius:5px;text-align:center;font-style:italic}
         .info{background:#e8f4fc;padding:12px;border-left:4px solid #3498db;margin:15px 0;font-size:14px}
         .warning{background:#fdf6e3;border-left:4px solid #f39c12}
-        .button-group{margin-top:15px}
-        .copy-feedback{color:#27ae60;font-weight:bold;margin-left:10px;display:none}
+        .command-box{background:#2c3e50;color:#1abc9c;padding:15px;border-radius:5px;margin-top:15px;font-family:'Courier New',monospace;font-size:14px;overflow-x:auto;white-space:pre;position:relative}
+        .command-box::before{content:"hashcat command:";color:#aaa;font-size:12px;position:absolute;top:5px;left:10px}
+        .command-text{margin-top:20px}
+        .button-group{margin-top:15px;display:flex;align-items:center;flex-wrap:wrap;gap:10px}
+        .feedback{color:#27ae60;font-weight:bold;display:none;margin-left:5px}
         .legend{display:flex;flex-wrap:wrap;gap:12px;margin:15px 0;font-size:14px}
         .legend-item{display:flex;align-items:center;gap:6px}
         .legend-color{width:16px;height:16px;border-radius:3px}
-
-        /* Smooth scrollbars */
-        .hash-line::-webkit-scrollbar,.hash-text::-webkit-scrollbar{height:8px}
-        .hash-line::-webkit-scrollbar-track,.hash-text::-webkit-scrollbar-track{background:#1a252f;border-radius:4px}
-        .hash-line::-webkit-scrollbar-thumb,.hash-text::-webkit-scrollbar-thumb{background:#1abc9c;border-radius:4px}
+        .hash-line::-webkit-scrollbar,.hash-text::-webkit-scrollbar,.command-box::-webkit-scrollbar{height:8px}
+        .hash-line::-webkit-scrollbar-track,.hash-text::-webkit-scrollbar-track,.command-box::-webkit-scrollbar-track{background:#1a252f;border-radius:4px}
+        .hash-line::-webkit-scrollbar-thumb,.hash-text::-webkit-scrollbar-thumb,.command-box::-webkit-scrollbar-thumb{background:#1abc9c;border-radius:4px}
     </style>
 </head>
 <body>
@@ -44,9 +49,13 @@
     <input type="file" id="fileInput" accept=".zip"><br><br>
     <button onclick="processFile()">Extract Hashes</button>
 
-    <div class="button-group" id="copyButtonContainer" style="display:none">
-        <button class="copy" onclick="copyToClipboard()">Copy Hashes Only</button>
-        <span class="copy-feedback" id="copyFeedback">Copied!</span>
+    <div class="button-group" id="actionButtons" style="display:none">
+        <button class="copy" onclick="copyToClipboard()">Copy Hashes</button>
+        <span class="feedback" id="copyFeedback">Copied!</span>
+        <button class="export" onclick="exportToFile()">Export Hashes</button>
+        <span class="feedback" id="exportFeedback">Saved!</span>
+        <button class="cmd" onclick="copyCommand()">Copy Command</button>
+        <span class="feedback" id="cmdFeedback">Copied!</span>
     </div>
 
     <div class="legend">
@@ -60,6 +69,9 @@
     </div>
 
     <div id="output"></div>
+    <div id="commandBox" class="command-box" style="display:none">
+        <div class="command-text" id="commandText"></div>
+    </div>
 
     <div class="info warning">
         <strong>Note:</strong> <code>$zip3$</code> PKWARE Strong is <em>not supported</em> in hashcat — use <code>john</code>.
@@ -68,24 +80,25 @@
 
 <script>
     const AES_EXTRA_ID = 0x9901, ZIP64_EXTRA_ID = 0x0001;
-    const AES_AUTH = 10, AES_VERIFY = 2;
-    let currentHashes = [];
+    let currentHashes = [], currentMode = '';
 
     function processFile(){
         const file = document.getElementById('fileInput').files[0];
         const out = document.getElementById('output');
-        const copyBtn = document.getElementById('copyButtonContainer');
-        const fb = document.getElementById('copyFeedback');
+        const actions = document.getElementById('actionButtons');
+        const cmdBox = document.getElementById('commandBox');
+        const feedbacks = document.querySelectorAll('.feedback');
+        feedbacks.forEach(f => f.style.display = 'none');
         out.innerHTML = '<div class="no-hash">Processing...</div>';
-        copyBtn.style.display='none'; fb.style.display='none'; currentHashes=[];
+        actions.style.display='none'; cmdBox.style.display='none'; currentHashes=[]; currentMode='';
         if(!file){ out.innerHTML='<div class="no-hash">Select a ZIP file.</div>'; return; }
         const r = new FileReader();
-        r.onload = e=>{ const view=new DataView(e.target.result); displayResults(extractZipHashes(view,e.target.result,file.name),out,copyBtn); };
+        r.onload = e=>{ const view=new DataView(e.target.result); displayResults(extractZipHashes(view,e.target.result,file.name),out,actions,cmdBox); };
         r.onerror =()=>{ out.innerHTML='<div class="no-hash">Read error.</div>'; };
         r.readAsArrayBuffer(file);
     }
 
-    function displayResults(res,out,copyBtn){
+    function displayResults(res,out,actions,cmdBox){
         if(res.length===0 || res[0].error){
             out.innerHTML=`<div class="no-hash">${res[0].hash}</div>`;
             return;
@@ -93,15 +106,41 @@
         currentHashes=[];
         out.innerHTML = res.map(o=>{
             currentHashes.push(o.hash);
+            if(!currentMode && o.mode !== 'JOHN') currentMode = o.mode;
             return `<div class="hash-line"><div class="hash-mode" style="background:${o.color}">${o.mode}</div><div class="hash-text">${o.hash}</div></div>`;
         }).join('');
-        copyBtn.style.display='block';
+        actions.style.display='flex';
+        if(currentMode){
+            const cmd = `hashcat -m ${currentMode} hashes.txt rockyou.txt`;
+            document.getElementById('commandText').textContent = cmd;
+            cmdBox.style.display = 'block';
+        }
     }
 
     function copyToClipboard(){
-        if(!currentHashes.length){ alert('No hashes.'); return; }
-        navigator.clipboard.writeText(currentHashes.join('\n')).then(()=>{ const f=document.getElementById('copyFeedback'); f.style.display='inline'; setTimeout(()=>{f.style.display='none'},2000); })
-        .catch(()=>{alert('Copy failed – select manually.');});
+        if(!currentHashes.length) return alert('No hashes.');
+        navigator.clipboard.writeText(currentHashes.join('\n')).then(() => showFeedback('copyFeedback'));
+    }
+
+    function exportToFile(){
+        if(!currentHashes.length) return alert('No hashes to export.');
+        const blob = new Blob([currentHashes.join('\n')], {type: 'text/plain'});
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url; a.download = 'hashes.txt'; a.click();
+        URL.revokeObjectURL(url);
+        showFeedback('exportFeedback');
+    }
+
+    function copyCommand(){
+        const cmd = document.getElementById('commandText').textContent;
+        navigator.clipboard.writeText(cmd).then(() => showFeedback('cmdFeedback'));
+    }
+
+    function showFeedback(id){
+        const el = document.getElementById(id);
+        el.style.display = 'inline';
+        setTimeout(() => el.style.display = 'none', 2000);
     }
 
     function extractZipHashes(view,buffer,zipname){
@@ -148,6 +187,7 @@
         return results.length?results:[{hash:'No encrypted files found.',mode:'—',color:'#95a5a6',error:true}];
     }
 
+    /* ---- parsing helpers (unchanged) ---- */
     function findEOCD(v,l){
         const min=22, maxC=65535, start=Math.max(0,l-min-maxC);
         for(let i=l-min;i>=start;i--){
@@ -170,7 +210,6 @@
         let crc=v.getUint32(o+16,true), csz=v.getUint32(o+20,true), usz=v.getUint32(o+24,true);
         const nlen=v.getUint16(o+28,true), elen=v.getUint16(o+30,true), clen=v.getUint16(o+32,true);
         let locOff=v.getUint32(o+42,true);
-        let name=''; for(let i=0;i<nlen;i++) name+=String.fromCharCode(v.getUint8(o+46+i));
         let exOff=o+46+nlen, rem=elen, aes={found:false,strength:0};
         while(rem>=4){
             const id=v.getUint16(exOff,true), el=v.getUint16(exOff+2,true);
@@ -185,7 +224,7 @@
             }
             exOff+=4+el; rem-=4+el;
         }
-        return {name,verNeeded:ver,encrypted:!!(flags&1),flags,method:meth,crc,compSize:csz,uncompSize:usz,localOffset:locOff,aes,size:46+nlen+elen+clen};
+        return {name:'',verNeeded:ver,encrypted:!!(flags&1),flags,method:meth,crc,compSize:csz,uncompSize:usz,localOffset:locOff,aes,size:46+nlen+elen+clen};
     }
 
     function parseLocalHeader(v,o,l,cd,b){
@@ -196,7 +235,7 @@
         let pos=o+14;
         if(!unk){ crc=v.getUint32(pos,true); csz=v.getUint32(pos+4,true); usz=v.getUint32(pos+8,true); pos+=12; }else pos+=12;
         const nlen=v.getUint16(pos,true), elen=v.getUint16(pos+2,true);
-        const dataOff=o+30+nlen+elen;
+        const dataOff=o+ Fondo+30+nlen+elen;
         if(unk){
             let found=false;
             for(let p=dataOff;p<l-28;p++){
