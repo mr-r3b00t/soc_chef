@@ -117,6 +117,8 @@ Reactive Orgs that either do not have Policies, Processes and Procedures or ones
 
 💻 [ZIP2Hashcat](https://mr-r3b00t.github.io/soc_chef/tools/zip2hashcat.html)
 
+💻 [PE Analysis](https://mr-r3b00t.github.io/soc_chef/tools/pe_analysis.html)
+
 
 ☕ [Buy me a coffee](https://buymeacoffee.com/mrr3b00t)
 <img width="700" height="700" alt="image" src="https://github.com/user-attachments/assets/acf2f632-5a16-43c2-9908-e259b15677ac" />
