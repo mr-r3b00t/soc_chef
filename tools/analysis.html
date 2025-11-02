@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>PE (EXE/DLL) Inspector</title>
+<style>
+  :root{--bg:#0b0e14;--text:#eef1f5;--muted:#9aa4b2;--card:#111827;--border:#223148;--accent:#6aa0ff;--ok:#45d07f;--bad:#ff6b6b;--code:#0c1220;--shadow:0 8px 28px rgba(0,0,0,.25)}
+  @media(prefers-color-scheme:light){:root{--bg:#f6f8fb;--text:#0e1726;--muted:#596581;--card:#fff;--border:#dfe6f2;--accent:#2b66ff;--ok:#0f9d58;--bad:#e11d48;--code:#f3f6fb;--shadow:0 10px 24px rgba(2,12,27,.08)}}
+  *{box-sizing:border-box} body{margin:0;background:var(--bg);color:var(--text);font:14px/1.5 system-ui,-apple-system,Segoe UI,Roboto,Inter,Arial}
+  .container{max-width:1100px;margin:0 auto;padding:24px} h1{font-size:22px;margin:0 0 6px}
+  .sub{color:var(--muted)} .card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:16px;box-shadow:var(--shadow);margin:14px 0}
+  .dropzone{border:2px dashed var(--border);border-radius:14px;padding:24px;text-align:center;transition:.15s}
+  .dropzone.drag{background:rgba(106,160,255,.08);border-color:var(--accent)}
+  .btn{display:inline-flex;gap:8px;align-items:center;padding:10px 14px;border-radius:10px;background:var(--accent);color:#fff;border:0;cursor:pointer;font-weight:600}
+  .hint{margin-top:8px;color:var(--muted)} .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px}
+  .kv b{display:block;font-size:12px;color:var(--muted);margin-bottom:4px} .kv code{display:block;background:var(--code);border:1px solid var(--border);padding:8px;border-radius:8px;overflow:auto;white-space:nowrap}
+  .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap} .tag{display:inline-block;border:1px solid var(--border);border-radius:999px;padding:2px 10px;color:var(--muted);font-size:12px}
+  table{width:100%;border-collapse:separate;border-spacing:0;overflow:hidden;border:1px solid var(--border);border-radius:12px}
+  th,td{padding:10px 12px;border-bottom:1px solid var(--border);font-size:13px} th{text-align:left;background:rgba(106,160,255,.08)} tr:last-child td{border-bottom:0}
+  .ok{color:var(--ok)} .bad{color:var(--bad)} .error{color:var(--bad);font-weight:600}
+  .copy{background:transparent;border:1px solid var(--border);border-radius:8px;padding:6px 8px;cursor:pointer;color:var(--muted)}
+  .controls{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:8px 0}
+  .input{background:transparent;color:var(--text);border:1px solid var(--border);border-radius:8px;padding:6px 8px}
+  .strings{max-height:320px;overflow:auto;background:var(--code);border:1px solid var(--border);border-radius:12px;padding:10px;white-space:pre-wrap}
+  .muted{color:var(--muted)}
+</style>
+</head>
+<body>
+<div class="container">
+  <header>
+    <h1>PE (EXE/DLL) Inspector</h1>
+    <div class="sub">Local analysis only. Drop an EXE/DLL or click “Choose file”.</div>
+  </header>
+
+  <section class="card">
+    <div id="dropzone" class="dropzone">
+      <button class="btn" id="browseBtn" type="button">📁 Choose file</button>
+      <div class="hint">Or drag & drop a file here (.exe / .dll)</div>
+      <input id="fileInput" type="file" accept=".exe,.dll,application/octet-stream" hidden />
+    </div>
+  </section>
+
+  <section class="card">
+    <div class="grid" id="overview">
+      <div class="kv"><b>Status</b><div id="status" class="tag">Waiting for file…</div></div>
+    </div>
+  </section>
+
+  <section class="card"><h3 style="margin:0 0 10px">Hashes</h3><div class="grid" id="hashes"></div></section>
+  <section class="card"><h3 style="margin:0 0 10px">PE Header</h3><div class="grid" id="pe"></div></section>
+  <section class="card"><h3 style="margin:0 0 10px">Data Directories</h3><div id="dirs"></div></section>
+  <section class="card"><h3 style="margin:0 0 10px">Sections</h3><div id="secs"></div></section>
+
+  <section class="card">
+    <h3 style="margin:0 0 10px">File Properties (Version Info)</h3>
+    <div id="ver" class="grid"></div>
+    <div id="verNote" class="muted"></div>
+  </section>
+
+  <section class="card">
+    <div class="row" style="justify-content:space-between">
+      <h3 style="margin:0">Strings</h3>
+      <div class="muted" id="stringsMeta">—</div>
+    </div>
+    <div class="controls">
+      <label>Min length
+        <input id="minLen" type="number" class="input" value="4" min="0" max="64" style="width:80px" title="0 = show ALL strings (keeps duplicates)">
+      </label>
+      <label><input id="asciiChk" type="checkbox" checked> ASCII</label>
+      <label><input id="utf16Chk" type="checkbox" checked> UTF-16LE</label>
+      <input id="strSearch" class="input" placeholder="Search…" style="flex:1;min-width:160px">
+      <button class="btn" id="reExtractBtn" type="button">Extract</button>
+      <button class="btn" id="downloadBtn" type="button">Download .txt</button>
+    </div>
+    <div id="strings" class="strings">Load a file to view strings…</div>
+  </section>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+/* ===== Shortcuts ===== */
+const $ = s => document.querySelector(s);
+function toHex(n,p=0){return "0x"+Number(n).toString(16).toUpperCase().padStart(p,"0");}
+function machineToStr(m){return ({0x014C:"Intel 386",0x8664:"x64 (AMD64)",0x01C0:"ARM",0x01C4:"ARMv7",0xAA64:"ARM64"})[m]||toHex(m,4);}
+function subsystemToStr(s){return ({0:"Unknown",1:"Native",2:"Windows GUI",3:"Windows CUI",10:"EFI App",11:"EFI Boot",12:"EFI Runtime",16:"Xbox",17:"Windows Boot"})[s]||String(s);}
+function kv(label,html){return `<div class="kv"><b>${label}</b><div>${html}</div></div>`;}
+function setStatus(t, cls=""){ const el=$("#status"); el.textContent=t; el.className=`tag ${cls}`; }
+function copyBtn(text){return `<button class="copy" onclick="navigator.clipboard.writeText('${text}')">Copy</button>`}
+
+/* ===== MD5 ===== */
+function md5ArrayBuffer(buffer){
+  function rotl(x,n){return (x<<n)|(x>>> (32-n));}
+  function add(x,y){const l=(x&0xffff)+(y&0xffff);const h=(x>>>16)+(y>>>16)+(l>>>16);return ((h&0xffff)<<16)|(l&0xffff);}
+  function cmn(q,a,b,x,s,t){return add(((rotl(add(add(a,q),add(x,t)),s))>>>0),b);}
+  function ff(a,b,c,d,x,s,t){return cmn((b&c)|((~b)&d),a,b,x,s,t);}
+  function gg(a,b,c,d,x,s,t){return cmn((b&d)|(c&(~d)),a,b,x,s,t);}
+  function hh(a,b,c,d,x,s,t){return cmn(b^c^d,a,b,x,s,t);}
+  function ii(a,b,c,d,x,s,t){return cmn(c^(b|(~d)),a,b,x,s,t);}
+  const bytes=new Uint8Array(buffer), len=bytes.length;
+  const n=(((len+8)>>>6)+1)*16, x=new Array(n).fill(0);
+  for(let i=0;i<len;i++) x[i>>2]|=bytes[i]<<((i%4)*8);
+  x[len>>2]|=0x80<<((len%4)*8);
+  const bitLen=len*8; x[n-2]=bitLen&0xffffffff; x[n-1]=(bitLen/0x100000000)|0;
+  let a=0x67452301,b=0xefcdab89,c=0x98badcfe,d=0x10325476;
+  for(let i=0;i<n;i+=16){
+    const oa=a,ob=b,oc=c,od=d;
+    a=ff(a,b,c,d,x[i+0],7,0xd76aa478); d=ff(d,a,b,c,x[i+1],12,0xe8c7b756);
+    c=ff(c,d,a,b,x[i+2],17,0x242070db); b=ff(b,c,d,a,x[i+3],22,0xc1bdceee);
+    a=ff(a,b,c,d,x[i+4],7,0xf57c0faf); d=ff(d,a,b,c,x[i+5],12,0x4787c62a);
+    c=ff(c,d,a,b,x[i+6],17,0xa8304613); b=ff(b,c,d,a,x[i+7],22,0xfd469501);
+    a=ff(a,b,c,d,x[i+8],7,0x698098d8); d=ff(d,a,b,c,x[i+9],12,0x8b44f7af);
+    c=ff(c,d,a,b,x[i+10],17,0xffff5bb1); b=ff(b,c,d,a,x[i+11],22,0x895cd7be);
+    a=ff(a,b,c,d,x[i+12],7,0x6b901122); d=ff(d,a,b,c,x[i+13],12,0xfd987193);
+    c=ff(c,d,a,b,x[i+14],17,0xa679438e); b=ff(b,c,d,a,x[i+15],22,0x49b40821);
+
+    a=gg(a,b,c,d,x[i+1],5,0xf61e2562);  d=gg(d,a,b,c,x[i+6],9,0xc040b340);
+    c=gg(c,d,a,b,x[i+11],14,0x265e5a51); b=gg(b,c,d,a,x[i+0],20,0xe9b6c7aa);
+    a=gg(a,b,c,d,x[i+5],5,0xd62f105d); d=gg(d,a,b,c,x[i+10],9,0x02441453);
+    c=gg(c,d,a,b,x[i+15],14,0xd8a1e681); b=gg(b,c,d,a,x[i+4],20,0xe7d3fbc8);
+    a=gg(a,b,c,d,x[i+9],5,0x21e1cde6);  d=gg(d,a,b,c,x[i+14],9,0xc33707d6);
+    c=gg(c,d,a,b,x[i+3],14,0xf4d50d87); b=gg(b,c,d,a,x[i+8],20,0x455a14ed);
+    a=gg(a,b,c,d,x[i+13],5,0xa9e3e905); d=gg(d,a,b,c,x[i+2],9,0xfcefa3f8);
+    c=gg(c,d,a,b,x[i+7],14,0x676f02d9); b=gg(b,c,d,a,x[i+12],20,0x8d2a4c8a);
+
+    a=hh(a,b,c,d,x[i+5],4,0xfffa3942);  d=hh(d,a,b,c,x[i+8],11,0x8771f681);
+    c=hh(c,d,a,b,x[i+11],16,0x6d9d6122); b=hh(b,c,d,a,x[i+14],23,0xfde5380c);
+    a=hh(a,b,c,d,x[i+1],4,0xa4beea44);  d=hh(d,a,b,c,x[i+4],11,0x4bdecfa9);
+    c=hh(c,d,a,b,x[i+7],16,0xf6bb4b60); b=hh(b,c,d,a,x[i+10],23,0xbebfbc70);
+    a=hh(a,b,c,d,x[i+13],4,0x289b7ec6); d=hh(d,a,b,c,x[i+0],11,0xeaa127fa);
+    c=hh(c,d,a,b,x[i+3],16,0xd4ef3085); b=hh(b,c,d,a,x[i+6],23,0x04881d05);
+    a=hh(a,b,c,d,x[i+9],4,0xd9d4d039);  d=hh(d,a,b,c,x[i+12],11,0xe6db99e5);
+    c=hh(c,d,a,b,x[i+15],16,0x1fa27cf8); b=hh(b,c,d,a,x[i+2],23,0xc4ac5665);
+
+    a=ii(a,b,c,d,x[i+0],6,0xf4292244);  d=ii(d,a,b,c,x[i+7],10,0x432aff97);
+    c=ii(c,d,a,b,x[i+14],15,0xab9423a7); b=ii(b,c,d,a,x[i+5],21,0xfc93a039);
+    a=ii(a,b,c,d,x[i+12],6,0x655b59c3); d=ii(d,a,b,c,x[i+3],10,0x8f0ccc92);
+    c=ii(c,d,a,b,x[i+10],15,0xffeff47d); b=ii(b,c,d,a,x[i+1],21,0x85845dd1);
+    a=ii(a,b,c,d,x[i+8],6,0x6fa87e4f);  d=ii(d,a,b,c,x[i+15],10,0xfe2ce6e0);
+    c=ii(c,d,a,b,x[i+6],15,0xa3014314); b=ii(b,c,d,a,x[i+13],21,0x4e0811a1);
+    a=ii(a,b,c,d,x[i+4],6,0xf7537e82);  d=ii(d,a,b,c,x[i+11],10,0xbd3af235);
+    c=ii(c,d,a,b,x[i+2],15,0x2ad7d2bb); b=ii(b,c,d,a,x[i+9],21,0xeb86d391);
+
+    a=(a+oa)>>>0; b=(b+ob)>>>0; c=(c+oc)>>>0; d=(d+od)>>>0;
+  }
+  function h(n){let s="";for(let i=0;i<4;i++)s+=((n>>>(i*8))&0xff).toString(16).padStart(2,"0");return s;}
+  return h(a)+h(b)+h(c)+h(d);
+}
+async function sha256Of(buf){
+  const h=await crypto.subtle.digest("SHA-256", buf);
+  return [...new Uint8Array(h)].map(b=>b.toString(16).padStart(2,"0")).join("");
+}
+
+/* ===== PE utils ===== */
+function rvaToFileOffset(rva, sections){
+  for(const s of sections){
+    const start = s.VirtualAddress;
+    const end = start + Math.max(s.VirtualSize, s.SizeOfRawData);
+    if(rva>=start && rva<end) return s.PointerToRawData + (rva - start);
+  }
+  return null;
+}
+function parsePE(ab){
+  const v=new DataView(ab), u=new Uint8Array(ab);
+  const u16=o=>v.getUint16(o,true), u32=o=>v.getUint32(o,true);
+  const u64=o=>{ if(v.getBigUint64) return Number(v.getBigUint64(o,true)); const lo=u32(o),hi=u32(o+4); return hi*0x100000000+lo; };
+
+  if(ab.byteLength<0x40) throw new Error("File too small to be PE.");
+  if(u16(0)!==0x5A4D) throw new Error("Not a PE file (missing MZ).");
+  const pe=u32(0x3C); if(pe+24>ab.byteLength) throw new Error("Invalid e_lfanew.");
+  if(u32(pe)!==0x4550) throw new Error("Missing PE\\0\\0 signature.");
+
+  const machine=u16(pe+4), nSecs=u16(pe+6), time=u32(pe+8), optSize=u16(pe+20), optOff=pe+24;
+  if(optOff+optSize>ab.byteLength) throw new Error("Optional header exceeds file size.");
+  if(nSecs>128) throw new Error("Unreasonable section count.");
+
+  const magic=u16(optOff), is64=(magic===0x20B);
+  if(magic!==0x10B && magic!==0x20B) throw new Error("Unsupported optional header.");
+
+  const entry=u32(optOff+16);
+  const imgBase=is64?u64(optOff+24):u32(optOff+28);
+  const sub=u16(is64?optOff+68:optOff+56);
+  const linker=`${u[optOff+2]}.${u[optOff+3]}`;
+
+  const dirCount=u32(is64?optOff+108:optOff+92);
+  const dirOff=is64?optOff+112:optOff+96;
+  const dirs=[]; for(let i=0;i<Math.min(dirCount,16);i++) dirs.push({RVA:u32(dirOff+i*8), Size:u32(dirOff+i*8+4)});
+
+  const secOff=optOff+optSize; if(secOff+nSecs*40>ab.byteLength) throw new Error("Section headers exceed file size.");
+  const secs=[]; for(let i=0;i<nSecs;i++){ const o=secOff+i*40; let name=''; for(let j=0;j<8&&u[o+j];j++) name+=String.fromCharCode(u[o+j]);
+    secs.push({Name:name||`sec${i}`, VirtualAddress:u32(o+12), VirtualSize:u32(o+8), SizeOfRawData:u32(o+16), PointerToRawData:u32(o+20)}); }
+
+  return {
+    machine, nSecs, time, entry, imgBase, sub, is64, linker,
+    dirs, secs,
+    security:{present:(dirs[4]?.Size||0)>0, fileOffset:dirs[4]?.RVA||0, size:dirs[4]?.Size||0},
+    clr:{present:(dirs[14]?.Size||0)>0}
+  };
+}
+
+/* ===== Version resource ===== */
+function readUTF16Z(u8, off, maxEnd){
+  let s="", i=off;
+  while(i+1<maxEnd){ const lo=u8[i], hi=u8[i+1]; if(lo===0 && hi===0) break; s+=String.fromCharCode(lo | (hi<<8)); i+=2; }
+  return {text:s, next:i+2};
+}
+function align4(n){ return (n + 3) & ~3; }
+function parseVersionInfo(ab, pe){
+  const v=new DataView(ab), u=new Uint8Array(ab);
+  const resDir = pe.dirs[2];
+  if(!resDir || !resDir.Size) return { props:null, note:"No resource directory." };
+  const rootOff = rvaToFileOffset(resDir.RVA, pe.secs);
+  if(rootOff==null) return { props:null, note:"Resource directory RVA not mapped." };
+
+  function readResDir(off){
+    const Named = v.getUint16(off+12, true);
+    const Ids   = v.getUint16(off+14, true);
+    const entries = [];
+    for(let i=0;i<Named+Ids;i++){
+      const eo = off + 16 + i*8;
+      const nameOrId = v.getUint32(eo, true);
+      const dirOrData = v.getUint32(eo+4, true);
+      entries.push({nameOrId, dirOrData});
+    }
+    return {Named, Ids, entries};
+  }
+
+  const root = readResDir(rootOff);
+  let typeEntry = null;
+  for(const e of root.entries){ const isId=(e.nameOrId>>>31)===0; const id=isId?e.nameOrId:null; if(id===16){ typeEntry=e; break; } }
+  if(!typeEntry) return { props:null, note:"No RT_VERSION entry." };
+
+  function entryToDirOff(e){
+    if((e.dirOrData>>>31)===1){ const subRva=e.dirOrData&0x7fffffff; return rootOff + subRva; }
+    return null;
+  }
+  function entryToDataOff(e){
+    if((e.dirOrData>>>31)===0){
+      const dataOff = rootOff + e.dirOrData;
+      const dataRVA = v.getUint32(dataOff, true);
+      const size    = v.getUint32(dataOff+4, true);
+      const fileOff = rvaToFileOffset(dataRVA, pe.secs);
+      return {fileOff, size};
+    }
+    return null;
+  }
+
+  const nameDirOff = entryToDirOff(typeEntry); if(nameDirOff==null) return {props:null, note:"Malformed version tree."};
+  const nameDir = readResDir(nameDirOff);
+  if(nameDir.entries.length===0) return {props:null, note:"No version name entries."};
+  const langDirOff = entryToDirOff(nameDir.entries[0]); if(langDirOff==null) return {props:null, note:"No language level."};
+  const langDir = readResDir(langDirOff);
+  if(langDir.entries.length===0) return {props:null, note:"No language data."};
+  const data = entryToDataOff(langDir.entries[0]);
+  if(!data || data.fileOff==null || data.fileOff+data.size>ab.byteLength) return {props:null, note:"Version data not mapped."};
+
+  const base=data.fileOff, end=base+data.size, vdw=(o)=>v.getUint16(o,true);
+  let p=base+6; const key=readUTF16Z(u,p,end); p=align4(key.next);
+  if(key.text!=="VS_VERSION_INFO") return {props:null, note:"VS_VERSION_INFO key missing."};
+
+  const wValueLength = vdw(base+2);
+  if(wValueLength >= 52){ p += wValueLength; p = align4(p); }
+
+  const props = {};
+  function parseStringTable(off, max){
+    let cur = off;
+    while(cur+6<=max){
+      const sl = vdw(cur); if(sl===0) break;
+      const key = readUTF16Z(u, cur+6, max);
+      const afterKey = align4(key.next);
+      const sValLen = vdw(cur+2);
+      if(key.text && sValLen && afterKey + sValLen*2 <= max){
+        props[key.text] = new TextDecoder("utf-16le").decode(u.slice(afterKey, afterKey + sValLen*2));
+      }
+      cur += align4(sl);
+    }
+  }
+  parseStringTable(p, end);
+
+  return { props, note:null };
+}
+
+/* ===== Strings extraction ===== */
+function extractStringsASCII(u8, minLen){
+  const out=[]; let run=[];
+  for(let i=0;i<u8.length;i++){
+    const c=u8[i];
+    if(c>=0x20 && c<=0x7E){ run.push(c); }
+    else { if(run.length>=minLen) out.push(String.fromCharCode(...run)); run.length=0; }
+  }
+  if(run.length>=minLen) out.push(String.fromCharCode(...run));
+  return out;
+}
+function extractStringsUTF16LE(u8, minLen){
+  const out=[];
+  // Scan both even and odd offsets to capture all UTF-16LE strings.
+  for(let start=0; start<2; start++){
+    let i=start;
+    while(i+1<u8.length){
+      let j=i, chars=[];
+      while(j+1<u8.length){
+        const lo=u8[j], hi=u8[j+1];
+        if(hi===0x00 && lo>=0x20 && lo<=0x7E){ chars.push(lo); j+=2; }
+        else break;
+      }
+      if(chars.length>=minLen) out.push(String.fromCharCode(...chars));
+      // Advance by 2 to stay on the same parity; the other parity is covered by the other pass
+      i = (chars.length>0) ? j : i+2;
+    }
+  }
+  return out;
+}
+
+/* ===== Render helpers ===== */
+function renderOverview(file){ $("#overview").innerHTML=[kv("File",`<code>${file.name}</code>`),kv("Size",`${file.size.toLocaleString()} bytes`),kv("Status",`<span id="status" class="tag">Processing…</span>`)].join(""); }
+function renderHashes(md5,sha){ $("#hashes").innerHTML=[kv("MD5",`<div class="row"><code>${md5}</code>${copyBtn(md5)}</div>`),kv("SHA-256",`<div class="row"><code>${sha}</code>${copyBtn(sha)}</div>`)].join(""); }
+function renderPE(p){
+  $("#pe").innerHTML=[
+    kv("Machine", `${machineToStr(p.machine)} (${toHex(p.machine,4)})`),
+    kv("Sections", p.nSecs),
+    kv("Compiled", `${new Date(p.time*1000).toISOString()} (${p.time})`),
+    kv("Linker", p.linker),
+    kv("Kind", p.is64 ? "PE32+ (64-bit)" : "PE32 (32-bit)"),
+    kv("Subsystem", subsystemToStr(p.sub)),
+    kv("Entry Point", toHex(p.entry,8)),
+    kv("Image Base", toHex(p.imgBase)),
+    kv("CLR (.NET)", p.clr.present ? `<span class="ok">Yes</span>` : "No"),
+    kv("Signature Block", p.security.present ? `<span class="ok">Present</span> (offset ${toHex(p.security.fileOffset)}, size ${p.security.size})` : `<span class="bad">Not present</span>`)
+  ].join("");
+}
+function renderDirs(dirs){
+  const names=['Export','Import','Resource','Exception','Security','Base Reloc','Debug','Architecture','Global Ptr','TLS','Load Config','Bound Import','IAT','Delay Import','CLR','Reserved'];
+  const rows = dirs.map((d,i)=>`<tr><td>${names[i]||('Dir '+i)}</td><td>${d.Size?toHex(d.RVA,8):'—'}</td><td>${d.Size||'—'}</td></tr>`).join("");
+  $("#dirs").innerHTML = `<table><thead><tr><th>Directory</th><th>RVA</th><th>Size</th></tr></thead><tbody>${rows}</tbody></table>`;
+}
+function renderSections(secs){
+  const rows = secs.map(s=>`<tr><td>${s.Name}</td><td>${toHex(s.VirtualAddress,8)}</td><td>${s.VirtualSize}</td><td>${s.SizeOfRawData}</td><td>${toHex(s.PointerToRawData,8)}</td></tr>`).join("");
+  $("#secs").innerHTML = `<table><thead><tr><th>Name</th><th>RVA</th><th>Virtual Size</th><th>Raw Size</th><th>Raw Ptr</th></tr></thead><tbody>${rows}</tbody></table>`;
+}
+function renderVersionInfo(vr){
+  const cont = $("#ver"); const note = $("#verNote");
+  cont.innerHTML = "";
+  if(!vr.props){ cont.innerHTML = `<div class="muted">No version information found.</div>`; note.textContent = vr.note||""; return; }
+  const prefer = ["CompanyName","FileDescription","ProductName","ProductVersion","FileVersion","OriginalFilename","InternalName","LegalCopyright","LegalTrademarks"];
+  const keys = Object.keys(vr.props);
+  const ordered = [...prefer.filter(k=>k in vr.props), ...keys.filter(k=>!prefer.includes(k))];
+  cont.innerHTML = ordered.map(k=>kv(k, `<code>${(vr.props[k]||"").replace(/</g,"&lt;")}</code>`)).join("");
+  note.textContent = "";
+}
+
+/* ===== Strings UI ===== */
+let lastBuf=null, lastStringsAll=null;
+function doExtractStrings(){
+  if(!lastBuf){ $("#strings").textContent = "Load a file to view strings…"; return; }
+
+  // 0 = show ALL (threshold=1), keep duplicates, remove render cap
+  const rawMin = Math.max(0, Math.min(64, (+$("#minLen").value||0)));
+  const minLen = (rawMin === 0) ? 1 : rawMin;
+  const showAll = (rawMin === 0);
+
+  const useASCII = $("#asciiChk").checked, useU16 = $("#utf16Chk").checked;
+  const u8 = new Uint8Array(lastBuf);
+  let arr=[];
+  if(useASCII) arr = arr.concat(extractStringsASCII(u8, minLen));
+  if(useU16)   arr = arr.concat(extractStringsUTF16LE(u8, minLen));
+
+  // IMPORTANT CHANGE: keep duplicates when showAll=true; otherwise de-dup to keep UI tidy
+  let out;
+  if(showAll){
+    out = arr; // preserve duplicates & order
+  }else{
+    const seen=new Set(); out=[]; for(const s of arr){ if(!seen.has(s)){ seen.add(s); out.push(s);} }
+  }
+
+  lastStringsAll = out;
+  renderStringsList(out, showAll);
+}
+function renderStringsList(list, showAll){
+  const meta = $("#stringsMeta");
+  meta.textContent = `${list.length.toLocaleString()} strings`;
+  const q = ($("#strSearch").value||"").toLowerCase();
+  const filtered = q ? list.filter(s=>s.toLowerCase().includes(q)) : list;
+
+  // If showAll, no cap; else cap at 500 for perf
+  const show = showAll ? filtered : filtered.slice(0, 500);
+  const more = filtered.length - show.length;
+
+  $("#strings").textContent = show.join("\n") + (more>0 ? `\n…(+${more} more not shown)` : (filtered.length? "" : (q? "(no matches)":"")));
+}
+
+/* ===== Wire up ===== */
+const dz=$("#dropzone"), input=$("#fileInput"), browse=$("#browseBtn");
+browse.addEventListener("click",()=>input.click());
+["dragenter","dragover"].forEach(ev=>dz.addEventListener(ev, e=>{e.preventDefault(); dz.classList.add("drag");}));
+["dragleave","drop"].forEach(ev=>dz.addEventListener(ev, e=>{e.preventDefault(); dz.classList.remove("drag");}));
+dz.addEventListener("drop", e=>{ const f=e.dataTransfer.files?.[0]; if(f) handleFile(f); });
+input.addEventListener("change", e=>{ const f=e.target.files?.[0]; if(f) handleFile(f); });
+$("#reExtractBtn").addEventListener("click", doExtractStrings);
+$("#strSearch").addEventListener("input", ()=>{ if(lastStringsAll){ const showAll = (+$("#minLen").value||0)===0; renderStringsList(lastStringsAll, showAll); } });
+$("#downloadBtn").addEventListener("click", ()=>{
+  if(!lastStringsAll){ return; }
+  const blob = new Blob([lastStringsAll.join("\n")], {type:"text/plain"});
+  const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = "strings.txt"; a.click(); URL.revokeObjectURL(a.href);
+});
+
+async function handleFile(file){
+  try{
+    setStatus("Processing…");
+    renderOverview(file);
+    const buf = await file.arrayBuffer();
+    lastBuf = buf;
+
+    const [md5,sha] = [md5ArrayBuffer(buf), await sha256Of(buf)];
+    renderHashes(md5,sha);
+
+    const pe = parsePE(buf);
+    renderPE(pe); renderDirs(pe.dirs); renderSections(pe.secs);
+
+    const ver = parseVersionInfo(buf, pe);
+    renderVersionInfo(ver);
+
+    doExtractStrings();
+
+    setStatus("Done","ok");
+  }catch(err){
+    $("#hashes").innerHTML = "";
+    $("#pe").innerHTML = "";
+    $("#dirs").innerHTML = "";
+    $("#secs").innerHTML = "";
+    $("#ver").innerHTML = "";
+    $("#strings").textContent = "";
+    $("#stringsMeta").textContent = "—";
+    setStatus(`Error: ${err.message||err}`,"error");
+    console.error(err);
+  }
+}
+}); // DOMContentLoaded
+</script>
+</body>
+</html>
