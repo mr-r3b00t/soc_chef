@@ -1,4 +1,4 @@
-# soc_chef
+<img width="700" height="700" alt="image" src="https://github.com/user-attachments/assets/a1a10eaf-70bf-41aa-acd4-86980097ed34" /># soc_chef
 Security Operations Chef
 
 The idea here is try see if there is some way to bridge the gap between:
@@ -119,6 +119,8 @@ Reactive Orgs that either do not have Policies, Processes and Procedures or ones
 
 
 ☕ [Buy me a coffee](https://buymeacoffee.com/mrr3b00t)
+<img width="700" height="700" alt="image" src="https://github.com/user-attachments/assets/acf2f632-5a16-43c2-9908-e259b15677ac" />
+
 
 
 Copyright (c) Xservus Limited
