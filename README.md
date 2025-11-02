@@ -120,11 +120,11 @@ Reactive Orgs that either do not have Policies, Processes and Procedures or ones
 💻 [PE Analysis](https://mr-r3b00t.github.io/soc_chef/tools/pe_analysis.html)
 
 
-☕ [Buy me a coffee](https://buymeacoffee.com/mrr3b00t)
+☕ [Buy me a coffee](https://buymeacoffee.com/mrr3b00t)  
 
-<br>
-<img width="700" height="700" alt="image" src="https://github.com/user-attachments/assets/acf2f632-5a16-43c2-9908-e259b15677ac" />
-<br>
+
+<img width="700" height="700" alt="image" src="https://github.com/user-attachments/assets/acf2f632-5a16-43c2-9908-e259b15677ac" />  
+
 
 
 Copyright (c) Xservus Limited
