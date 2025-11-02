@@ -1,4 +1,4 @@
-<img width="700" height="700" alt="image" src="https://github.com/user-attachments/assets/a1a10eaf-70bf-41aa-acd4-86980097ed34" /># soc_chef
+# soc_chef
 Security Operations Chef
 
 The idea here is try see if there is some way to bridge the gap between:
