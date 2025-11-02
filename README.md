@@ -121,11 +121,13 @@ Reactive Orgs that either do not have Policies, Processes and Procedures or ones
 
 
 ☕ [Buy me a coffee](https://buymeacoffee.com/mrr3b00t)
-<img width="700" height="700" alt="image" src="https://github.com/user-attachments/assets/acf2f632-5a16-43c2-9908-e259b15677ac" />
 
+<br>
+<img width="700" height="700" alt="image" src="https://github.com/user-attachments/assets/acf2f632-5a16-43c2-9908-e259b15677ac" />
+<br>
 
 
 Copyright (c) Xservus Limited
 Created by mRr3b00t
 
-Version 0.26 - Experimental - Use at own risk
+Version 0.27 - Experimental - Use at own risk
