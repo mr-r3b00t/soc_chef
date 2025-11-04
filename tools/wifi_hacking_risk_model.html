@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MitM Attack Risk Calculator</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; line-height: 1.6; }
+        h1, h2 { color: #333; }
+        table { border-collapse: collapse; width: 100%; margin-bottom: 20px; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+        th { background-color: #f2f2f2; }
+        form { margin-bottom: 20px; }
+        label { display: block; margin: 10px 0 5px; }
+        input { width: 100%; padding: 5px; margin-bottom: 10px; }
+        button { background: #007bff; color: white; padding: 10px 20px; border: none; cursor: pointer; }
+        button:hover { background: #0056b3; }
+        #result { font-size: 1.2em; font-weight: bold; color: #28a745; }
+        .formula { background: #f8f9fa; padding: 10px; border-left: 4px solid #007bff; }
+    </style>
+</head>
+<body>
+    <h1>Modeling the Risk of a Man-in-the-Middle (MitM) Attack on a Remote Public WiFi Network</h1>
+    <p>To create a realistic probabilistic model for this risk, we'll treat it as a chain of conditional probabilities, similar to how crime victimization risks are modeled (e.g., the UK's annual personal crime victimization rate is around 2-3% overall, but drops to &lt;&lt;1% for specific violent crimes due to rarity of offenders, opportunity, and success factors). Cyber risks follow a similar pattern: the UK's annual cybercrime victimization rate for individuals is estimated at about 0.5-5% (based on reports of ~3-5 million personal incidents annually among ~60 million internet users), but MitM attacks are a niche subset (~19% of successful cyber incidents globally, per recent stats, making per-incident risk far lower).</p>
+    
+    <p>MitM on public WiFi is opportunistic and rare because it requires physical proximity, technical skill, and low detection risk—much like a pickpocketing in a remote area. We'll focus on a <strong>single session</strong> (e.g., 1 hour at a remote cafe/hotel WiFi with unsecured access). The overall risk \( P \) is the product of independent probabilities:</p>
+    
+    <div class="formula">
+        \[ P(\text{MitM Impact}) = P(\text{Hacker Present}) \times P(\text{Hacker Attempts}) \times P(\text{Attack Succeeds}) \times P(\text{Meaningful Impact}) \]
+    </div>
+    
+    <p>This ignores \( P(\text{Same Time}) \) by folding it into \( P(\text{Hacker Present}) \), assuming your 1-hour session overlaps with the network's active users. All estimates are derived from available data (e.g., UK population ~69 million; cyber incidents ~8-10 million annually but mostly automated/phishing, not hands-on MitM; MitM ~19% of breaches; success rates 50-80% on unsecured WiFi if attempted). Sources include UK gov reports (e.g., Cyber Security Breaches Survey 2025) and global stats (e.g., JumpCloud 2025 trends).</p>
+
+    <h2>Key Variables and Realistic Estimates</h2>
+    <p>Here's a breakdown with justifications. You can plug in your own values (e.g., for a busier location) to adjust.</p>
+    
+    <table>
+        <thead>
+            <tr>
+                <th>Factor</th>
+                <th>Symbol</th>
+                <th>Description</th>
+                <th>Realistic Estimate</th>
+                <th>Justification/Source</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td><strong>UK Population</strong></td>
+                <td>\( N_{UK} \)</td>
+                <td>Total potential users/hackers in the UK.</td>
+                <td>69,000,000</td>
+                <td>Mid-2025 estimate from ONS/Worldometer.</td>
+            </tr>
+            <tr>
+                <td><strong>Number of Skilled Hackers</strong></td>
+                <td>\( N_H \)</td>
+                <td>People in UK capable of MitM (e.g., via tools like Wireshark + ARP spoofing; includes pros/script kiddies).</td>
+                <td>1,000–10,000</td>
+                <td>No direct stats, but UK cybersecurity workforce ~100,000 (mostly ethical); cybercriminals &lt;&lt;1% of that (global cybercrime "ecosystem" ~thousands of actors, per NCSC). Conservative low end for "skilled" MitM (not mass phishing).</td>
+            </tr>
+            <tr>
+                <td><strong>Fraction of Hackers</strong></td>
+                <td>\( f_H \)</td>
+                <td>\( N_H / N_{UK} \).</td>
+                <td>\( 1.45 \times 10^{-5} \) to \( 1.45 \times 10^{-4} \) (0.00000145–0.0000145)</td>
+                <td>Derived above; makes encounters rare, like skilled burglars (~5,000 active in UK).</td>
+            </tr>
+            <tr>
+                <td><strong>Other Users on Network</strong></td>
+                <td>\( K \)</td>
+                <td>Average concurrent users during your session (excl. you). Remote spot (e.g., rural cafe).</td>
+                <td>5–20</td>
+                <td>Assumption for remote/low-traffic; busier urban = 50+.</td>
+            </tr>
+            <tr>
+                <td><strong>P(Hacker Present)</strong></td>
+                <td>\( P_{HP} \)</td>
+                <td>Prob. at least one hacker among \( K \) users (approx. \( K \times f_H \) if low). Includes same-time overlap.</td>
+                <td>\( 7.25 \times 10^{-5} \) to \( 2.9 \times 10^{-3} \) (low: 1,000 hackers, 5 users; high: 10,000 hackers, 20 users)</td>
+                <td>Poisson approx. for rarity; aligns with low UK cyber opp. risk (~0.5% annual personal).</td>
+            </tr>
+            <tr>
+                <td><strong>P(Hacker Attempts)</strong></td>
+                <td>\( P_A \)</td>
+                <td>Prob. hacker tries MitM given presence (factoring risk/cost: detection, effort, low remote payoff).</td>
+                <td>0.05–0.2 (5–20%)</td>
+                <td>High legal risk (up to 10 yrs jail under UK Computer Misuse Act); low gain in remote spot (few targets). ~10% of skilled hackers opportunistically scan public nets per session (est. from threat reports).</td>
+            </tr>
+            <tr>
+                <td><strong>P(Attack Succeeds)</strong></td>
+                <td>\( P_S \)</td>
+                <td>Prob. MitM works (e.g., ARP poisoning + traffic interception) on unsecured WiFi.</td>
+                <td>0.5–0.8 (50–80%)</td>
+                <td>High if no VPN/HTTPS (common on public WiFi); drops with protections. 19% of all successful attacks are MitM, but conditional success ~50-80% per attempt (F5/ JumpCloud stats).</td>
+            </tr>
+            <tr>
+                <td><strong>P(Meaningful Impact)</strong></td>
+                <td>\( P_I \)</td>
+                <td>Prob. attacker extracts usable data (e.g., creds, not just junk traffic) and acts on it.</td>
+                <td>0.2–0.5 (20–50%)</td>
+                <td>Most traffic encrypted (HTTPS); impact requires unpatched device + valuable session (e.g., banking). ~30% avg. from breach analyses.</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <h2>The Formula in Action</h2>
+    <div class="formula">
+        \[ P = (K \times f_H) \times P_A \times P_S \times P_I \]
+    </div>
+    
+    <p><strong>Example Calculation (Conservative Remote Scenario)</strong>: 1,000 hackers, 5 users, mid-range other probs.<br>
+    \[ P = (5 \times 1.45 \times 10^{-5}) \times 0.1 \times 0.7 \times 0.3 \approx 1.5 \times 10^{-6} \ (0.00015\% \ per \ session) \]<br>
+    <em>Interpretation</em>: About 1 in 660,000 sessions. For 50 sessions/year (e.g., travel), annual risk ~0.00075%—far lower than general UK cyber risk (0.5%) or street crime (1-2%).<br>
+    <strong>Optimistic (Higher Risk) Scenario</strong>: 10,000 hackers, 20 users, max probs → \( P \approx 8.7 \times 10^{-5} \) (0.0087%, or 1 in 11,500 sessions). Still very low.</p>
+
+    <h2>Interactive Calculator</h2>
+    <p>Adjust the inputs below and calculate your estimated risk per session. (f_H is auto-calculated from N_H / N_UK)</p>
+    
+    <form id="calcForm">
+        <label for="nUK">UK Population (N_UK):</label>
+        <input type="number" id="nUK" value="69000000" step="1000000">
+        
+        <label for="nH">Number of Skilled Hackers (N_H):</label>
+        <input type="number" id="nH" value="1000" min="1" max="100000">
+        
+        <label for="k">Other Users on Network (K):</label>
+        <input type="number" id="k" value="5" min="1" max="100">
+        
+        <label for="pA">P(Hacker Attempts) (0-1):</label>
+        <input type="number" id="pA" value="0.1" min="0" max="1" step="0.01">
+        
+        <label for="pS">P(Attack Succeeds) (0-1):</label>
+        <input type="number" id="pS" value="0.7" min="0" max="1" step="0.01">
+        
+        <label for="pI">P(Meaningful Impact) (0-1):</label>
+        <input type="number" id="pI" value="0.3" min="0" max="1" step="0.01">
+        
+        <label for="sessions">Sessions per Year (for annual risk):</label>
+        <input type="number" id="sessions" value="50" min="1">
+        
+        <button type="button" onclick="calculateRisk()">Calculate Risk</button>
+    </form>
+    
+    <div id="result"></div>
+
+    <h2>How to Use/Adjust This Model</h2>
+    <ol>
+        <li><strong>Input Your Scenario</strong>: E.g., for a busier remote hotel (\( K=15 \)), bump \( N_H=5,000 \) if assuming more opportunistic actors.</li>
+        <li><strong>Scale to Annual Risk</strong>: Multiply by sessions/year (\( S \)): \( P_{annual} = P \times S \).</li>
+        <li><strong>Mitigations</strong>: Using VPN drops \( P_S \) to ~0.01 (99% reduction); HTTPS everywhere halves \( P_I \).</li>
+        <li><strong>Limitations</strong>: This is probabilistic (not deterministic); real risk higher if targeted (e.g., known high-value). Based on aggregates—MitM reports are undercounted (only ~10-20% reported).</li>
+    </ol>
+
+    <p>This mirrors low baseline risks (e.g., UK lightning strike: ~1 in 1M/year) while scaling with factors. If you provide specifics (e.g., location size, your sessions), I can refine the numbers.</p>
+
+    <script>
+        function calculateRisk() {
+            const nUK = parseFloat(document.getElementById('nUK').value);
+            const nH = parseFloat(document.getElementById('nH').value);
+            const k = parseFloat(document.getElementById('k').value);
+            const pA = parseFloat(document.getElementById('pA').value);
+            const pS = parseFloat(document.getElementById('pS').value);
+            const pI = parseFloat(document.getElementById('pI').value);
+            const sessions = parseFloat(document.getElementById('sessions').value);
+            
+            const fH = nH / nUK;
+            const pHP = k * fH;
+            const p = pHP * pA * pS * pI;
+            const pAnnual = p * sessions;
+            
+            const oneIn = Math.round(1 / p);
+            const oneInAnnual = Math.round(1 / pAnnual);
+            
+            document.getElementById('result').innerHTML = `
+                <strong>Per Session Risk (P):</strong> ${p.toExponential(2)} (${(p * 100).toFixed(6)}%) – About 1 in ${oneIn.toLocaleString()} sessions.<br>
+                <strong>Annual Risk:</strong> ${(pAnnual * 100).toFixed(4)}% – About 1 in ${oneInAnnual.toLocaleString()} years.<br>
+                <em>Details: f_H = ${(fH * 1e6).toFixed(2)} per million; P(HP) = ${pHP.toExponential(2)}</em>
+            `;
+        }
+        
+        // Auto-calculate on load
+        calculateRisk();
+    </script>
+</body>
+</html>
