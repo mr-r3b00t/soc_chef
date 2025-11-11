@@ -49,6 +49,8 @@ Reactive Orgs that either do not have Policies, Processes and Procedures or ones
 
 🔐 [Risk Assessment - v1](https://mr-r3b00t.github.io/soc_chef/processes/risk/risk_assessment_v1.html)
 
+🔐 [Kill Chain Modelling Tool](https://mr-r3b00t.github.io/soc_chef/tools/kill_chain_tool.html)
+
 ⚡️ [Threat Model - STRIDE](https://mr-r3b00t.github.io/soc_chef/processes/threat/stride_v1.html)
 
 ⚡️ [Threat Model - PASTA](https://mr-r3b00t.github.io/soc_chef/processes/threat/pasta_v1.html)
