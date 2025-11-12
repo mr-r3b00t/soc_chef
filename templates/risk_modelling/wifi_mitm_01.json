@@ -1,0 +1,62 @@
+{
+  "name": "Kill Chain Model",
+  "exportedAt": "2025-11-12T09:40:43.163Z",
+  "version": "1.0",
+  "stages": [
+    {
+      "name": "Physical Proximity and Rogue AP Setup",
+      "probability": 1,
+      "tactic": "Reconnaissance (TA0043)"
+    },
+    {
+      "name": "Broadcast Evil Twin SSID (Similar to Legitimate Network)",
+      "probability": 85,
+      "tactic": "Resource Development (TA0042)"
+    },
+    {
+      "name": "Victim Device Scans and Detects Rogue AP (Randomness: Victim Location/Public WiFi Usage)",
+      "probability": 75,
+      "tactic": "Initial Access (TA0001)"
+    },
+    {
+      "name": "Victim Selects and Attempts Connection to Rogue AP (Controls: User Awareness Training, Auto-Connect Features)",
+      "probability": 65,
+      "tactic": "Initial Access (TA0001)"
+    },
+    {
+      "name": "Bypass or Capture Authentication (Open WiFi or Captive Portal Spoofing)",
+      "probability": 80,
+      "tactic": "Initial Access (TA0001)"
+    },
+    {
+      "name": "Establish ARP Poisoning or DHCP Spoofing for Traffic Redirection",
+      "probability": 70,
+      "tactic": "Defense Evasion (TA0005)"
+    },
+    {
+      "name": "DNS Spoofing to Redirect Traffic to Malicious Proxy/Server (Controls: DNS over HTTPS Enabled vs Plain DNS)",
+      "probability": 60,
+      "tactic": "Command and Control (TA0011)"
+    },
+    {
+      "name": "Intercept and Strip SSL/TLS (SSL Stripping) (Controls: HSTS Enabled, HSTS Preload Lists)",
+      "probability": 50,
+      "tactic": "Defense Evasion (TA0005)"
+    },
+    {
+      "name": "Bypass Certificate Validation (Ignore Chain Errors or Fake Certs) (Controls: Browser Cert Pinning, User Alert Handling)",
+      "probability": 40,
+      "tactic": "Defense Evasion (TA0005)"
+    },
+    {
+      "name": "Capture Sensitive Data (Credentials, Sessions) from Intercepted Traffic",
+      "probability": 55,
+      "tactic": "Credential Access (TA0006)"
+    },
+    {
+      "name": "Exfiltrate Captured Data Without Detection (Controls: EDR, Network Monitoring)",
+      "probability": 70,
+      "tactic": "Exfiltration (TA0010)"
+    }
+  ]
+}
