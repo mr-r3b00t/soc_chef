@@ -34,9 +34,8 @@ button{padding:.65rem 1.25rem;border:none;border-radius:6px;font-weight:600;curs
     display:flex;align-items:center;gap:.5rem;
 }
 .dropdown-toggle::after{
-    content:" ▼";font-size:.9rem;margin-left:.25rem;transition:transform .2s;
+    content:" ▼";font-size:.9rem;margin-left:.25rem;
 }
-.dropdown-toggle.open::after{transform:rotate(180deg);}
 .dropdown-menu{
     position:absolute;top:100%;left:0;
     background:white;min-width:300px;max-height:320px;overflow-y:auto;
@@ -140,7 +139,7 @@ input:focus,select:focus{outline:none;border-color:var(--primary);box-shadow:0 0
 <script>
 class KillChainModeller{
     constructor(){
-        this.stages=[];this.chart=null;this.draggedElement=null;this.toggle=null;
+        this.stages=[];this.chart=null;this.draggedElement=null;
         this.mitreTactics=[
             'Reconnaissance (TA0043)','Resource Development (TA0042)','Initial Access (TA0001)','Execution (TA0002)',
             'Persistence (TA0003)','Privilege Escalation (TA0004)','Defense Evasion (TA0005)','Credential Access (TA0006)',
@@ -168,83 +167,134 @@ class KillChainModeller{
                 {name:'Adversary Successfully Logs In (Account Takeover)',probability:90,tactic:'Persistence (TA0003)'}
             ]
         };
+        console.log('Initializing Kill Chain Modeller...');
         this.initEventListeners();
         this.loadFromStorage();
         this.populateTemplateMenu();
+        console.log('Initialization complete.');
     }
 
     initEventListeners(){
-        document.getElementById('add-stage').addEventListener('click',()=>this.addStage());
-        document.getElementById('calculate').addEventListener('click',()=>this.calculateChain());
-        document.getElementById('clear-all').addEventListener('click',()=>this.clearAll());
-        document.getElementById('export-chain').addEventListener('click',()=>this.exportChain());
-        document.getElementById('import-chain-input').addEventListener('change',e=>this.importChain(e));
+        console.log('Setting up event listeners...');
+        const addBtn = document.getElementById('add-stage');
+        if (addBtn) {
+            addBtn.addEventListener('click', () => {
+                console.log('Add Stage clicked');
+                this.addStage();
+            });
+        } else {
+            console.error('Add Stage button not found');
+        }
 
-        this.toggle = document.getElementById('load-template');
-        this.toggle.addEventListener('click',e=>{
-            e.stopPropagation();
-            this.toggleTemplateMenu();
+        const calcBtn = document.getElementById('calculate');
+        if (calcBtn) calcBtn.addEventListener('click', () => this.calculateChain());
+
+        const clearBtn = document.getElementById('clear-all');
+        if (clearBtn) clearBtn.addEventListener('click', () => this.clearAll());
+
+        const exportBtn = document.getElementById('export-chain');
+        if (exportBtn) exportBtn.addEventListener('click', () => this.exportChain());
+
+        const importInput = document.getElementById('import-chain-input');
+        if (importInput) importInput.addEventListener('change', e => this.importChain(e));
+
+        const toggle = document.getElementById('load-template');
+        if (toggle) {
+            toggle.addEventListener('click', e => {
+                console.log('Load Template clicked');
+                e.stopPropagation();
+                this.toggleTemplateMenu();
+            });
+        } else {
+            console.error('Load Template button not found');
+        }
+
+        document.addEventListener('click', e => {
+            if (!e.target.closest('.dropdown-container')) this.hideTemplateMenu();
         });
+        const templateMenu = document.getElementById('template-menu');
+        if (templateMenu) templateMenu.addEventListener('click', e => e.stopPropagation());
 
-        document.addEventListener('click',e=>{
-            if(!e.target.closest('.dropdown-container')) this.hideTemplateMenu();
-        });
-        document.getElementById('template-menu').addEventListener('click',e=>e.stopPropagation());
-
-        const cont=document.getElementById('kill-chain');
-        cont.addEventListener('dragstart',e=>this.handleDragStart(e));
-        cont.addEventListener('dragover',e=>e.preventDefault());
-        cont.addEventListener('drop',e=>this.handleDrop(e));
-        cont.addEventListener('dragend',()=>this.handleDragEnd());
+        const cont = document.getElementById('kill-chain');
+        if (cont) {
+            cont.addEventListener('dragstart', e => this.handleDragStart(e));
+            cont.addEventListener('dragover', e => e.preventDefault());
+            cont.addEventListener('drop', e => this.handleDrop(e));
+            cont.addEventListener('dragend', () => this.handleDragEnd());
+        }
+        console.log('Event listeners set up.');
     }
 
     toggleTemplateMenu(){
-        const menu=document.getElementById('template-menu');
-        menu.classList.toggle('show');
-        this.toggle.classList.toggle('open', menu.classList.contains('show'));
+        console.log('Toggling template menu');
+        const menu = document.getElementById('template-menu');
+        if (menu) {
+            menu.classList.toggle('show');
+        }
     }
     hideTemplateMenu(){
-        const menu=document.getElementById('template-menu');
-        menu.classList.remove('show');
-        this.toggle.classList.remove('open');
+        console.log('Hiding template menu');
+        const menu = document.getElementById('template-menu');
+        if (menu) menu.classList.remove('show');
     }
 
     populateTemplateMenu(){
-        const menu=document.getElementById('template-menu');
-        menu.innerHTML='';
-        Object.keys(this.templates).forEach(name=>{
-            const btn=document.createElement('button');
-            btn.className='dropdown-item';
-            btn.textContent=name;
-            btn.addEventListener('click',()=>{
+        console.log('Populating template menu');
+        const menu = document.getElementById('template-menu');
+        if (!menu) {
+            console.error('Template menu not found');
+            return;
+        }
+        menu.innerHTML = '';
+        Object.keys(this.templates).forEach(name => {
+            const btn = document.createElement('button');
+            btn.className = 'dropdown-item';
+            btn.textContent = name;
+            btn.addEventListener('click', () => {
+                console.log(`Loading template: ${name}`);
                 this.loadTemplate(name);
                 this.hideTemplateMenu();
             });
             menu.appendChild(btn);
         });
+        console.log('Template menu populated');
     }
 
     loadTemplate(name){
-        const tmpl=this.templates[name];
-        if(!tmpl) return;
-        if(this.stages.length && !confirm('Loading a template will clear current stages. Continue?')) return;
+        const tmpl = this.templates[name];
+        if (!tmpl) {
+            console.error(`Template ${name} not found`);
+            return;
+        }
+        if (this.stages.length && !confirm('Loading a template will clear current stages. Continue?')) return;
         this.clearAll(true);
-        tmpl.forEach(s=>this.addStage(s.name,s.probability,s.tactic));
+        tmpl.forEach(s => this.addStage(s.name, s.probability, s.tactic));
         alert(`Loaded: ${name}`);
     }
 
-    addStage(name='',probability=50,tactic=''){
-        const stage={id:Date.now()+Math.random(),name:name||`Stage ${this.stages.length+1}`,probability:Math.max(0,Math.min(100,probability)),tactic};
-        this.stages.push(stage);this.renderStage(stage);this.updateEmptyState();this.saveToStorage();
+    addStage(name = '', probability = 50, tactic = ''){
+        console.log('Adding new stage');
+        const stage = {
+            id: Date.now() + Math.random(),
+            name: name || `Stage ${this.stages.length + 1}`,
+            probability: Math.max(0, Math.min(100, probability)),
+            tactic
+        };
+        this.stages.push(stage);
+        this.renderStage(stage);
+        this.updateEmptyState();
+        this.saveToStorage();
+        console.log(`Stage added: ${stage.name}`);
     }
 
     renderStage(stage){
-        const html=`
+        const index = this.stages.indexOf(stage) + 1;
+        const html = `
             <div class="stage" data-id="${stage.id}" draggable="true">
                 <div class="stage-header">
                     <div style="display:flex;align-items:center;gap:.5rem;">
-                        <span class="drag-handle">Drag Handle</span>
-                        <div class="stage-index">${this.stages.indexOf(stage)+1}</div>
+                        <span class="drag-handle">⋮⋮</span>
+                        <div class="stage-index">${index}</div>
                         <input type="text" class="stage-title-input" value="${stage.name}" placeholder="Enter stage name">
                     </div>
                     <div class="stage-actions">
@@ -254,9 +304,9 @@ class KillChainModeller{
                 </div>
                 <div class="form-group">
                     <label>MITRE ATT&CK Tactic (Optional):</label>
-                    <select>
+                    <select class="tactic-select">
                         <option value="">No Tactic</option>
-                        ${this.mitreTactics.map(t=>`<option value="${t}" ${stage.tactic===t?'selected':''}>${t}</option>`).join('')}
+                        ${this.mitreTactics.map(t => `<option value="${t}" ${stage.tactic === t ? 'selected' : ''}>${t}</option>`).join('')}
                     </select>
                 </div>
                 <div class="form-group">
@@ -268,135 +318,341 @@ class KillChainModeller{
                 </div>
                 <div class="cumulative-prob">Cumulative Success: <span class="cumulative-value">Calculating...</span></div>
             </div>`;
-        const container=document.getElementById('kill-chain');
-        const div=document.createElement('div');div.innerHTML=html;const el=div.firstElementChild;
-        const empty=container.querySelector('.empty-state');
-        empty?container.insertBefore(el,empty):container.appendChild(el);
+        const container = document.getElementById('kill-chain');
+        const div = document.createElement('div');
+        div.innerHTML = html;
+        const el = div.firstElementChild;
+        const empty = container.querySelector('.empty-state');
+        if (empty) {
+            container.insertBefore(el, empty);
+        } else {
+            container.appendChild(el);
+        }
 
-        const slider=el.querySelector('.probability-slider');
-        const fill=el.querySelector('.probability-fill');
-        const val=el.querySelector('.probability-value');
-        const title=el.querySelector('.stage-title-input');
-        const tactic=el.querySelector('select');
-        const cum=el.querySelector('.cumulative-value');
+        // Attach event listeners
+        const slider = el.querySelector('.probability-slider');
+        const fill = el.querySelector('.probability-fill');
+        const val = el.querySelector('.probability-value');
+        const title = el.querySelector('.stage-title-input');
+        const tacticSelect = el.querySelector('.tactic-select');
+        const cum = el.querySelector('.cumulative-value');
+        const deleteBtn = el.querySelector('.delete-stage');
+        const duplicateBtn = el.querySelector('.duplicate-stage');
 
-        slider.addEventListener('input',e=>{const p=+e.target.value;stage.probability=p;fill.style.width=p+'%';val.textContent=p.toFixed(1)+'%';this.saveToStorage();this.updateCumulative(stage,cum);});
-        title.addEventListener('input',e=>{stage.name=e.target.value.trim()||`Stage ${this.stages.indexOf(stage)+1}`;this.saveToStorage();});
-        tactic.addEventListener('change',e=>{stage.tactic=e.target.value;this.saveToStorage();});
-        el.querySelector('.delete-stage').addEventListener('click',()=>this.deleteStage(stage.id));
-        el.querySelector('.duplicate-stage').addEventListener('click',()=>this.addStage(stage.name+' (Copy)',stage.probability,stage.tactic));
-        this.updateCumulative(stage,cum);
+        if (slider) {
+            slider.addEventListener('input', e => {
+                const p = +e.target.value;
+                stage.probability = p;
+                fill.style.width = p + '%';
+                val.textContent = p.toFixed(1) + '%';
+                this.saveToStorage();
+                this.updateCumulative(stage, cum);
+            });
+        }
+        if (title) {
+            title.addEventListener('input', e => {
+                stage.name = e.target.value.trim() || `Stage ${this.stages.indexOf(stage) + 1}`;
+                this.saveToStorage();
+            });
+        }
+        if (tacticSelect) {
+            tacticSelect.addEventListener('change', e => {
+                stage.tactic = e.target.value;
+                this.saveToStorage();
+            });
+        }
+        if (deleteBtn) {
+            deleteBtn.addEventListener('click', () => this.deleteStage(stage.id));
+        }
+        if (duplicateBtn) {
+            duplicateBtn.addEventListener('click', () => this.addStage(stage.name + ' (Copy)', stage.probability, stage.tactic));
+        }
+        this.updateCumulative(stage, cum);
     }
 
-    updateCumulative(stage,el){
-        const i=this.stages.indexOf(stage);let c=1;for(let j=0;j<=i;j++)c*=this.stages[j].probability/100;
-        el.textContent=(c*100).toFixed(3)+'%';
+    updateCumulative(stage, el) {
+        const i = this.stages.indexOf(stage);
+        let c = 1;
+        for (let j = 0; j <= i; j++) {
+            c *= this.stages[j].probability / 100;
+        }
+        if (el) el.textContent = (c * 100).toFixed(3) + '%';
     }
 
     updateAllCumulatives(){
-        document.querySelectorAll('.stage').forEach((el,i)=>{const cum=el.querySelector('.cumulative-value');let c=1;for(let j=0;j<=i;j++)c*=this.stages[j].probability/100;cum.textContent=(c*100).toFixed(3)+'%';});
+        document.querySelectorAll('.stage').forEach((el, i) => {
+            const cum = el.querySelector('.cumulative-value');
+            let c = 1;
+            for (let j = 0; j <= i; j++) {
+                c *= this.stages[j].probability / 100;
+            }
+            if (cum) cum.textContent = (c * 100).toFixed(3) + '%';
+        });
     }
 
     deleteStage(id){
-        this.stages=this.stages.filter(s=>s.id!==id);
-        const el=document.querySelector(`[data-id="${id}"]`);if(el)el.remove();
-        this.updateStageIndices();this.updateEmptyState();this.saveToStorage();
+        this.stages = this.stages.filter(s => s.id !== id);
+        const el = document.querySelector(`[data-id="${id}"]`);
+        if (el) el.remove();
+        this.updateStageIndices();
+        this.updateEmptyState();
+        this.saveToStorage();
     }
 
     updateStageIndices(){
-        document.querySelectorAll('.stage').forEach((el,i)=>{
-            el.querySelector('.stage-index').textContent=i+1;
-            const s=this.stages.find(st=>st.id==el.dataset.id);
-            if(s){const inp=el.querySelector('.stage-title-input');if(!inp.value.trim()){inp.value=`Stage ${i+1}`;s.name=inp.value;}}
+        document.querySelectorAll('.stage').forEach((el, i) => {
+            const indexEl = el.querySelector('.stage-index');
+            if (indexEl) indexEl.textContent = i + 1;
+            const s = this.stages.find(st => st.id == el.dataset.id);
+            if (s) {
+                const inp = el.querySelector('.stage-title-input');
+                if (inp && !inp.value.trim()) {
+                    inp.value = `Stage ${i + 1}`;
+                    s.name = inp.value;
+                }
+            }
         });
         this.updateAllCumulatives();
     }
 
     calculateChain(){
-        if(!this.stages.length){alert('Add at least one stage first.');return;}
+        if (!this.stages.length) {
+            alert('Add at least one stage first.');
+            return;
+        }
         this.updateAllCumulatives();
-        const overall=this.stages.reduce((a,s)=>a*(s.probability/100),1)*100;
-        document.getElementById('overall-probability').textContent=overall.toFixed(4)+'%';
-        document.getElementById('total-stages').textContent=this.stages.length;
-        const avg=this.stages.reduce((s,v)=>s+v.probability,0)/this.stages.length;
-        document.getElementById('avg-probability').textContent=avg.toFixed(1)+'%';
-        const weak=this.stages.reduce((m,s)=>s.probability<m.probability?s:m,this.stages[0]);
-        document.getElementById('weakest-stage').textContent=`${weak.name} (${weak.probability.toFixed(1)}%)`;
-        document.getElementById('risk-reduction').textContent=(100-overall).toFixed(4)+'%';
-        document.getElementById('results').style.display='block';
+        const overall = this.stages.reduce((a, s) => a * (s.probability / 100), 1) * 100;
+        const overallEl = document.getElementById('overall-probability');
+        if (overallEl) overallEl.textContent = overall.toFixed(4) + '%';
+        const totalEl = document.getElementById('total-stages');
+        if (totalEl) totalEl.textContent = this.stages.length;
+        const avg = this.stages.reduce((s, v) => s + v.probability, 0) / this.stages.length;
+        const avgEl = document.getElementById('avg-probability');
+        if (avgEl) avgEl.textContent = avg.toFixed(1) + '%';
+        const weak = this.stages.reduce((m, s) => s.probability < m.probability ? s : m, this.stages[0] || { probability: 0, name: '-' });
+        const weakEl = document.getElementById('weakest-stage');
+        if (weakEl) weakEl.textContent = `${weak.name} (${weak.probability.toFixed(1)}%)`;
+        const riskEl = document.getElementById('risk-reduction');
+        if (riskEl) riskEl.textContent = (100 - overall).toFixed(4) + '%';
+        const results = document.getElementById('results');
+        if (results) results.style.display = 'block';
         this.updateChart();
     }
 
     updateChart(){
-        const ctx=document.getElementById('probabilityChart').getContext('2d');
-        const labels=this.stages.map(s=>s.name);
-        const stageP=this.stages.map(s=>s.probability);
-        const cumP=[];let c=1;this.stages.forEach(s=>{c*=s.probability/100;cumP.push(c*100);});
-        const data={labels,datasets:[
-            {label:'Stage Success Probability (%)',data:stageP,backgroundColor:'rgba(37,99,235,.6)',borderColor:'rgba(37,99,235,1)',borderWidth:2,type:'bar'},
-            {label:'Cumulative Success Probability (%)',data:cumP,backgroundColor:'rgba(16,185,129,.1)',borderColor:'rgba(16,185,129,1)',borderWidth:3,type:'line',tension:.4,pointBackgroundColor:'rgba(16,185,129,1)',pointRadius:5}
-        ]};
-        if(this.chart)this.chart.destroy();
-        this.chart=new Chart(ctx,{type:'bar',data,options:{responsive:true,maintainAspectRatio:false,plugins:{title:{display:true,text:'Kill Chain Probability Analysis',font:{size:16,weight:'bold'}},legend:{position:'top'},tooltip:{callbacks:{label:ctx=>`${ctx.dataset.label}: ${ctx.parsed.y.toFixed(3)}%`}}}},scales:{y:{beginAtZero:true,max:100,title:{display:true,text:'Probability (%)'}}}}});
+        const canvas = document.getElementById('probabilityChart');
+        if (!canvas) return;
+        const ctx = canvas.getContext('2d');
+        const labels = this.stages.map(s => s.name);
+        const stageP = this.stages.map(s => s.probability);
+        const cumP = [];
+        let c = 1;
+        this.stages.forEach(s => {
+            c *= s.probability / 100;
+            cumP.push(c * 100);
+        });
+        const data = {
+            labels,
+            datasets: [
+                {
+                    label: 'Stage Success Probability (%)',
+                    data: stageP,
+                    backgroundColor: 'rgba(37,99,235,.6)',
+                    borderColor: 'rgba(37,99,235,1)',
+                    borderWidth: 2,
+                    type: 'bar'
+                },
+                {
+                    label: 'Cumulative Success Probability (%)',
+                    data: cumP,
+                    backgroundColor: 'rgba(16,185,129,.1)',
+                    borderColor: 'rgba(16,185,129,1)',
+                    borderWidth: 3,
+                    type: 'line',
+                    tension: 0.4,
+                    pointBackgroundColor: 'rgba(16,185,129,1)',
+                    pointRadius: 5
+                }
+            ]
+        };
+        if (this.chart) this.chart.destroy();
+        this.chart = new Chart(ctx, {
+            type: 'bar',
+            data,
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    title: {
+                        display: true,
+                        text: 'Kill Chain Probability Analysis',
+                        font: { size: 16, weight: 'bold' }
+                    },
+                    legend: { position: 'top' },
+                    tooltip: {
+                        callbacks: {
+                            label: ctx => `${ctx.dataset.label}: ${ctx.parsed.y.toFixed(3)}%`
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        max: 100,
+                        title: { display: true, text: 'Probability (%)' }
+                    }
+                }
+            }
+        });
     }
 
-    clearAll(force=false){
-        if(!force && this.stages.length && !confirm('Remove all stages?'))return;
-        this.stages=[];
-        document.getElementById('kill-chain').innerHTML=`
-            <div class="empty-state"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6-4h6m2 5a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-            <h3>No stages yet</h3><p>Click "Add Stage" to start building your kill chain</p></div>`;
-        document.getElementById('results').style.display='none';
-        if(this.chart)this.chart.destroy();localStorage.removeItem('killChainStages');
+    clearAll(force = false){
+        if (!force && this.stages.length && !confirm('Remove all stages?')) return;
+        this.stages = [];
+        const killChain = document.getElementById('kill-chain');
+        if (killChain) {
+            killChain.innerHTML = `
+                <div class="empty-state">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6-4h6m2 5a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                    <h3>No stages yet</h3>
+                    <p>Click "Add Stage" to start building your kill chain</p>
+                </div>`;
+        }
+        const results = document.getElementById('results');
+        if (results) results.style.display = 'none';
+        if (this.chart) this.chart.destroy();
+        localStorage.removeItem('killChainStages');
     }
 
     updateEmptyState(){
-        const cont=document.getElementById('kill-chain');
-        const has=cont.querySelector('.stage');
-        const empty=cont.querySelector('.empty-state');
-        if(!has && !empty){
-            const e=document.createElement('div');e.className='empty-state';
-            e.innerHTML=`<svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6-4h6m2 5a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg><h3>No stages yet</h3><p>Click "Add Stage" to start building your kill chain</p>`;
+        const cont = document.getElementById('kill-chain');
+        if (!cont) return;
+        const has = cont.querySelector('.stage');
+        const empty = cont.querySelector('.empty-state');
+        if (!has && !empty) {
+            const e = document.createElement('div');
+            e.className = 'empty-state';
+            e.innerHTML = `<svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6-4h6m2 5a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg><h3>No stages yet</h3><p>Click "Add Stage" to start building your kill chain</p>`;
             cont.appendChild(e);
-        }else if(has && empty)empty.remove();
+        } else if (has && empty) {
+            empty.remove();
+        }
     }
 
     exportChain(){
-        if(!this.stages.length){alert('Add stages first.');return;}
-        const data={name:"Kill Chain Model",exportedAt:new Date().toISOString(),version:"1.0",
-            stages:this.stages.map(s=>({name:s.name,probability:s.probability,tactic:s.tactic}))
+        if (!this.stages.length) {
+            alert('Add stages first.');
+            return;
+        }
+        const data = {
+            name: "Kill Chain Model",
+            exportedAt: new Date().toISOString(),
+            version: "1.0",
+            stages: this.stages.map(s => ({ name: s.name, probability: s.probability, tactic: s.tactic }))
         };
-        const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
-        const url=URL.createObjectURL(blob);
-        const a=document.createElement('a');a.href=url;a.download=`kill-chain-${new Date().toISOString().slice(0,10)}.json`;
-        a.click();URL.revokeObjectURL(url);
+        const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `kill-chain-${new Date().toISOString().slice(0, 10)}.json`;
+        a.click();
+        URL.revokeObjectURL(url);
     }
 
     importChain(e){
-        const file=e.target.files[0];if(!file)return;
-        if(!file.name.endsWith('.json')){alert('Select a .json file.');return;}
-        const r=new FileReader();r.onload=ev=>{
-            try{
-                const d=JSON.parse(ev.target.result);
-                if(!d.stages||!Array.isArray(d.stages))throw new Error('Invalid format');
-                this.stages=[];document.getElementById('kill-chain').innerHTML='';
-                d.stages.forEach(s=>{if(s.name&&typeof s.probability==='number')this.addStage(s.name,s.probability,s.tactic||'');});
-                this.updateEmptyState();this.saveToStorage();alert(`Imported ${this.stages.length} stage(s).`);
-            }catch(err){alert('Invalid JSON.');}
-        };r.readAsText(file);e.target.value='';
+        const file = e.target.files[0];
+        if (!file) return;
+        if (!file.name.endsWith('.json')) {
+            alert('Select a .json file.');
+            return;
+        }
+        const r = new FileReader();
+        r.onload = ev => {
+            try {
+                const d = JSON.parse(ev.target.result);
+                if (!d.stages || !Array.isArray(d.stages)) throw new Error('Invalid format');
+                this.stages = [];
+                const killChain = document.getElementById('kill-chain');
+                if (killChain) killChain.innerHTML = '';
+                d.stages.forEach(s => {
+                    if (s.name && typeof s.probability === 'number') {
+                        this.addStage(s.name, s.probability, s.tactic || '');
+                    }
+                });
+                this.updateEmptyState();
+                this.saveToStorage();
+                alert(`Imported ${this.stages.length} stage(s).`);
+            } catch (err) {
+                alert('Invalid JSON.');
+                console.error(err);
+            }
+        };
+        r.readAsText(file);
+        e.target.value = '';
     }
 
-    handleDragStart(e){const el=e.target.closest('.stage');if(el){this.draggedElement=el;el.classList.add('dragging');e.dataTransfer.effectAllowed='move';}}
-    handleDrop(e){e.preventDefault();if(!this.draggedElement)return;const target=e.target.closest('.stage');const cont=document.getElementById('kill-chain');if(target&&target!==this.draggedElement){const all=[...cont.querySelectorAll('.stage')];const from=all.indexOf(this.draggedElement);const to=all.indexOf(target);from<to?target.after(this.draggedElement):target.before(this.draggedElement);const s=this.stages[from];this.stages.splice(from,1);this.stages.splice(to,0,s);this.updateStageIndices();this.saveToStorage();}}
-    handleDragEnd(){if(this.draggedElement){this.draggedElement.classList.remove('dragging');this.draggedElement=null;}}
+    handleDragStart(e){
+        const el = e.target.closest('.stage');
+        if (el) {
+            this.draggedElement = el;
+            el.classList.add('dragging');
+            e.dataTransfer.effectAllowed = 'move';
+        }
+    }
+    handleDrop(e){
+        e.preventDefault();
+        if (!this.draggedElement) return;
+        const target = e.target.closest('.stage');
+        const cont = document.getElementById('kill-chain');
+        if (!cont || !target || target === this.draggedElement) return;
+        const all = [...cont.querySelectorAll('.stage')];
+        const from = all.indexOf(this.draggedElement);
+        const to = all.indexOf(target);
+        if (from < to) {
+            target.after(this.draggedElement);
+        } else {
+            target.before(this.draggedElement);
+        }
+        const s = this.stages[from];
+        this.stages.splice(from, 1);
+        this.stages.splice(to, 0, s);
+        this.updateStageIndices();
+        this.saveToStorage();
+    }
+    handleDragEnd(){
+        if (this.draggedElement) {
+            this.draggedElement.classList.remove('dragging');
+            this.draggedElement = null;
+        }
+    }
 
-    saveToStorage(){localStorage.setItem('killChainStages',JSON.stringify(this.stages));}
+    saveToStorage(){
+        localStorage.setItem('killChainStages', JSON.stringify(this.stages));
+    }
     loadFromStorage(){
-        const s=localStorage.getItem('killChainStages');
-        if(s)try{const p=JSON.parse(s);if(Array.isArray(p)){this.stages=p;document.getElementById('kill-chain').innerHTML='';p.forEach(st=>this.renderStage(st));this.updateEmptyState();}}catch(e){console.error(e);}
+        const s = localStorage.getItem('killChainStages');
+        if (s) {
+            try {
+                const p = JSON.parse(s);
+                if (Array.isArray(p)) {
+                    this.stages = p;
+                    const killChain = document.getElementById('kill-chain');
+                    if (killChain) killChain.innerHTML = '';
+                    p.forEach(st => this.renderStage(st));
+                    this.updateEmptyState();
+                }
+            } catch (e) {
+                console.error('Failed to load from storage:', e);
+            }
+        }
     }
 }
-document.addEventListener('DOMContentLoaded',()=>new KillChainModeller());
+document.addEventListener('DOMContentLoaded', () => {
+    console.log('DOM loaded, starting app');
+    new KillChainModeller();
+});
 </script>
 </body>
 </html>
