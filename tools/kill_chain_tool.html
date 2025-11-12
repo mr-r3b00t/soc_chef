@@ -3,871 +3,443 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Kill Chain Probability Modeler</title>
+    <title>Kill Chain Probability Modeller</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        :root {
-            --primary: #2563eb;
-            --success: #10b981;
-            --danger: #ef4444;
-            --warning: #f59e0b;
-            --gray: #6b7280;
-            --light: #f3f4f6;
-            --dark: #1f2937;
+        :root{
+            --primary:#2563eb;--success:#10b981;--danger:#ef4444;--warning:#f59e0b;--gray:#6b7280;--light:#f3f4f6;--dark:#1f2937;
         }
-
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: #f9fafb;
-            color: var(--dark);
-            line-height: 1.6;
-        }
-
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 1rem;
-        }
-
-        header {
-            text-align: center;
-            margin-bottom: 2rem;
-            padding: 1.5rem 0;
-            background: white;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-            border-radius: 8px;
-        }
-
-        h1 {
-            color: var(--primary);
-            margin-bottom: 0.5rem;
-        }
-
-        .subtitle {
-            color: var(--gray);
-            font-size: 1.1rem;
-        }
-
-        .controls {
-            display: flex;
-            gap: 1rem;
-            margin-bottom: 1.5rem;
-            flex-wrap: wrap;
-            justify-content: center;
-        }
-
-        button {
-            padding: 0.65rem 1.25rem;
-            border: none;
-            border-radius: 6px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.2s;
-            display: inline-flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
-
-        .btn-primary {
-            background-color: var(--primary);
-            color: white;
-        }
-
-        .btn-primary:hover {
-            background-color: #1d4ed8;
-            transform: translateY(-1px);
-        }
-
-        .btn-success {
-            background-color: var(--success);
-            color: white;
-        }
-
-        .btn-success:hover {
-            background-color: #059669;
-        }
-
-        .btn-danger {
-            background-color: var(--danger);
-            color: white;
-        }
-
-        .btn-danger:hover {
-            background-color: #dc2626;
-        }
-
-        .btn-warning {
-            background-color: var(--warning);
-            color: white;
-        }
-
-        .btn-warning:hover {
-            background-color: #d97706;
-        }
-
-        .btn-secondary {
-            background-color: #6b7280;
-            color: white;
-        }
-
-        .btn-secondary:hover {
-            background-color: #4b5563;
-        }
-
-        .kill-chain {
-            display: flex;
-            flex-direction: column;
-            gap: 1rem;
-            margin-bottom: 2rem;
-        }
-
-        .stage {
-            background: white;
-            border-radius: 8px;
-            padding: 1.25rem;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-            border-left: 5px solid var(--primary);
-            transition: all 0.3s;
-            position: relative;
-        }
-
-        .stage:hover {
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-            transform: translateY(-2px);
-        }
-
-        .stage-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 1rem;
-        }
-
-        .stage-index {
-            background-color: var(--primary);
-            color: white;
-            width: 28px;
-            height: 28px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: bold;
-            font-size: 0.9rem;
-        }
-
-        .stage-actions {
-            display: flex;
-            gap: 0.5rem;
-        }
-
-        .stage-actions button {
-            padding: 0.4rem 0.8rem;
-            font-size: 0.85rem;
-        }
-
-        .form-group {
-            margin-bottom: 1rem;
-        }
-
-        label {
-            display: block;
-            margin-bottom: 0.5rem;
-            font-weight: 500;
-            color: var(--gray);
-        }
-
-        input[type="text"],
-        input[type="number"] {
-            width: 100%;
-            padding: 0.65rem;
-            border: 1px solid #d1d5db;
-            border-radius: 6px;
-            font-size: 1rem;
-            transition: border 0.2s;
-        }
-
-        input:focus {
-            outline: none;
-            border-color: var(--primary);
-            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
-        }
-
-        .probability-input {
-            display: flex;
-            align-items: center;
-            gap: 1rem;
-        }
-
-        .probability-value {
-            font-weight: bold;
-            color: var(--primary);
-            min-width: 60px;
-            text-align: right;
-        }
-
-        .probability-bar {
-            flex: 1;
-            height: 8px;
-            background-color: #e5e7eb;
-            border-radius: 4px;
-            overflow: hidden;
-        }
-
-        .probability-fill {
-            height: 100%;
-            background-color: var(--primary);
-            border-radius: 4px;
-            transition: width 0.3s ease;
-            position: relative;
-        }
-
-        .probability-fill::after {
-            content: '';
-            position: absolute;
-            top: 0;
-            right: 0;
-            height: 100%;
-            width: 20px;
-            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3));
-        }
-
-        .cumulative-prob {
-            margin-top: 0.75rem;
-            padding: 0.75rem;
-            background-color: #f0f9ff;
-            border-radius: 6px;
-            font-weight: 600;
-            color: var(--primary);
-            text-align: center;
-            font-size: 1.1rem;
-        }
-
-        .results {
-            background: white;
-            padding: 1.5rem;
-            border-radius: 8px;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-            margin-bottom: 2rem;
-        }
-
-        .chart-container {
-            position: relative;
-            height: 300px;
-            margin-top: 1.5rem;
-        }
-
-        .summary-stats {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 1rem;
-            margin-top: 1.5rem;
-        }
-
-        .stat-card {
-            background-color: #f8fafc;
-            padding: 1rem;
-            border-radius: 8px;
-            text-align: center;
-            border: 1px solid #e2e8f0;
-        }
-
-        .stat-value {
-            font-size: 1.5rem;
-            font-weight: bold;
-            color: var(--primary);
-        }
-
-        .stat-label {
-            color: var(--gray);
-            font-size: 0.9rem;
-            margin-top: 0.25rem;
-        }
-
-        .empty-state {
-            text-align: center;
-            padding: 3rem 1rem;
-            color: var(--gray);
-        }
-
-        .empty-state svg {
-            width: 80px;
-            height: 80px;
-            margin-bottom: 1rem;
-            opacity: 0.5;
-        }
-
-        .file-input-wrapper {
-            position: relative;
-            overflow: hidden;
-            display: inline-block;
-        }
-
-        .file-input-wrapper input[type=file] {
-            position: absolute;
-            left: -9999px;
-        }
-
-        .file-input-label {
-            display: inline-flex;
-            align-items: center;
-            gap: 0.5rem;
-            padding: 0.65rem 1.25rem;
-            background-color: #6b7280;
-            color: white;
-            border-radius: 6px;
-            cursor: pointer;
-            font-weight: 600;
-            transition: all 0.2s;
-        }
-
-        .file-input-label:hover {
-            background-color: #4b5563;
-        }
-
-        .drag-handle {
-            cursor: move;
-            color: var(--gray);
-            margin-right: 0.5rem;
-        }
-
-        .stage.dragging {
-            opacity: 0.5;
-            transform: rotate(5deg);
-        }
-
-        @media (max-width: 768px) {
-            .stage-header {
-                flex-direction: column;
-                align-items: flex-start;
-                gap: 0.75rem;
-            }
-
-            .stage-actions {
-                align-self: flex-end;
-            }
-
-            .probability-input {
-                flex-direction: column;
-                align-items: stretch;
-            }
-
-            .probability-value {
-                text-align: left;
-            }
+        *{margin:0;padding:0;box-sizing:border-box;}
+        body{font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;background:#f9fafb;color:var(--dark);line-height:1.6;}
+        .container{max-width:1200px;margin:auto;padding:1rem;}
+        header{text-align:center;margin-bottom:2rem;padding:1.5rem 0;background:white;box-shadow:0 1px 3px rgba(0,0,0,.1);border-radius:8px;}
+        h1{color:var(--primary);margin-bottom:.5rem;}
+        .subtitle{color:var(--gray);font-size:1.1rem;}
+        .controls{display:flex;gap:1rem;margin-bottom:1.5rem;flex-wrap:wrap;justify-content:center;align-items:center;}
+        button{padding:.65rem 1.25rem;border:none;border-radius:6px;font-weight:600;cursor:pointer;transition:all .2s;display:inline-flex;align-items:center;gap:.5rem;}
+        .btn-primary{background:var(--primary);color:white;}
+        .btn-primary:hover{background:#1d4ed8;transform:translateY(-1px);}
+        .btn-success{background:var(--success);color:white;}
+        .btn-success:hover{background:#059669;}
+        .btn-danger{background:var(--danger);color:white;}
+        .btn-danger:hover{background:#dc2626;}
+        .btn-warning{background:var(--warning);color:white;}
+        .btn-warning:hover{background:#d97706;}
+        .btn-secondary{background:#6b7280;color:white;}
+        .btn-secondary:hover{background:#4b5563;}
+        .dropdown-container{position:relative;display:inline-block;}
+        .dropdown-toggle{padding:.65rem 1.25rem;background:var(--secondary);color:white;border:none;border-radius:6px;cursor:pointer;font-weight:600;}
+        .dropdown-menu{position:absolute;top:100%;left:0;background:white;min-width:300px;max-height:320px;overflow-y:auto;box-shadow:0 4px 12px rgba(0,0,0,.15);border-radius:6px;z-index:1000;display:none;opacity:0;transition:opacity .15s;}
+        .dropdown-menu.show{display:block;opacity:1;}
+        .dropdown-item{padding:.75rem 1rem;cursor:pointer;border:none;background:none;width:100%;text-align:left;transition:background .2s;font-size:.95rem;}
+        .dropdown-item:hover{background:#f0f9ff;color:var(--primary);}
+        .kill-chain{display:flex;flex-direction:column;gap:1rem;margin-bottom:2rem;}
+        .stage{background:white;border-radius:8px;padding:1.25rem;box-shadow:0 1px 3px rgba(0,0,0,.1);border-left:5px solid var(--primary);transition:all .3s;position:relative;}
+        .stage:hover{box-shadow:0 4px 8px rgba(0,0,0,.12);transform:translateY(-2px);}
+        .stage-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;}
+        .stage-index{background:var(--primary);color:white;width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:bold;font-size:.9rem;}
+        .stage-actions{display:flex;gap:.5rem;}
+        .stage-actions button{padding:.4rem .8rem;font-size:.85rem;}
+        .form-group{margin-bottom:1rem;}
+        label{display:block;margin-bottom:.5rem;font-weight:500;color:var(--gray);}
+        input[type=text],select,input[type=number]{width:100%;padding:.65rem;border:1px solid #d1d5db;border-radius:6px;font-size:1rem;transition:border .2s;}
+        input:focus,select:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px rgba(37,99,235,.1);}
+        .probability-input{display:flex;align-items:center;gap:1rem;}
+        .probability-value{font-weight:bold;color:var(--primary);min-width:60px;text-align:right;}
+        .probability-bar{flex:1;height:8px;background:#e5e7eb;border-radius:4px;overflow:hidden;}
+        .probability-fill{height:100%;background:var(--primary);border-radius:4px;transition:width .3s ease;position:relative;}
+        .probability-fill::after{content:'';position:absolute;top:0;right:0;height:100%;width:20px;background:linear-gradient(90deg,transparent,rgba(255,255,255,.3));}
+        .cumulative-prob{margin-top:.75rem;padding:.75rem;background:#f0f9ff;border-radius:6px;font-weight:600;color:var(--primary);text-align:center;font-size:1.1rem;}
+        .results{background:white;padding:1.5rem;border-radius:8px;box-shadow:0 1px 3px rgba(0,0,0,.1);margin-bottom:2rem;}
+        .chart-container{position:relative;height:300px;margin-top:1.5rem;}
+        .summary-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:1rem;margin-top:1.5rem;}
+        .stat-card{background:#f8fafc;padding:1rem;border-radius:8px;text-align:center;border:1px solid #e2e8f0;}
+        .stat-value{font-size:1.5rem;font-weight:bold;color:var(--primary);}
+        .stat-label{color:var(--gray);font-size:.9rem;margin-top:.25rem;}
+        .empty-state{text-align:center;padding:3rem 1rem;color:var(--gray);}
+        .empty-state svg{width:80px;height:80px;margin-bottom:1rem;opacity:.5;}
+        .file-input-wrapper{position:relative;overflow:hidden;display:inline-block;}
+        .file-input-wrapper input[type=file]{position:absolute;left:-9999px;}
+        .file-input-label{display:inline-flex;align-items:center;gap:.5rem;padding:.65rem 1.25rem;background:#6b7280;color:white;border-radius:6px;cursor:pointer;font-weight:600;transition:all .2s;}
+        .file-input-label:hover{background:#4b5563;}
+        .drag-handle{cursor:move;color:var(--gray);margin-right:.5rem;}
+        .stage.dragging{opacity:.5;transform:rotate(5deg);}
+        @media(max-width:768px){
+            .stage-header{flex-direction:column;align-items:flex-start;gap:.75rem;}
+            .stage-actions{align-self:flex-end;}
+            .probability-input{flex-direction:column;align-items:stretch;}
+            .probability-value{text-align:left;}
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <header>
-            <h1>Kill Chain Probability Modeler</h1>
-            <p class="subtitle">Model cyber attack kill chains with stage-by-stage success probabilities</p>
-        </header>
+<div class="container">
+    <header>
+        <h1>Kill Chain Probability Modeller</h1>
+        <p class="subtitle">Model cyber attack kill chains with stage-by-stage success probabilities</p>
+    </header>
 
-        <div class="controls">
-            <button id="add-stage" class="btn-primary">
-                Add Stage
-            </button>
-            <button id="calculate" class="btn-success">
-                Calculate Chain
-            </button>
-            <button id="export-chain" class="btn-warning">
-                Export Chain
-            </button>
-            <div class="file-input-wrapper">
-                <input type="file" id="import-chain-input" accept=".json">
-                <label for="import-chain-input" class="file-input-label">
-                    Import Chain
-                </label>
-            </div>
-            <button id="clear-all" class="btn-danger">
-                Clear All
-            </button>
+    <div class="controls">
+        <button id="add-stage" class="btn-primary">Add Stage</button>
+
+        <!-- TEMPLATE DROPDOWN -->
+        <div class="dropdown-container">
+            <button id="load-template" class="btn-secondary dropdown-toggle">Load Template</button>
+            <div id="template-menu" class="dropdown-menu"></div>
         </div>
 
-        <div id="kill-chain" class="kill-chain">
-            <div class="empty-state">
-                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6-4h6m2 5a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                </svg>
-                <h3>No stages yet</h3>
-                <p>Click "Add Stage" to start building your kill chain</p>
-            </div>
+        <button id="calculate" class="btn-success">Calculate Chain</button>
+        <button id="export-chain" class="btn-warning">Export Chain</button>
+        <div class="file-input-wrapper">
+            <input type="file" id="import-chain-input" accept=".json">
+            <label for="import-chain-input" class="file-input-label">Import Chain</label>
         </div>
+        <button id="clear-all" class="btn-danger">Clear All</button>
+    </div>
 
-        <div id="results" class="results" style="display: none;">
-            <h2 style="margin-bottom: 1rem; color: var(--primary);">Overall Attack Success Probability</h2>
-            <div id="overall-probability" class="cumulative-prob" style="font-size: 2rem; padding: 1.5rem;">
-                0.00%
-            </div>
-
-            <div class="chart-container">
-                <canvas id="probabilityChart"></canvas>
-            </div>
-
-            <div class="summary-stats">
-                <div class="stat-card">
-                    <div id="total-stages" class="stat-value">0</div>
-                    <div class="stat-label">Total Stages</div>
-                </div>
-                <div class="stat-card">
-                    <div id="avg-probability" class="stat-value">0.00%</div>
-                    <div class="stat-label">Average Stage Success</div>
-                </div>
-                <div class="stat-card">
-                    <div id="weakest-stage" class="stat-value">-</div>
-                    <div class="stat-label">Weakest Link</div>
-                </div>
-                <div class="stat-card">
-                    <div id="risk-reduction" class="stat-value">0.00%</div>
-                    <div class="stat-label">Risk Reduction vs. 100%</div>
-                </div>
-            </div>
+    <div id="kill-chain" class="kill-chain">
+        <div class="empty-state">
+            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6-4h6m2 5a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+            </svg>
+            <h3>No stages yet</h3>
+            <p>Click "Add Stage" to start building your kill chain</p>
         </div>
     </div>
 
-    <script>
-        class KillChainModeler {
-            constructor() {
-                this.stages = [];
-                this.chart = null;
-                this.draggedElement = null;
-                
-                this.initEventListeners();
-                this.loadFromStorage();
-            }
+    <div id="results" class="results" style="display:none;">
+        <h2 style="margin-bottom:1rem;color:var(--primary);">Overall Attack Success Probability</h2>
+        <div id="overall-probability" class="cumulative-prob" style="font-size:2rem;padding:1.5rem;">0.00%</div>
+        <div class="chart-container"><canvas id="probabilityChart"></canvas></div>
+        <div class="summary-stats">
+            <div class="stat-card"><div id="total-stages" class="stat-value">0</div><div class="stat-label">Total Stages</div></div>
+            <div class="stat-card"><div id="avg-probability" class="stat-value">0.00%</div><div class="stat-label">Average Stage Success</div></div>
+            <div class="stat-card"><div id="weakest-stage" class="stat-value">-</div><div class="stat-label">Weakest Link</div></div>
+            <div class="stat-card"><div id="risk-reduction" class="stat-value">0.00%</div><div class="stat-label">Risk Reduction vs. 100%</div></div>
+        </div>
+    </div>
+</div>
 
-            initEventListeners() {
-                document.getElementById('add-stage').addEventListener('click', () => this.addStage());
-                document.getElementById('calculate').addEventListener('click', () => this.calculateChain());
-                document.getElementById('clear-all').addEventListener('click', () => this.clearAll());
-                document.getElementById('export-chain').addEventListener('click', () => this.exportChain());
-                document.getElementById('import-chain-input').addEventListener('change', (e) => this.importChain(e));
+<script>
+class KillChainModeller{
+    constructor(){
+        this.stages=[];this.chart=null;this.draggedElement=null;
+        this.mitreTactics=[
+            'Reconnaissance (TA0043)','Resource Development (TA0042)','Initial Access (TA0001)','Execution (TA0002)',
+            'Persistence (TA0003)','Privilege Escalation (TA0004)','Defense Evasion (TA0005)','Credential Access (TA0006)',
+            'Discovery (TA0007)','Lateral Movement (TA0008)','Collection (TA0009)','Command and Control (TA0011)',
+            'Exfiltration (TA0010)','Impact (TA0040)'
+        ];
+        this.templates={
+            'Lockheed Martin Cyber Kill Chain':[
+                {name:'Reconnaissance',probability:95,tactic:'Reconnaissance (TA0043)'},
+                {name:'Weaponization',probability:85,tactic:'Resource Development (TA0042)'},
+                {name:'Delivery',probability:70,tactic:'Initial Access (TA0001)'},
+                {name:'Exploitation',probability:60,tactic:'Execution (TA0002)'},
+                {name:'Installation',probability:55,tactic:'Persistence (TA0003)'},
+                {name:'Command and Control',probability:80,tactic:'Command and Control (TA0011)'},
+                {name:'Actions on Objectives',probability:75,tactic:'Impact (TA0040)'}
+            ],
+            'Phishing to Credential Stealer (MFA + CA Bypass)':[
+                {name:'Email Delivered (Not Blocked by SEG/ATP)',probability:85,tactic:'Initial Access (TA0001)'},
+                {name:'User Opens Email',probability:70,tactic:'Initial Access (TA0001)'},
+                {name:'User Clicks Malicious Link',probability:60,tactic:'Initial Access (TA0001)'},
+                {name:'Phishing Site Not Blocked (PDNS, Safe Browsing, Web Proxy)',probability:75,tactic:'Initial Access (TA0001)'},
+                {name:'User Enters Credentials on Fake Site',probability:55,tactic:'Credential Access (TA0006)'},
+                {name:'MFA Not Enabled (or Bypassed via MFA Fatigue/Prompt Bombing)',probability:40,tactic:'Credential Access (TA0006)'},
+                {name:"Conditional Access Doesn't Block Login (Location, Device, Risk)",probability:65,tactic:'Persistence (TA0003)'},
+                {name:'Adversary Successfully Logs In (Account Takeover)',probability:90,tactic:'Persistence (TA0003)'}
+            ]
+        };
+        this.initEventListeners();
+        this.loadFromStorage();
+        this.populateTemplateMenu();
+    }
 
-                const container = document.getElementById('kill-chain');
-                container.addEventListener('dragstart', (e) => this.handleDragStart(e));
-                container.addEventListener('dragover', (e) => e.preventDefault());
-                container.addEventListener('drop', (e) => this.handleDrop(e));
-                container.addEventListener('dragend', () => this.handleDragEnd());
-            }
+    initEventListeners(){
+        document.getElementById('add-stage').addEventListener('click',()=>this.addStage());
+        document.getElementById('calculate').addEventListener('click',()=>this.calculateChain());
+        document.getElementById('clear-all').addEventListener('click',()=>this.clearAll());
+        document.getElementById('export-chain').addEventListener('click',()=>this.exportChain());
+        document.getElementById('import-chain-input').addEventListener('change',e=>this.importChain(e));
 
-            addStage(name = '', probability = 50) {
-                const stage = {
-                    id: Date.now() + Math.random(),
-                    name: name || `Stage ${this.stages.length + 1}`,
-                    probability: Math.max(0, Math.min(100, probability))
-                };
-
-                this.stages.push(stage);
-                this.renderStage(stage);
-                this.updateEmptyState();
-                this.saveToStorage();
-            }
-
-            renderStage(stage) {
-                const template = `
-                    <div class="stage" data-id="${stage.id}" draggable="true">
-                        <div class="stage-header">
-                            <div style="display: flex; align-items: center; gap: 0.5rem;">
-                                <span class="drag-handle">Drag Handle</span>
-                                <div class="stage-index">${this.stages.indexOf(stage) + 1}</div>
-                                <input type="text" class="stage-title-input" value="${stage.name}" placeholder="Enter stage name">
-                            </div>
-                            <div class="stage-actions">
-                                <button class="btn-primary duplicate-stage">Duplicate</button>
-                                <button class="btn-danger delete-stage">Delete</button>
-                            </div>
-                        </div>
-
-                        <div class="form-group">
-                            <label>Success Probability: <span class="probability-value">${stage.probability.toFixed(1)}%</span></label>
-                            <div class="probability-input">
-                                <input type="range" class="probability-slider" min="0" max="100" step="0.1" value="${stage.probability}">
-                                <div class="probability-bar">
-                                    <div class="probability-fill" style="width: ${stage.probability}%"></div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="cumulative-prob">
-                            Cumulative Success: <span class="cumulative-value">Calculating...</span>
-                        </div>
-                    </div>
-                `;
-
-                const container = document.getElementById('kill-chain');
-                const tempDiv = document.createElement('div');
-                tempDiv.innerHTML = template;
-                const element = tempDiv.firstElementChild;
-
-                const emptyState = container.querySelector('.empty-state');
-                if (emptyState) {
-                    container.insertBefore(element, emptyState);
-                } else {
-                    container.appendChild(element);
-                }
-
-                const slider = element.querySelector('.probability-slider');
-                const fill = element.querySelector('.probability-fill');
-                const valueDisplay = element.querySelector('.probability-value');
-                const titleInput = element.querySelector('.stage-title-input');
-                const cumulativeDisplay = element.querySelector('.cumulative-value');
-
-                slider.addEventListener('input', (e) => {
-                    const prob = parseFloat(e.target.value);
-                    stage.probability = prob;
-                    fill.style.width = `${prob}%`;
-                    valueDisplay.textContent = `${prob.toFixed(1)}%`;
-                    this.saveToStorage();
-                    this.updateCumulative(stage, cumulativeDisplay);
-                });
-
-                titleInput.addEventListener('change', (e) => {
-                    stage.name = e.target.value.trim() || `Stage ${this.stages.indexOf(stage) + 1}`;
-                    this.saveToStorage();
-                });
-
-                element.querySelector('.delete-stage').addEventListener('click', () => {
-                    this.deleteStage(stage.id);
-                });
-
-                element.querySelector('.duplicate-stage').addEventListener('click', () => {
-                    this.addStage(stage.name + ' (Copy)', stage.probability);
-                });
-
-                this.updateCumulative(stage, cumulativeDisplay);
-            }
-
-            updateCumulative(stage, displayElement) {
-                const index = this.stages.indexOf(stage);
-                let cumulative = 1;
-                for (let i = 0; i <= index; i++) {
-                    cumulative *= this.stages[i].probability / 100;
-                }
-                displayElement.textContent = `${(cumulative * 100).toFixed(3)}%`;
-            }
-
-            updateAllCumulatives() {
-                document.querySelectorAll('.stage').forEach((el, index) => {
-                    const cumulativeDisplay = el.querySelector('.cumulative-value');
-                    let cumulative = 1;
-                    for (let i = 0; i <= index; i++) {
-                        cumulative *= this.stages[i].probability / 100;
-                    }
-                    cumulativeDisplay.textContent = `${(cumulative * 100).toFixed(3)}%`;
-                });
-            }
-
-            deleteStage(id) {
-                this.stages = this.stages.filter(s => s.id !== id);
-                const element = document.querySelector(`[data-id="${id}"]`);
-                if (element) element.remove();
-                this.updateStageIndices();
-                this.updateEmptyState();
-                this.saveToStorage();
-            }
-
-            updateStageIndices() {
-                document.querySelectorAll('.stage').forEach((el, index) => {
-                    const indexEl = el.querySelector('.stage-index');
-                    if (indexEl) indexEl.textContent = index + 1;
-                    
-                    const stage = this.stages.find(s => s.id == el.dataset.id);
-                    if (stage) {
-                        const titleInput = el.querySelector('.stage-title-input');
-                        if (!titleInput.value.trim()) {
-                            titleInput.value = `Stage ${index + 1}`;
-                            stage.name = titleInput.value;
-                        }
-                    }
-                });
-                this.updateAllCumulatives();
-            }
-
-            calculateChain() {
-                if (this.stages.length === 0) {
-                    alert('Please add at least one stage to calculate the kill chain.');
-                    return;
-                }
-
-                this.updateAllCumulatives();
-
-                const overallProb = this.stages.reduce((acc, stage) => acc * (stage.probability / 100), 1) * 100;
-                document.getElementById('overall-probability').textContent = `${overallProb.toFixed(4)}%`;
-
-                document.getElementById('total-stages').textContent = this.stages.length;
-                const avgProb = this.stages.reduce((sum, s) => sum + s.probability, 0) / this.stages.length;
-                document.getElementById('avg-probability').textContent = `${avgProb.toFixed(1)}%`;
-
-                const weakest = this.stages.reduce((min, s) => s.probability < min.probability ? s : min, this.stages[0]);
-                document.getElementById('weakest-stage').textContent = `${weakest.name} (${weakest.probability.toFixed(1)}%)`;
-
-                const riskReduction = 100 - overallProb;
-                document.getElementById('risk-reduction').textContent = `${riskReduction.toFixed(4)}%`;
-
-                document.getElementById('results').style.display = 'block';
-                this.updateChart();
-            }
-
-            updateChart() {
-                const ctx = document.getElementById('probabilityChart').getContext('2d');
-                const labels = this.stages.map(s => s.name);
-                const stageProbs = this.stages.map(s => s.probability);
-                const cumulativeProbs = [];
-                let cumulative = 1;
-                this.stages.forEach(stage => {
-                    cumulative *= stage.probability / 100;
-                    cumulativeProbs.push(cumulative * 100);
-                });
-
-                const data = {
-                    labels: labels,
-                    datasets: [
-                        {
-                            label: 'Stage Success Probability (%)',
-                            data: stageProbs,
-                            backgroundColor: 'rgba(37, 99, 235, 0.6)',
-                            borderColor: 'rgba(37, 99, 235, 1)',
-                            borderWidth: 2,
-                            type: 'bar'
-                        },
-                        {
-                            label: 'Cumulative Success Probability (%)',
-                            data: cumulativeProbs,
-                            backgroundColor: 'rgba(16, 185, 129, 0.1)',
-                            borderColor: 'rgba(16, 185, 129, 1)',
-                            borderWidth: 3,
-                            type: 'line',
-                            tension: 0.4,
-                            pointBackgroundColor: 'rgba(16, 185, 129, 1)',
-                            pointRadius: 5
-                        }
-                    ]
-                };
-
-                if (this.chart) this.chart.destroy();
-
-                this.chart = new Chart(ctx, {
-                    type: 'bar',
-                    data: data,
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        plugins: {
-                            title: {
-                                display: true,
-                                text: 'Kill Chain Probability Analysis',
-                                font: { size: 16, weight: 'bold' }
-                            },
-                            legend: { position: 'top' },
-                            tooltip: {
-                                callbacks: {
-                                    label: function(context) {
-                                        const value = context.parsed.y;
-                                        return `${context.dataset.label}: ${value.toFixed(3)}%`;
-                                    }
-                                }
-                            }
-                        },
-                        scales: {
-                            y: {
-                                beginAtZero: true,
-                                max: 100,
-                                title: { display: true, text: 'Probability (%)' }
-                            }
-                        }
-                    }
-                });
-            }
-
-            clearAll() {
-                if (this.stages.length === 0 || confirm('Are you sure you want to remove all stages?')) {
-                    this.stages = [];
-                    document.getElementById('kill-chain').innerHTML = `
-                        <div class="empty-state">
-                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6-4h6m2 5a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                            </svg>
-                            <h3>No stages yet</h3>
-                            <p>Click "Add Stage" to start building your kill chain</p>
-                        </div>
-                    `;
-                    document.getElementById('results').style.display = 'none';
-                    if (this.chart) this.chart.destroy();
-                    localStorage.removeItem('killChainStages');
-                }
-            }
-
-            updateEmptyState() {
-                const container = document.getElementById('kill-chain');
-                const hasStages = container.querySelector('.stage');
-                const emptyState = container.querySelector('.empty-state');
-                
-                if (!hasStages && !emptyState) {
-                    const newEmpty = document.createElement('div');
-                    newEmpty.className = 'empty-state';
-                    newEmpty.innerHTML = `
-                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6-4h6m2 5a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                        </svg>
-                        <h3>No stages yet</h3>
-                        <p>Click "Add Stage" to start building your kill chain</p>
-                    `;
-                    container.appendChild(newEmpty);
-                } else if (hasStages && emptyState) {
-                    emptyState.remove();
-                }
-            }
-
-            // === EXPORT & IMPORT ===
-
-            exportChain() {
-                if (this.stages.length === 0) {
-                    alert('No stages to export. Add at least one stage first.');
-                    return;
-                }
-
-                const data = {
-                    name: "Kill Chain Model",
-                    exportedAt: new Date().toISOString(),
-                    version: "1.0",
-                    stages: this.stages.map(s => ({
-                        name: s.name,
-                        probability: s.probability
-                    }))
-                };
-
-                const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = `kill-chain-export-${new Date().toISOString().slice(0,10)}.json`;
-                document.body.appendChild(a);
-                a.click();
-                document.body.removeChild(a);
-                URL.revokeObjectURL(url);
-            }
-
-            importChain(event) {
-                const file = event.target.files[0];
-                if (!file) return;
-
-                if (!file.name.endsWith('.json')) {
-                    alert('Please select a valid .json file.');
-                    return;
-                }
-
-                const reader = new FileReader();
-                reader.onload = (e) => {
-                    try {
-                        const data = JSON.parse(e.target.result);
-
-                        if (!data.stages || !Array.isArray(data.stages)) {
-                            throw new Error('Invalid format: missing stages array');
-                        }
-
-                        // Clear current
-                        this.stages = [];
-                        document.getElementById('kill-chain').innerHTML = '';
-
-                        // Import stages
-                        data.stages.forEach(stage => {
-                            if (stage.name && typeof stage.probability === 'number') {
-                                this.addStage(stage.name, stage.probability);
-                            }
-                        });
-
-                        this.updateEmptyState();
-                        this.saveToStorage();
-                        alert(`Successfully imported ${this.stages.length} stage(s).`);
-                    } catch (err) {
-                        console.error('Import error:', err);
-                        alert('Failed to import file. Invalid JSON format.');
-                    }
-                };
-
-                reader.readAsText(file);
-                // Reset input
-                event.target.value = '';
-            }
-
-            // === DRAG & DROP ===
-
-            handleDragStart(e) {
-                const stageEl = e.target.closest('.stage');
-                if (stageEl) {
-                    this.draggedElement = stageEl;
-                    stageEl.classList.add('dragging');
-                    e.dataTransfer.effectAllowed = 'move';
-                }
-            }
-
-            handleDrop(e) {
-                e.preventDefault();
-                if (!this.draggedElement) return;
-
-                const dropTarget = e.target.closest('.stage');
-                const container = document.getElementById('kill-chain');
-
-                if (dropTarget && dropTarget !== this.draggedElement) {
-                    const allStages = Array.from(container.querySelectorAll('.stage'));
-                    const draggedIndex = allStages.indexOf(this.draggedElement);
-                    const dropIndex = allStages.indexOf(dropTarget);
-
-                    if (draggedIndex < dropIndex) {
-                        dropTarget.after(this.draggedElement);
-                    } else {
-                        dropTarget.before(this.draggedElement);
-                    }
-
-                    const draggedStage = this.stages[draggedIndex];
-                    this.stages.splice(draggedIndex, 1);
-                    this.stages.splice(dropIndex, 0, draggedStage);
-
-                    this.updateStageIndices();
-                    this.saveToStorage();
-                }
-            }
-
-            handleDragEnd() {
-                if (this.draggedElement) {
-                    this.draggedElement.classList.remove('dragging');
-                    this.draggedElement = null;
-                }
-            }
-
-            saveToStorage() {
-                localStorage.setItem('killChainStages', JSON.stringify(this.stages));
-            }
-
-            loadFromStorage() {
-                const saved = localStorage.getItem('killChainStages');
-                if (saved) {
-                    try {
-                        const parsed = JSON.parse(saved);
-                        if (Array.isArray(parsed)) {
-                            this.stages = parsed;
-                            document.getElementById('kill-chain').innerHTML = '';
-                            this.stages.forEach(stage => this.renderStage(stage));
-                            this.updateEmptyState();
-                        }
-                    } catch (e) {
-                        console.error('Failed to load saved stages:', e);
-                    }
-                }
-            }
-        }
-
-        document.addEventListener('DOMContentLoaded', () => {
-            new KillChainModeler();
+        // Template dropdown
+        const toggle = document.getElementById('load-template');
+        toggle.addEventListener('click', (e) => {
+            e.stopPropagation();
+            this.toggleTemplateMenu();
         });
-    </script>
+
+        // Close dropdown when clicking outside
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest('.dropdown-container')) {
+                this.hideTemplateMenu();
+            }
+        });
+
+        // Prevent menu from closing when clicking inside
+        document.getElementById('template-menu').addEventListener('click', (e) => {
+            e.stopPropagation();
+        });
+
+        const container = document.getElementById('kill-chain');
+        container.addEventListener('dragstart', e => this.handleDragStart(e));
+        container.addEventListener('dragover', e => e.preventDefault());
+        container.addEventListener('drop', e => this.handleDrop(e));
+        container.addEventListener('dragend', () => this.handleDragEnd());
+    }
+
+    toggleTemplateMenu(){
+        const menu = document.getElementById('template-menu');
+        menu.classList.toggle('show');
+    }
+    hideTemplateMenu(){
+        document.getElementById('template-menu').classList.remove('show');
+    }
+
+    populateTemplateMenu(){
+        const menu = document.getElementById('template-menu');
+        menu.innerHTML = '';
+        Object.keys(this.templates).forEach(name => {
+            const btn = document.createElement('button');
+            btn.className = 'dropdown-item';
+            btn.textContent = name;
+            btn.addEventListener('click', () => {
+                this.loadTemplate(name);
+                this.hideTemplateMenu();
+            });
+            menu.appendChild(btn);
+        });
+    }
+
+    loadTemplate(name){
+        const tmpl = this.templates[name];
+        if (!tmpl) return;
+        if (this.stages.length > 0 && !confirm('Loading a template will clear current stages. Continue?')) return;
+        this.clearAll(true);
+        tmpl.forEach(s => this.addStage(s.name, s.probability, s.tactic));
+        alert(`Loaded: ${name}`);
+    }
+
+    addStage(name='', probability=50, tactic=''){
+        const stage = {
+            id: Date.now() + Math.random(),
+            name: name || `Stage ${this.stages.length + 1}`,
+            probability: Math.max(0, Math.min(100, probability)),
+            tactic: tactic || ''
+        };
+        this.stages.push(stage);
+        this.renderStage(stage);
+        this.updateEmptyState();
+        this.saveToStorage();
+    }
+
+    renderStage(stage){
+        const html = `
+            <div class="stage" data-id="${stage.id}" draggable="true">
+                <div class="stage-header">
+                    <div style="display:flex;align-items:center;gap:.5rem;">
+                        <span class="drag-handle">Drag Handle</span>
+                        <div class="stage-index">${this.stages.indexOf(stage)+1}</div>
+                        <input type="text" class="stage-title-input" value="${stage.name}" placeholder="Enter stage name">
+                    </div>
+                    <div class="stage-actions">
+                        <button class="btn-primary duplicate-stage">Duplicate</button>
+                        <button class="btn-danger delete-stage">Delete</button>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>MITRE ATT&CK Tactic (Optional):</label>
+                    <select>
+                        <option value="">No Tactic</option>
+                        ${this.mitreTactics.map(t => `<option value="${t}" ${stage.tactic === t ? 'selected' : ''}>${t}</option>`).join('')}
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Success Probability: <span class="probability-value">${stage.probability.toFixed(1)}%</span></label>
+                    <div class="probability-input">
+                        <input type="range" class="probability-slider" min="0" max="100" step="0.1" value="${stage.probability}">
+                        <div class="probability-bar"><div class="probability-fill" style="width:${stage.probability}%"></div></div>
+                    </div>
+                </div>
+                <div class="cumulative-prob">Cumulative Success: <span class="cumulative-value">Calculating...</span></div>
+            </div>`;
+        const container = document.getElementById('kill-chain');
+        const div = document.createElement('div');
+        div.innerHTML = html;
+        const el = div.firstElementChild;
+        const empty = container.querySelector('.empty-state');
+        empty ? container.insertBefore(el, empty) : container.appendChild(el);
+
+        const slider = el.querySelector('.probability-slider');
+        const fill = el.querySelector('.probability-fill');
+        const val = el.querySelector('.probability-value');
+        const title = el.querySelector('.stage-title-input');
+        const tactic = el.querySelector('select');
+        const cum = el.querySelector('.cumulative-value');
+
+        slider.addEventListener('input', e => {
+            const p = +e.target.value;
+            stage.probability = p;
+            fill.style.width = p + '%';
+            val.textContent = p.toFixed(1) + '%';
+            this.saveToStorage();
+            this.updateCumulative(stage, cum);
+        });
+        title.addEventListener('input', e => {
+            stage.name = e.target.value.trim() || `Stage ${this.stages.indexOf(stage)+1}`;
+            this.saveToStorage();
+        });
+        tactic.addEventListener('change', e => {
+            stage.tactic = e.target.value;
+            this.saveToStorage();
+        });
+        el.querySelector('.delete-stage').addEventListener('click', () => this.deleteStage(stage.id));
+        el.querySelector('.duplicate-stage').addEventListener('click', () => this.addStage(stage.name + ' (Copy)', stage.probability, stage.tactic));
+        this.updateCumulative(stage, cum);
+    }
+
+    updateCumulative(stage, el){
+        const i = this.stages.indexOf(stage);
+        let c = 1;
+        for(let j=0; j<=i; j++) c *= this.stages[j].probability / 100;
+        el.textContent = (c*100).toFixed(3) + '%';
+    }
+
+    updateAllCumulatives(){
+        document.querySelectorAll('.stage').forEach((el, i) => {
+            const cum = el.querySelector('.cumulative-value');
+            let c = 1;
+            for(let j=0; j<=i; j++) c *= this.stages[j].probability / 100;
+            cum.textContent = (c*100).toFixed(3) + '%';
+        });
+    }
+
+    deleteStage(id){
+        this.stages = this.stages.filter(s => s.id !== id);
+        const el = document.querySelector(`[data-id="${id}"]`);
+        if(el) el.remove();
+        this.updateStageIndices();
+        this.updateEmptyState();
+        this.saveToStorage();
+    }
+
+    updateStageIndices(){
+        document.querySelectorAll('.stage').forEach((el, i) => {
+            el.querySelector('.stage-index').textContent = i + 1;
+            const s = this.stages.find(st => st.id == el.dataset.id);
+            if(s){
+                const inp = el.querySelector('.stage-title-input');
+                if(!inp.value.trim()){
+                    inp.value = `Stage ${i+1}`;
+                    s.name = inp.value;
+                }
+            }
+        });
+        this.updateAllCumulatives();
+    }
+
+    calculateChain(){
+        if(!this.stages.length){
+            alert('Add at least one stage first.');
+            return;
+        }
+        this.updateAllCumulatives();
+        const overall = this.stages.reduce((a,s) => a * (s.probability/100), 1) * 100;
+        document.getElementById('overall-probability').textContent = overall.toFixed(4) + '%';
+        document.getElementById('total-stages').textContent = this.stages.length;
+        const avg = this.stages.reduce((s,v) => s + v.probability, 0) / this.stages.length;
+        document.getElementById('avg-probability').textContent = avg.toFixed(1) + '%';
+        const weak = this.stages.reduce((m,s) => s.probability < m.probability ? s : m, this.stages[0]);
+        document.getElementById('weakest-stage').textContent = `${weak.name} (${weak.probability.toFixed(1)}%)`;
+        document.getElementById('risk-reduction').textContent = (100 - overall).toFixed(4) + '%';
+        document.getElementById('results').style.display = 'block';
+        this.updateChart();
+    }
+
+    updateChart(){
+        const ctx = document.getElementById('probabilityChart').getContext('2d');
+        const labels = this.stages.map(s => s.name);
+        const stageP = this.stages.map(s => s.probability);
+        const cumP = []; let c = 1;
+        this.stages.forEach(s => { c *= s.probability / 100; cumP.push(c * 100); });
+        const data = { labels, datasets: [
+            { label: 'Stage Success Probability (%)', data: stageP, backgroundColor: 'rgba(37,99,235,.6)', borderColor: 'rgba(37,99,235,1)', borderWidth: 2, type: 'bar' },
+            { label: 'Cumulative Success Probability (%)', data: cumP, backgroundColor: 'rgba(16,185,129,.1)', borderColor: 'rgba(16,185,129,1)', borderWidth: 3, type: 'line', tension: .4, pointBackgroundColor: 'rgba(16,185,129,1)', pointRadius: 5 }
+        ]};
+        if(this.chart) this.chart.destroy();
+        this.chart = new Chart(ctx, {
+            type: 'bar', data,
+            options: {
+                responsive: true, maintainAspectRatio: false,
+                plugins: { title: { display: true, text: 'Kill Chain Probability Analysis', font: { size: 16, weight: 'bold' } }, legend: { position: 'top' },
+                    tooltip: { callbacks: { label: ctx => `${ctx.dataset.label}: ${ctx.parsed.y.toFixed(3)}%` } }
+                },
+                scales: { y: { beginAtZero: true, max: 100, title: { display: true, text: 'Probability (%)' } } }
+            }
+        });
+    }
+
+    clearAll(force=false){
+        if(!force && this.stages.length && !confirm('Remove all stages?')) return;
+        this.stages = [];
+        document.getElementById('kill-chain').innerHTML = `
+            <div class="empty-state">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6-4h6m2 5a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                <h3>No stages yet</h3><p>Click "Add Stage" to start building your kill chain</p>
+            </div>`;
+        document.getElementById('results').style.display = 'none';
+        if(this.chart) this.chart.destroy();
+        localStorage.removeItem('killChainStages');
+    }
+
+    updateEmptyState(){
+        const cont = document.getElementById('kill-chain');
+        const has = cont.querySelector('.stage');
+        const empty = cont.querySelector('.empty-state');
+        if(!has && !empty){
+            const e = document.createElement('div'); e.className = 'empty-state';
+            e.innerHTML = `<svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6-4h6m2 5a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg><h3>No stages yet</h3><p>Click "Add Stage" to start building your kill chain</p>`;
+            cont.appendChild(e);
+        } else if(has && empty) empty.remove();
+    }
+
+    exportChain(){
+        if(!this.stages.length){ alert('Add stages first.'); return; }
+        const data = { name: "Kill Chain Model", exportedAt: new Date().toISOString(), version: "1.0",
+            stages: this.stages.map(s => ({ name: s.name, probability: s.probability, tactic: s.tactic }))
+        };
+        const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a'); a.href = url; a.download = `kill-chain-${new Date().toISOString().slice(0,10)}.json`;
+        a.click(); URL.revokeObjectURL(url);
+    }
+
+    importChain(e){
+        const file = e.target.files[0]; if(!file) return;
+        if(!file.name.endsWith('.json')){ alert('Select a .json file.'); return; }
+        const r = new FileReader(); r.onload = ev => {
+            try{
+                const d = JSON.parse(ev.target.result);
+                if(!d.stages || !Array.isArray(d.stages)) throw new Error('Invalid format');
+                this.stages = []; document.getElementById('kill-chain').innerHTML = '';
+                d.stages.forEach(s => { if(s.name && typeof s.probability === 'number') this.addStage(s.name, s.probability, s.tactic || ''); });
+                this.updateEmptyState(); this.saveToStorage(); alert(`Imported ${this.stages.length} stage(s).`);
+            }catch(err){ alert('Invalid JSON.'); }
+        }; r.readAsText(file); e.target.value = '';
+    }
+
+    handleDragStart(e){ const el = e.target.closest('.stage'); if(el){ this.draggedElement = el; el.classList.add('dragging'); e.dataTransfer.effectAllowed = 'move'; }}
+    handleDrop(e){ e.preventDefault(); if(!this.draggedElement) return; const target = e.target.closest('.stage'); const cont = document.getElementById('kill-chain'); if(target && target !== this.draggedElement){ const all = [...cont.querySelectorAll('.stage')]; const from = all.indexOf(this.draggedElement); const to = all.indexOf(target); from < to ? target.after(this.draggedElement) : target.before(this.draggedElement); const s = this.stages[from]; this.stages.splice(from, 1); this.stages.splice(to, 0, s); this.updateStageIndices(); this.saveToStorage(); }}
+    handleDragEnd(){ if(this.draggedElement){ this.draggedElement.classList.remove('dragging'); this.draggedElement = null; }}
+
+    saveToStorage(){ localStorage.setItem('killChainStages', JSON.stringify(this.stages)); }
+    loadFromStorage(){
+        const s = localStorage.getItem('killChainStages');
+        if(s) try{ const p = JSON.parse(s); if(Array.isArray(p)){ this.stages = p; document.getElementById('kill-chain').innerHTML = ''; p.forEach(st => this.renderStage(st)); this.updateEmptyState(); }} catch(e){ console.error(e); }
+    }
+}
+document.addEventListener('DOMContentLoaded', () => new KillChainModeller());
+</script>
 </body>
 </html>
