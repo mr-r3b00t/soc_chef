@@ -34,15 +34,16 @@ button{padding:.65rem 1.25rem;border:none;border-radius:6px;font-weight:600;curs
     display:flex;align-items:center;gap:.5rem;
 }
 .dropdown-toggle::after{
-    content:"down arrow";font-size:.9rem;
+    content:" ▼";font-size:.9rem;margin-left:.25rem;transition:transform .2s;
 }
+.dropdown-toggle.open::after{transform:rotate(180deg);}
 .dropdown-menu{
     position:absolute;top:100%;left:0;
     background:white;min-width:300px;max-height:320px;overflow-y:auto;
     box-shadow:0 4px 12px rgba(0,0,0,.15);border-radius:6px;
-    z-index:1000;display:none;
+    z-index:1000;display:none;opacity:0;transform:translateY(-10px);transition:all .2s ease;
 }
-.dropdown-menu.show{display:block;}
+.dropdown-menu.show{display:block;opacity:1;transform:translateY(0);}
 .dropdown-item{
     padding:.75rem 1rem;cursor:pointer;border:none;background:none;
     width:100%;text-align:left;transition:background .2s;font-size:.95rem;
@@ -139,7 +140,7 @@ input:focus,select:focus{outline:none;border-color:var(--primary);box-shadow:0 0
 <script>
 class KillChainModeller{
     constructor(){
-        this.stages=[];this.chart=null;this.draggedElement=null;
+        this.stages=[];this.chart=null;this.draggedElement=null;this.toggle=null;
         this.mitreTactics=[
             'Reconnaissance (TA0043)','Resource Development (TA0042)','Initial Access (TA0001)','Execution (TA0002)',
             'Persistence (TA0003)','Privilege Escalation (TA0004)','Defense Evasion (TA0005)','Credential Access (TA0006)',
@@ -179,8 +180,8 @@ class KillChainModeller{
         document.getElementById('export-chain').addEventListener('click',()=>this.exportChain());
         document.getElementById('import-chain-input').addEventListener('change',e=>this.importChain(e));
 
-        const toggle=document.getElementById('load-template');
-        toggle.addEventListener('click',e=>{
+        this.toggle = document.getElementById('load-template');
+        this.toggle.addEventListener('click',e=>{
             e.stopPropagation();
             this.toggleTemplateMenu();
         });
@@ -198,10 +199,14 @@ class KillChainModeller{
     }
 
     toggleTemplateMenu(){
-        document.getElementById('template-menu').classList.toggle('show');
+        const menu=document.getElementById('template-menu');
+        menu.classList.toggle('show');
+        this.toggle.classList.toggle('open', menu.classList.contains('show'));
     }
     hideTemplateMenu(){
-        document.getElementById('template-menu').classList.remove('show');
+        const menu=document.getElementById('template-menu');
+        menu.classList.remove('show');
+        this.toggle.classList.remove('open');
     }
 
     populateTemplateMenu(){
