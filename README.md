@@ -105,6 +105,8 @@ Reactive Orgs that either do not have Policies, Processes and Procedures or ones
 
 🎨 [Camera Distance Calculator](https://mr-r3b00t.github.io/soc_chef/tools/camera_distance_calculator.html)
 
+🎨 [Internet Comms Diagram](https://mr-r3b00t.github.io/soc_chef/models/internet_comms.html)
+
 🗒️ [Proximity Risk Assessment](https://mr-r3b00t.github.io/soc_chef/processes/risk/physical_risks.html)
 
 🗒️ [Days Ago](https://mr-r3b00t.github.io/soc_chef/tools/daysago.html)
