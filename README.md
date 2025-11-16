@@ -7,6 +7,10 @@ Reactive Orgs that either do not have Policies, Processes and Procedures or ones
 
 (these should be treated as proof of concepts/experiments, you might find them useful, you might find bugs/issues - feel free to log issues)
 
+
+
+🗒️ [Risk Appetite Wizard](https://mr-r3b00t.github.io/soc_chef/tools/risk_appteite_wizard.html)
+
 🗒️ [Cyber Security Policy Generation Tool - High Level](https://mr-r3b00t.github.io/soc_chef/policy/high_level_policy_tool.html)
 
 💻 [Device Security Policy Generation Tool - High Level](https://mr-r3b00t.github.io/soc_chef/policy/device_security.html)
@@ -31,9 +35,9 @@ Reactive Orgs that either do not have Policies, Processes and Procedures or ones
 
 🗒️ [Incident Response Contact Tool](https://mr-r3b00t.github.io/soc_chef/processes/ir/response_contacts.html)
 
-🗒️  [Incident Response Overview UK General Business](https://mr-r3b00t.github.io/soc_chef/processes/ir/uk_business_incident_response_overview.html)
+🗒️ [Incident Response Overview UK General Business](https://mr-r3b00t.github.io/soc_chef/processes/ir/uk_business_incident_response_overview.html)
 
-🗒️  [Incident Response Overview UK Charrities](https://mr-r3b00t.github.io/soc_chef/processes/ir/uk_charity_incident_response_overview.html)
+🗒️ [Incident Response Overview UK Charrities](https://mr-r3b00t.github.io/soc_chef/processes/ir/uk_charity_incident_response_overview.html)
 
 🗒️ [Data Breach Preparedness Assessment Tool](https://mr-r3b00t.github.io/soc_chef/processes/ir/Data%20Breach%20Preparedness%20Assessment%20Tool.html)
 
