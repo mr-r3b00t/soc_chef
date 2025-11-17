@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Browser ↔ Cloudflare ↔ Origin Communication Diagram with DoH</title>
+    <!-- Mermaid JS -->
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+    <script>
+        mermaid.initialize({ startOnLoad: true });
+    </script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1000px;
+            margin: 40px auto;
+            padding: 0 20px;
+            line-height: 1.6;
+        }
+        h1 {
+            text-align: center;
+        }
+        .mermaid {
+            max-width: 100%;
+            overflow-x: auto;
+            margin-top: 30px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Communication Flows Between Browser and Web Server (via Cloudflare) with DoH</h1>
+    <p>
+        This diagram shows DNS lookup using DoH (DNS over HTTPS) to Cloudflare's servers, TCP and TLS handshakes, and HTTPS traffic between
+        the browser, network hops, Cloudflare, and the origin server, with notes on who can see which metadata or payloads. Traffic between Cloudflare and Origin is encrypted (HTTPS). DoH encrypts DNS queries, hiding the domain from local router and ISP.
+    </p>
+    <div class="mermaid">
+sequenceDiagram
+    participant B as "Browser (Laptop)"
+    participant R as "Local Router (WiFi)"
+    participant I as "ISP Gateway"
+    participant BB as "Internet Backbone"
+    participant C as "Cloudflare Edge/DoH"
+    participant S as "Origin Server"
+    Note over B,S: DNS resolution phase via DoH (HTTPS encrypted)
+    Note over B,S: First, TCP three-way handshake to Cloudflare DoH (plaintext metadata)
+    B->>R: TCP SYN to Cloudflare DoH IP (e.g., 1.1.1.1) port 443
+    Note over R: Router sees client and Cloudflare DoH IP and ports
+    R->>I: Forward SYN
+    Note over I: ISP sees client and Cloudflare DoH IP and ports
+    I->>BB: Forward SYN
+    Note over BB: Transit routers see IP addresses and ports
+    BB->>C: Forward SYN
+    Note over C: Cloudflare sees client IP and port
+    C->>BB: TCP SYN ACK
+    Note over BB: Transit routers see handshake metadata
+    BB->>I: Forward SYN ACK
+    Note over I: ISP sees handshake metadata
+    I->>R: Forward SYN ACK
+    Note over R: Router sees handshake metadata
+    R->>B: SYN ACK
+    B->>R: TCP ACK
+    Note over R: Router sees ACK metadata
+    R->>I: Forward ACK
+    Note over I: ISP sees ACK metadata
+    I->>BB: Forward ACK
+    Note over BB: Transit routers see ACK metadata
+    BB->>C: Forward ACK
+    Note over C: Cloudflare sees ACK
+    Note over B,S: TLS handshake for DoH (partly visible)
+    B->>R: TLS ClientHello with SNI (e.g., cloudflare-dns.com)
+    Note over R: Router sees SNI (DoH domain) and addressing
+    R->>I: Forward ClientHello
+    Note over I: ISP sees SNI (DoH domain) and addressing
+    I->>BB: Forward ClientHello
+    Note over BB: Transit routers see SNI (DoH domain) and addressing
+    BB->>C: Forward ClientHello
+    Note over C: Cloudflare sees full ClientHello and SNI
+    C->>BB: TLS ServerHello certificate key exchange
+    Note over BB: Transit routers see server handshake metadata
+    BB->>I: Forward ServerHello and certificate
+    Note over I: ISP sees server handshake metadata
+    I->>R: Forward ServerHello and certificate
+    Note over R: Router sees server handshake metadata
+    R->>B: ServerHello certificate key exchange
+    B->>R: Client key exchange change cipher spec finished
+    Note over R: Router now sees only encrypted TLS records
+    R->>I: Forward encrypted handshake messages
+    Note over I: ISP sees encrypted TLS records and metadata
+    I->>BB: Forward encrypted handshake messages
+    Note over BB: Transit routers see encrypted TLS records
+    BB->>C: Forward encrypted handshake messages
+    C->>BB: TLS change cipher spec finished to client
+    Note over BB: Transit routers see encrypted records
+    BB->>I: Forward encrypted records
+    Note over I: ISP sees encrypted records and metadata
+    I->>R: Forward encrypted records
+    Note over R: Router sees encrypted records and metadata
+    R->>B: Change cipher spec finished
+    Note over B,S: Encrypted DoH query (HTTPS POST with DNS query)
+    B->>R: Encrypted HTTPS POST (DNS query: domain to IP)
+    Note over R: Router sees only IP ports sizes and timing (no domain)
+    R->>I: Forward encrypted query
+    Note over I: ISP sees encrypted payload and metadata (no domain)
+    I->>BB: Forward encrypted query
+    Note over BB: Transit routers see encrypted payload and metadata
+    BB->>C: Forward encrypted query
+    Note over C: Cloudflare decrypts, sees DNS query (domain)
+    C->>BB: Encrypted HTTPS response (Cloudflare IP for domain)
+    Note over BB: Transit routers see encrypted response and metadata
+    BB->>I: Forward encrypted response
+    Note over I: ISP sees encrypted response and metadata (no domain/IP)
+    I->>R: Forward encrypted response
+    Note over R: Router sees encrypted response and metadata
+    R->>B: Encrypted response
+    Note over B,S: DNS domain hidden from router/ISP; only metadata visible. Cloudflare sees domain.
+    Note over B,S: Proceed with main connection (TCP three-way handshake plaintext)
+    B->>R: TCP SYN to Cloudflare IP 443
+    Note over R: Router sees client and Cloudflare IP and ports
+    R->>I: Forward SYN
+    Note over I: ISP sees client and Cloudflare IP and ports
+    I->>BB: Forward SYN
+    Note over BB: Transit routers see IP addresses and ports
+    BB->>C: Forward SYN
+    Note over C: Cloudflare sees client IP and port
+    C->>BB: TCP SYN ACK
+    Note over BB: Transit routers see handshake metadata
+    BB->>I: Forward SYN ACK
+    Note over I: ISP sees handshake metadata
+    I->>R: Forward SYN ACK
+    Note over R: Router sees handshake metadata
+    R->>B: SYN ACK
+    B->>R: TCP ACK
+    Note over R: Router sees ACK metadata
+    R->>I: Forward ACK
+    Note over I: ISP sees ACK metadata
+    I->>BB: Forward ACK
+    Note over BB: Transit routers see ACK metadata
+    BB->>C: Forward ACK
+    Note over C: Cloudflare sees ACK
+    Note over B,S: Only metadata exchanged so far no payload
+    Note over B,S: TLS handshake partly visible
+    B->>R: TLS ClientHello with SNI domain
+    Note over R: Router sees SNI domain and addressing
+    R->>I: Forward ClientHello
+    Note over I: ISP sees SNI domain and addressing
+    I->>BB: Forward ClientHello
+    Note over BB: Transit routers see SNI domain and addressing
+    BB->>C: Forward ClientHello
+    Note over C: Cloudflare sees full ClientHello and SNI
+    C->>BB: TLS ServerHello certificate key exchange
+    Note over BB: Transit routers see server handshake metadata
+    BB->>I: Forward ServerHello and certificate
+    Note over I: ISP sees server handshake metadata
+    I->>R: Forward ServerHello and certificate
+    Note over R: Router sees server handshake metadata
+    R->>B: ServerHello certificate key exchange
+    B->>R: Client key exchange change cipher spec finished
+    Note over R: Router now sees only encrypted TLS records
+    R->>I: Forward encrypted handshake messages
+    Note over I: ISP sees encrypted TLS records and metadata
+    I->>BB: Forward encrypted handshake messages
+    Note over BB: Transit routers see encrypted TLS records
+    BB->>C: Forward encrypted handshake messages
+    C->>BB: TLS change cipher spec finished to client
+    Note over BB: Transit routers see encrypted records
+    BB->>I: Forward encrypted records
+    Note over I: ISP sees encrypted records and metadata
+    I->>R: Forward encrypted records
+    Note over R: Router sees encrypted records and metadata
+    R->>B: Change cipher spec finished
+    Note over B,S: After handshake payload will be encrypted on the wire
+    Note over B,S: HTTPS request and response encrypted
+    B->>R: Encrypted HTTPS GET request
+    Note over R: Router sees only IP ports sizes and timing
+    R->>I: Forward encrypted request
+    Note over I: ISP sees encrypted payload and metadata
+    I->>BB: Forward encrypted request
+    Note over BB: Transit routers see encrypted payload and metadata
+    BB->>C: Forward encrypted request
+    Note over C: Cloudflare decrypts sees full HTTP request
+    Note over C,S: Separate TLS connection to Origin (encrypted)
+    C->>S: Encrypted HTTPS request to origin
+    Note over S: Origin decrypts sees full HTTP request payload
+    S->>C: Encrypted HTTPS response
+    Note over C: Cloudflare decrypts response, re-encrypts for client
+    C->>BB: Encrypted HTTPS response to client
+    Note over BB: Transit routers see encrypted response and metadata
+    BB->>I: Forward encrypted response
+    Note over I: ISP sees encrypted response and metadata
+    I->>R: Forward encrypted response
+    Note over R: Router sees encrypted response and metadata
+    R->>B: Encrypted response
+    Note over B,S: Only browser Cloudflare and origin can see HTTP payload (after decryption)
+    </div>
+</body>
+</html>
