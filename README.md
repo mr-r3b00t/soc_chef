@@ -111,6 +111,9 @@ Reactive Orgs that either do not have Policies, Processes and Procedures or ones
 
 🎨 [Internet Comms Diagram - Cloudflare - Full HTTPS - DoH](https://mr-r3b00t.github.io/soc_chef/models/internet_connection_doh.html)
 
+🎨 [Internet Comms Diagram - Cloudflare - Full HTTPS - DoH - Different Design](https://mr-r3b00t.github.io/soc_chef/models/comms_with_doh.html)
+
+
 🗒️ [Proximity Risk Assessment](https://mr-r3b00t.github.io/soc_chef/processes/risk/physical_risks.html)
 
 🗒️ [Days Ago](https://mr-r3b00t.github.io/soc_chef/tools/daysago.html)
