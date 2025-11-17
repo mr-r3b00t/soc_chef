@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Browser ↔ Cloudflare ↔ Origin Communication Diagram with DoH</title>
+
+    <!-- Mermaid JS -->
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+    <script>
+        mermaid.initialize({ startOnLoad: true });
+    </script>
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1100px;
+            margin: 40px auto;
+            padding: 0 20px;
+            line-height: 1.6;
+        }
+        h1 {
+            text-align: center;
+        }
+        .mermaid {
+            max-width: 100%;
+            overflow-x: auto;
+            margin-top: 30px;
+            background: #fafafa;
+            padding: 20px;
+            border-radius: 10px;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>Communication Flows Between Browser, Cloudflare, and Origin (with DoH)</h1>
+
+    <p>
+        This diagram shows DNS over HTTPS (DoH) to Cloudflare, TCP and TLS handshakes, and encrypted HTTPS traffic
+        between the browser, intermediate network devices, Cloudflare, and the origin server.
+        Notes indicate which parties can see metadata vs. payload.
+    </p>
+
+    <div class="mermaid">
+sequenceDiagram
+    participant B as "Browser (Laptop)"
+    participant R as "Local Router (WiFi)"
+    participant I as "ISP Gateway"
+    participant BB as "Internet Backbone"
+    participant C as "Cloudflare Edge/DoH"
+    participant S as "Origin Server"
+
+    Note over B,S: DNS resolution phase via DoH (HTTPS encrypted)
+    Note over B,S: First, TCP three-way handshake to Cloudflare DoH (plaintext metadata)
+
+    B->>R: TCP SYN to Cloudflare DoH IP (e.g., 1.1.1.1) port 443
+    Note over R: Router sees client and Cloudflare DoH IP and ports
+    R->>I: Forward SYN
+    Note over I: ISP sees client and Cloudflare DoH IP and ports
+    I->>BB: Forward SYN
+    Note over BB: Transit routers see IP addresses and ports
+    BB->>C: Forward SYN
+    Note over C: Cloudflare sees client IP and port
+
+    C->>BB: TCP SYN ACK
+    BB->>I: Forward SYN ACK
+    I->>R: Forward SYN ACK
+    R->>B: SYN ACK
+
+    B->>R: TCP ACK
+    R->>I: Forward ACK
+    I->>BB: Forward ACK
+    BB->>C: Forward ACK
+
+    Note over B,S: TLS handshake for DoH (partly visible)
+
+    B->>R: TLS ClientHello with SNI (cloudflare-dns.com)
+    R->>I: Forward ClientHello
+    I->>BB: Forward ClientHello
+    BB->>C: Forward ClientHello
+
+    C->>BB: TLS ServerHello + certificate
+    BB->>I: Forward ServerHello
+    I->>R: Forward ServerHello
+    R->>B: ServerHello
+
+    B->>R: Client Key Exchange + ChangeCipherSpec
+    R->>I: Forward encrypted handshake
+    I->>BB: Forward encrypted handshake
+    BB->>C: Forward encrypted handshake
+
+    C->>BB: Encrypted Finished
+    BB->>I: Forward encrypted Finished
+    I->>R: Forward encrypted Finished
+    R->>B: Encrypted Finished
+
+    Note over B,S: Encrypted DoH query (HTTPS POST with DNS query)
+
+    B->>R: Encrypted DoH POST (DNS query)
+    R->>I: Forward encrypted packet
+    I->>BB: Forward encrypted packet
+    BB->>C: Forward encrypted packet
+    Note over C: Cloudflare decrypts, sees domain
+
+    C->>BB: Encrypted DoH response (IP address)
+    BB->>I: Forward response
+    I->>R: Forward response
+    R->>B: Forward response
+
+    Note over B,S: DNS domain hidden from router/ISP; Cloudflare sees it.
+
+    Note over B,S: Proceed with main HTTPS connection to Cloudflare
+
+    B->>R: TCP SYN to Cloudflare IP 443
+    R->>I: Forward SYN
+    I->>BB: Forward SYN
+    BB->>C: Forward SYN
+    C->>BB: SYN ACK
+    BB->>I: Forward SYN ACK
+    I->>R: Forward SYN ACK
+    R->>B: SYN ACK
+    B->>R: TCP ACK
+    R->>I: ACK
+    I->>BB: ACK
+    BB->>C: ACK
+
+    Note over B,S: TLS handshake begins (SNI visible)
+
+    B->>R: TLS ClientHello with SNI (website domain)
+    R->>I: Forward ClientHello
+    I->>BB: Forward ClientHello
+    BB->>C: Forward ClientHello
+
+    C->>BB: TLS ServerHello + certificate
+    BB->>I: Forward
+    I->>R: Forward
+    R->>B: Forward
+
+    B->>R: ClientKeyExchange + ChangeCipherSpec
+    R->>I: Forward encrypted
+    I->>BB: Forward encrypted
+    BB->>C: Forward encrypted
+
+    C->>BB: Encrypted Finished
+    BB->>I: Forward
+    I->>R: Forward
+    R->>B: Forward
+
+    Note over B,S: HTTPS traffic now fully encrypted (metadata visible)
+
+    B->>R: Encrypted HTTPS GET
+    R->>I: Forward encrypted request
+    I->>BB: Forward encrypted request
+    BB->>C: Forward encrypted request
+    Note over C: Cloudflare decrypts HTTP request
+
+    Note over C,S: Cloudflare ↔ Origin: separate TLS session
+
+    C->>S: Encrypted HTTPS request to origin
+    S->>C: Encrypted HTTPS response
+    Note over C: Cloudflare decrypts and re-encrypts for client
+
+    C->>BB: Encrypted HTTPS response
+    BB->>I: Forward
+    I->>R: Forward
+    R->>B: Forward
+
+    Note over B,S: Only Browser, Cloudflare, and Origin can see HTTP payload
+    </div>
+
+</body>
+</html>
