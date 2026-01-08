@@ -136,6 +136,7 @@ Reactive Orgs that either do not have Policies, Processes and Procedures or ones
 
 🛜 [UK WIFI Hacking Risk Analysis PoC](https://mr-r3b00t.github.io/soc_chef/tools/wifi_hacking_risk_model.html)
 
+🎨 [DNS Resolver - Google](https://mr-r3b00t.github.io/soc_chef/tools/dns_resolver.html)
 
 
 ☕ [Buy me a coffee](https://buymeacoffee.com/mrr3b00t)  
