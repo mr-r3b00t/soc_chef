@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DNS Resolver App</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        textarea {
+            width: 100%;
+            height: 150px;
+            margin-bottom: 10px;
+        }
+        button {
+            padding: 10px 20px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+        .error {
+            color: red;
+        }
+    </style>
+</head>
+<body>
+    <h1>DNS Resolver</h1>
+    <p>Paste a list of domain names (one per line) below:</p>
+    <textarea id="domainsInput" placeholder="example.com&#10;google.com&#10;..."></textarea>
+    <button onclick="resolveDomains()">Resolve IPs</button>
+    <div id="resultTable"></div>
+
+    <script>
+        async function resolveDomains() {
+            const input = document.getElementById('domainsInput').value.trim();
+            if (!input) {
+                alert('Please enter at least one domain.');
+                return;
+            }
+
+            const domains = input.split('\n').map(d => d.trim()).filter(d => d);
+            const tableContainer = document.getElementById('resultTable');
+            tableContainer.innerHTML = ''; // Clear previous results
+
+            const table = document.createElement('table');
+            const thead = document.createElement('thead');
+            const tbody = document.createElement('tbody');
+
+            const headerRow = document.createElement('tr');
+            ['Domain', 'IP Addresses'].forEach(text => {
+                const th = document.createElement('th');
+                th.textContent = text;
+                headerRow.appendChild(th);
+            });
+            thead.appendChild(headerRow);
+            table.appendChild(thead);
+            table.appendChild(tbody);
+
+            for (const domain of domains) {
+                const row = document.createElement('tr');
+                const domainCell = document.createElement('td');
+                domainCell.textContent = domain;
+                row.appendChild(domainCell);
+
+                const ipCell = document.createElement('td');
+                try {
+                    const response = await fetch(`https://dns.google/resolve?name=${encodeURIComponent(domain)}&type=A`);
+                    if (!response.ok) {
+                        throw new Error('Network response was not ok');
+                    }
+                    const data = await response.json();
+                    if (data.Status !== 0) {
+                        throw new Error(`DNS resolution failed with status ${data.Status}`);
+                    }
+                    const ips = data.Answer ? data.Answer.map(a => a.data).join(', ') : 'No A records found';
+                    ipCell.textContent = ips;
+                } catch (error) {
+                    ipCell.textContent = `Error: ${error.message}`;
+                    ipCell.classList.add('error');
+                }
+                row.appendChild(ipCell);
+                tbody.appendChild(row);
+            }
+
+            tableContainer.appendChild(table);
+        }
+    </script>
+</body>
+</html>
