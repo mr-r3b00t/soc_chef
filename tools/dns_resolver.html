@@ -10,12 +10,6 @@
         body {
             font-family: 'Inter', sans-serif;
         }
-        .table-row-even {
-            @apply bg-white;
-        }
-        .table-row-odd {
-            @apply bg-gray-50;
-        }
     </style>
 </head>
 <body class="bg-gray-100 min-h-screen py-12 px-4">
@@ -30,7 +24,7 @@
                 rows="8"
                 placeholder="example.com&#10;google.com&#10;github.com&#10;cloudflare.com"></textarea>
 
-            <div class="mt-6 flex gap-4">
+            <div class="mt-6 flex gap-4 flex-wrap">
                 <button
                     onclick="resolveDomains()"
                     class="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-xl shadow-md hover:shadow-lg transition transform hover:-translate-y-0.5">
@@ -43,14 +37,26 @@
                     class="px-6 py-3 bg-green-600 hover:bg-green-700 text-white font-medium rounded-xl shadow-md hover:shadow-lg transition transform hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none">
                     Export to CSV
                 </button>
+                <button
+                    onclick="copyToClipboard()"
+                    id="copyBtn"
+                    disabled
+                    class="px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white font-medium rounded-xl shadow-md hover:shadow-lg transition transform hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none">
+                    Copy to Clipboard
+                </button>
             </div>
 
             <div id="resultTable" class="mt-10"></div>
+
+            <!-- Toast notification -->
+            <div id="toast" class="fixed bottom-6 right-6 bg-gray-900 text-white px-6 py-3 rounded-xl shadow-2xl opacity-0 transition-opacity duration-300 pointer-events-none">
+                Copied to clipboard!
+            </div>
         </div>
     </div>
 
     <script>
-        let resolvedData = []; // Store resolved data for export
+        let resolvedData = []; // Store resolved data for export and copy
 
         async function resolveDomains() {
             const input = document.getElementById('domainsInput').value.trim();
@@ -62,6 +68,7 @@
             const domains = input.split('\n').map(d => d.trim()).filter(d => d.length > 0);
             const tableContainer = document.getElementById('resultTable');
             const exportBtn = document.getElementById('exportBtn');
+            const copyBtn = document.getElementById('copyBtn');
             
             tableContainer.innerHTML = '<p class="text-gray-600">Resolving domains...</p>';
             resolvedData = [];
@@ -110,7 +117,7 @@
 
                     if (ips.length > 0) {
                         ipCell.textContent = ips.join(', ');
-                        // Store for CSV export: one row per IP
+                        // Store one entry per IP for both CSV and clipboard
                         ips.forEach(ip => {
                             resolvedData.push({ domain, ip });
                         });
@@ -128,10 +135,10 @@
             tableContainer.innerHTML = '';
             tableContainer.appendChild(table);
 
-            // Enable export button if we have data
-            if (resolvedData.length > 0) {
-                exportBtn.disabled = false;
-            }
+            // Enable buttons if we have valid data
+            const hasValidIPs = resolvedData.some(row => /^(\d{1,3}\.){3}\d{1,3}$/.test(row.ip));
+            exportBtn.disabled = !hasValidIPs;
+            copyBtn.disabled = !hasValidIPs;
         }
 
         function exportToCSV() {
@@ -140,16 +147,13 @@
                 return;
             }
 
-            // Create CSV with one IP per row
             let csvContent = "Hostname,IP Address\n";
             resolvedData.forEach(row => {
-                // Only include rows with valid IPs
                 if (/^(\d{1,3}\.){3}\d{1,3}$/.test(row.ip)) {
                     csvContent += `"${row.domain}","${row.ip}"\n`;
                 }
             });
 
-            // Create blob and trigger download
             const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
             const url = URL.createObjectURL(blob);
             const link = document.createElement('a');
@@ -159,6 +163,44 @@
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
+        }
+
+        function copyToClipboard() {
+            if (resolvedData.length === 0) {
+                alert('No data to copy.');
+                return;
+            }
+
+            // Build plain text: one hostname-IP pair per line
+            let text = "";
+            resolvedData.forEach(row => {
+                if (/^(\d{1,3}\.){3}\d{1,3}$/.test(row.ip)) {
+                    text += `${row.domain},${row.ip}\n`;
+                }
+            });
+
+            if (text === "") {
+                alert('No valid IP addresses to copy.');
+                return;
+            }
+
+            navigator.clipboard.writeText(text).then(() => {
+                showToast();
+            }).catch(err => {
+                console.error('Failed to copy: ', err);
+                alert('Failed to copy to clipboard.');
+            });
+        }
+
+        function showToast() {
+            const toast = document.getElementById('toast');
+            toast.classList.remove('opacity-0');
+            toast.classList.add('opacity-100');
+
+            setTimeout(() => {
+                toast.classList.remove('opacity-100');
+                toast.classList.add('opacity-0');
+            }, 2000);
         }
     </script>
 </body>
