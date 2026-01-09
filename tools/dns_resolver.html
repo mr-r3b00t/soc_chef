@@ -44,19 +44,29 @@
                     class="px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white font-medium rounded-xl shadow-md hover:shadow-lg transition transform hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none">
                     Copy to Clipboard
                 </button>
+                <button
+                    onclick="copyIPsOnly()"
+                    id="copyIPsBtn"
+                    disabled
+                    class="px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-xl shadow-md hover:shadow-lg transition transform hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none">
+                    Copy IP Addresses Only
+                </button>
             </div>
 
             <div id="resultTable" class="mt-10"></div>
 
-            <!-- Toast notification -->
-            <div id="toast" class="fixed bottom-6 right-6 bg-gray-900 text-white px-6 py-3 rounded-xl shadow-2xl opacity-0 transition-opacity duration-300 pointer-events-none">
+            <!-- Toast notifications -->
+            <div id="toast" class="fixed bottom-6 right-6 bg-gray-900 text-white px-6 py-3 rounded-xl shadow-2xl opacity-0 transition-opacity duration-300 pointer-events-none z-50">
                 Copied to clipboard!
+            </div>
+            <div id="toastIPs" class="fixed bottom-6 right-6 bg-gray-900 text-white px-6 py-3 rounded-xl shadow-2xl opacity-0 transition-opacity duration-300 pointer-events-none z-50">
+                IP addresses copied!
             </div>
         </div>
     </div>
 
     <script>
-        let resolvedData = []; // Store resolved data for export and copy
+        let resolvedData = []; // { domain, ip }
 
         async function resolveDomains() {
             const input = document.getElementById('domainsInput').value.trim();
@@ -69,6 +79,7 @@
             const tableContainer = document.getElementById('resultTable');
             const exportBtn = document.getElementById('exportBtn');
             const copyBtn = document.getElementById('copyBtn');
+            const copyIPsBtn = document.getElementById('copyIPsBtn');
             
             tableContainer.innerHTML = '<p class="text-gray-600">Resolving domains...</p>';
             resolvedData = [];
@@ -117,10 +128,7 @@
 
                     if (ips.length > 0) {
                         ipCell.textContent = ips.join(', ');
-                        // Store one entry per IP for both CSV and clipboard
-                        ips.forEach(ip => {
-                            resolvedData.push({ domain, ip });
-                        });
+                        ips.forEach(ip => resolvedData.push({ domain, ip }));
                     } else {
                         ipCell.textContent = 'No A records';
                         resolvedData.push({ domain, ip: 'No A records' });
@@ -135,17 +143,20 @@
             tableContainer.innerHTML = '';
             tableContainer.appendChild(table);
 
-            // Enable buttons if we have valid data
             const hasValidIPs = resolvedData.some(row => /^(\d{1,3}\.){3}\d{1,3}$/.test(row.ip));
             exportBtn.disabled = !hasValidIPs;
             copyBtn.disabled = !hasValidIPs;
+            copyIPsBtn.disabled = !hasValidIPs;
+        }
+
+        function getValidIPs() {
+            return resolvedData
+                .filter(row => /^(\d{1,3}\.){3}\d{1,3}$/.test(row.ip))
+                .map(row => row.ip);
         }
 
         function exportToCSV() {
-            if (resolvedData.length === 0) {
-                alert('No data to export.');
-                return;
-            }
+            if (resolvedData.length === 0) return alert('No data to export.');
 
             let csvContent = "Hostname,IP Address\n";
             resolvedData.forEach(row => {
@@ -157,8 +168,8 @@
             const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
             const url = URL.createObjectURL(blob);
             const link = document.createElement('a');
-            link.setAttribute('href', url);
-            link.setAttribute('download', `dns_resolution_${new Date().toISOString().slice(0,10)}.csv`);
+            link.href = url;
+            link.download = `dns_resolution_${new Date().toISOString().slice(0,10)}.csv`;
             link.style.visibility = 'hidden';
             document.body.appendChild(link);
             link.click();
@@ -166,12 +177,8 @@
         }
 
         function copyToClipboard() {
-            if (resolvedData.length === 0) {
-                alert('No data to copy.');
-                return;
-            }
+            if (resolvedData.length === 0) return alert('No data to copy.');
 
-            // Build plain text: one hostname-IP pair per line
             let text = "";
             resolvedData.forEach(row => {
                 if (/^(\d{1,3}\.){3}\d{1,3}$/.test(row.ip)) {
@@ -179,28 +186,28 @@
                 }
             });
 
-            if (text === "") {
-                alert('No valid IP addresses to copy.');
-                return;
-            }
+            if (!text) return alert('No valid IP addresses to copy.');
 
-            navigator.clipboard.writeText(text).then(() => {
-                showToast();
-            }).catch(err => {
-                console.error('Failed to copy: ', err);
-                alert('Failed to copy to clipboard.');
-            });
+            navigator.clipboard.writeText(text).then(() => showToast('toast')).catch(() => alert('Failed to copy.'));
         }
 
-        function showToast() {
-            const toast = document.getElementById('toast');
+        function copyIPsOnly() {
+            const ips = getValidIPs();
+            if (ips.length === 0) return alert('No valid IP addresses to copy.');
+
+            const text = ips.join('\n');
+
+            navigator.clipboard.writeText(text).then(() => showToast('toastIPs')).catch(() => alert('Failed to copy.'));
+        }
+
+        function showToast(id) {
+            const toast = document.getElementById(id);
             toast.classList.remove('opacity-0');
             toast.classList.add('opacity-100');
-
             setTimeout(() => {
                 toast.classList.remove('opacity-100');
                 toast.classList.add('opacity-0');
-            }, 2000);
+            }, 2200);
         }
     </script>
 </body>
