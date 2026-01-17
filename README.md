@@ -17,6 +17,8 @@ Reactive Orgs that either do not have Policies, Processes and Procedures or ones
 
 🗒️ [Cyber Security Roadmap & Budget Planner](https://mr-r3b00t.github.io/soc_chef/planning/cyber_roadmap.html)
 
+🗒️ [Enterprsise Network Defence Assessment](https://mr-r3b00t.github.io/soc_chef/assessments/net%20defend/enterprise_network_defence.html)
+
 🏥 [Generic Cyber Incident Response Plan](https://mr-r3b00t.github.io/soc_chef/processes/ir/generic_incident_response.html)
 
 🗒️ [Data Breach Business Response Wizard](https://mr-r3b00t.github.io/soc_chef/processes/ir/Data%20Breach%20Response%20Wizard%20for%20UK%20Organizations.html)
