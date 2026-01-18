@@ -178,7 +178,7 @@
             body { background: white; }
             .checklist-section, .assessment-header, .progress-overview { box-shadow: none; page-break-inside: avoid; }
             header { box-shadow: none; }
-            .actions-row button:not(#reset-storage) { display: none; }
+            .actions-row button { display: none; }
         }
     </style>
 </head>
@@ -227,8 +227,6 @@
 </section>
 
 <main>
-    <!-- All sections with questions – same as before -->
-
     <section class="checklist-section">
         <div class="section-header">Identity & Access Management (Entra ID)<span class="section-progress">0/0</span></div>
         <div class="section-content">
@@ -244,11 +242,198 @@
         </div>
     </section>
 
-    <!-- The rest of the sections follow the same pattern -->
-    <!-- ... (all remaining sections with their respective questions as in previous messages) ... -->
+    <section class="checklist-section">
+        <div class="section-header">Hybrid Identity Synchronization (Entra ID Connect)<span class="section-progress">0/0</span></div>
+        <div class="section-content">
+            <ul class="checklist">
+                <li><label class="checkbox-label"><input type="checkbox" data-index="7"><div class="checkbox"></div><div class="item-text">Harden the Entra ID Connect server (place in Tier 1, restrict RDP/admin access, apply security baselines)</div></label></li>
+                <li><label class="checkbox-label"><input type="checkbox" data-index="8"><div class="checkbox"></div><div class="item-text">Use least-privilege service accounts for synchronization (no Domain Admin rights)</div></label></li>
+                <li><label class="checkbox-label"><input type="checkbox" data-index="9"><div class="checkbox"></div><div class="item-text">Enable staging mode server for high availability and testing changes</div></label></li>
+                <li><label class="checkbox-label"><input type="checkbox" data-index="10"><div class="checkbox"></div><div class="item-text">Configure password hash sync or Pass-through Authentication with PTA agent hardening</div></label></li>
+                <li><label class="checkbox-label"><input type="checkbox" data-index="11"><div class="checkbox"></div><div class="item-text">Enable seamless SSO and monitor sync health via Entra Connect Health</div></label></li>
+                <li><label class="checkbox-label"><input type="checkbox" data-index="12"><div class="checkbox"></div><div class="item-text">Regularly review and minimize synced attributes/OU filtering</div></label></li>
+                <li><label class="checkbox-label"><input type="checkbox" data-index="13"><div class="checkbox"></div><div class="item-text">Monitor Entra Connect logs and alert on sync errors or credential changes</div></label></li>
+            </ul>
+        </div>
+    </section>
 
-    <!-- For brevity I'm not repeating all 88 questions here again, but they should be copied from the previous complete version -->
+    <section class="checklist-section">
+        <div class="section-header">On-Premises Active Directory Security<span class="section-progress">0/0</span></div>
+        <div class="section-content">
+            <ul class="checklist">
+                <li><label class="checkbox-label"><input type="checkbox" data-index="14"><div class="checkbox"></div><div class="item-text">Implement Tiered Administration Model (Tier 0: Domain Controllers/AD Admins, Tier 1: Servers, Tier 2: Workstations)</div></label></li>
+                <li><label class="checkbox-label"><input type="checkbox" data-index="15"><div class="checkbox"></div><div class="item-text">Protect Tier 0 accounts with dedicated PAWs and restrict logon to secure hosts only</div></label></li>
+                <li><label class="checkbox-label"><input type="checkbox" data-index="16"><div class="checkbox"></div><div class="item-text">Enable LDAP signing, LDAPS, and channel binding; disable NTLM where possible</div></label></li>
+                <li><label class="checkbox-label"><input type="checkbox" data-index="17"><div class="checkbox"></div><div class="item-text">Apply Microsoft Tier 0 hardening baselines to Domain Controllers (restricted services, firewall rules)</div></label></li>
+                <li><label class="checkbox-label"><input type="checkbox" data-index="18"><div class="checkbox"></div><div class="item-text">Regularly audit privileged group membership and implement time-bound/just-in-time access</div></label></li>
+                <li><label class="checkbox-label"><input type="checkbox" data-index="19"><div class="checkbox"></div><div class="item-text">Enable Advanced Audit Policy (credential validation, Kerberos events, privileged use)</div></label></li>
+                <li><label class="checkbox-label"><input type="checkbox" data-index="20"><div class="checkbox"></div><div class="item-text">Deploy Microsoft LAPS (Local Administrator Password Solution) across domain-joined systems</div></label></li>
+            </ul>
+        </div>
+    </section>
 
+    <section class="checklist-section">
+        <div class="section-header">Active Directory Certificate Services (ADCS)<span class="section-progress">0/0</span></div>
+        <div class="section-content">
+            <ul class="checklist">
+                <li><label class="checkbox-label"><input type="checkbox" data-index="21"><div class="checkbox"></div><div class="item-text">Isolate CA servers in Tier 0 and restrict administrative access</div></label></li>
+                <li><label class="checkbox-label"><input type="checkbox" data-index="22"><div class="checkbox"></div><div class="item-text">Review and restrict certificate templates (disable vulnerable ESC1-8 templates, enforce manager approval)</div></label></li>
+                <li><label class="checkbox-label"><input type="checkbox" data-index="23"><div class="checkbox"></div><div class="item-text">Enable certificate enrollment logging and monitor for suspicious requests</div></label></li>
+                <li><label class="checkbox-label"><input type="checkbox" data-index="24"><div class="checkbox"></div><div class="item-text">Use NDES/SCEP only with strong authentication and Intune integration</div></label></li>
+                <li><label class="checkbox-label"><input type="checkbox" data-index="25"><div class="checkbox"></div><div class="item-text">Regularly rotate CA keys and implement HSM-backed protection where possible</div></label></li>
+                <li><label class="checkbox-label"><input type="checkbox" data-index="26"><div class="checkbox"></div><div class="item-text">Disable HTTP-based enrollment (CEP/CES) if not required; enforce HTTPS</div></label></li>
+            </ul>
+        </div>
+    </section>
+
+    <section class="checklist-section">
+        <div class="section-header">Privileged Access Workstations (PAWs)<span class="section-progress">0/0</span></div>
+        <div class="section-content">
+            <ul class="checklist">
+                <li><label class="checkbox-label"><input type="checkbox" data-index="27"><div class="checkbox"></div><div class="item-text">Deploy dedicated hardened PAWs for all Tier 0/1 administration (no email/web browsing)</div></label></li>
+                <li><label class="checkbox-label"><input type="checkbox" data-index="28"><div class="checkbox"></div><div class="item-text">Enforce Device Guard/Credential Guard, AppLocker/WDAC, and BitLocker on PAWs</div></label></li>
+                <li><label class="checkbox-label"><input type="checkbox" data-index="29"><div class="checkbox"></div><div class="item-text">Restrict PAW logons to privileged accounts only and block inbound/outbound internet access</div></label></li>
+                <li><label class="checkbox-label"><input type="checkbox" data-index="30"><div class="checkbox"></div><div class="item-text">Manage PAWs via dedicated Intune policies or separate OU with strict GPOs</div></label></li>
+                <li><label class="checkbox-label"><input type="checkbox" data-index="31"><div class="checkbox"></div><div class="item-text">Monitor PAW usage and alert on deviations from baseline</div></label></li>
+            </ul>
+        </div>
+    </section>
+
+    <section class="checklist-section">
+        <div class="section-header">Endpoint Management (Intune & Workstations)<span class="section-progress">0/0</span></div>
+        <div class="section-content">
+            <ul class="checklist">
+                <li><label class="checkbox-label"><input type="checkbox" data-index="32"><div class="checkbox"></div><div class="item-text">Enroll all corporate devices in Intune (Autopilot for Windows, ADE for iOS/macOS)</div></label></li>
+                <li><label class="checkbox-label"><input type="checkbox" data-index="33"><div class="checkbox"></div><div class="item-text">Define and enforce device compliance policies (encryption, OS version, jailbreak/root detection)</div></label></li>
+                <li><label class="checkbox-label"><input type="checkbox" data-index="34"><div class="checkbox"></div><div class="item-text">Deploy Endpoint Security baselines (Defender for Endpoint, firewall rules, ASR rules)</div></label></li>
+                <li><label class="checkbox-label"><input type="checkbox" data-index="35"><div class="checkbox"></div><div class="item-text">Enable BitLocker with TPM+PIN, Windows Hello for Business, and LAPS on workstations</div></label></li>
+                <li><label class="checkbox-label"><input type="checkbox" data-index="36"><div class="checkbox"></div><div class="item-text">Implement App Protection Policies (MAM) and restrict data transfer between managed/unmanaged apps</div></label></li>
+                <li><label class="checkbox-label"><input type="checkbox" data-index="37"><div class="checkbox"></div><div class="item-text">Regularly patch workstations via Intune/WSUS and enforce application allowlisting (AppLocker/WDAC)</div></label></li>
+            </ul>
+        </div>
+    </section>
+
+    <section class="checklist-section">
+        <div class="section-header">Member Servers (General Hardening)<span class="section-progress">0/0</span></div>
+        <div class="section-content">
+            <ul class="checklist">
+                <li><label class="checkbox-label"><input type="checkbox" data-index="38"><div class="checkbox"></div><div class="item-text">Apply Microsoft/CIS security baselines via GPO or Intune for all server roles</div></label></li>
+                <li><label class="checkbox-label"><input type="checkbox" data-index="39"><div class="checkbox"></div><div class="item-text">Remove unnecessary services, accounts, and disable SMBv1/NTLMv1</div></label></li>
+                <li><label class="checkbox-label"><input type="checkbox" data-index="40"><div class="checkbox"></div><div class="item-text">Enable Windows Defender with real-time protection and exploit mitigation (CFG, DEP)</div></label></li>
+                <li><label class="checkbox-label"><input type="checkbox" data-index="41"><div class="checkbox"></div><div class="item-text">Implement Just Enough Administration (JEA) for remote management</div></label></li>
+                <li><label class="checkbox-label"><input type="checkbox" data-index="42"><div class="checkbox"></div><div class="item-text">Restrict local administrator membership and use LAPS for local accounts</div></label></li>
+            </ul>
+        </div>
+    </section>
+
+    <section class="checklist-section">
+        <div class="section-header">File Server Security<span class="section-progress">0/0</span></div>
+        <div class="section-content">
+            <ul class="checklist">
+                <li><label class="checkbox-label"><input type="checkbox" data-index="43"><div class="checkbox"></div><div class="item-text">Disable SMBv1 and enforce SMB signing/encryption (SMB 3.1.1+)</div></label></li>
+                <li><label class="checkbox-label"><input type="checkbox" data-index="44"><div class="checkbox"></div><div class="item-text">Implement access-based enumeration (ABE) and least-privilege NTFS/share permissions</div></label></li>
+                <li><label class="checkbox-label"><input type="checkbox" data-index="45"><div class="checkbox"></div><div class="item-text">Enable File Server Resource Manager (FSRM) for file screening and ransomware detection</div></label></li>
+                <li><label class="checkbox-label"><input type="checkbox" data-index="46"><div class="checkbox"></div><div class="item-text">Configure detailed file access auditing and forward logs to SIEM</div></label></li>
+                <li><label class="checkbox-label"><input type="checkbox" data-index="47"><div class="checkbox"></div><div class="item-text">Use BitLocker or Azure Disk Encryption for volumes storing sensitive data</div></label></li>
+                <li><label class="checkbox-label"><input type="checkbox" data-index="48"><div class="checkbox"></div><div class="item-text">Regularly review and classify data; implement Dynamic Access Control where appropriate</div></label></li>
+            </ul>
+        </div>
+    </section>
+
+    <section class="checklist-section">
+        <div class="section-header">SQL Server Security<span class="section-progress">0/0</span></div>
+        <div class="section-content">
+            <ul class="checklist">
+                <li><label class="checkbox-label"><input type="checkbox" data-index="49"><div class="checkbox"></div><div class="item-text">Use least-privilege SQL logins and roles; avoid sa account usage</div></label></li>
+                <li><label class="checkbox-label"><input type="checkbox" data-index="50"><div class="checkbox"></div><div class="item-text">Enable TDE (Transparent Data Encryption) and Always Encrypted for sensitive columns</div></label></li>
+                <li><label class="checkbox-label"><input type="checkbox" data-index="51"><div class="checkbox"></div><div class="item-text">Configure SQL Server auditing and forward logs to central SIEM</div></label></li>
+                <li><label class="checkbox-label"><input type="checkbox" data-index="52"><div class="checkbox"></div><div class="item-text">Restrict network access (firewall rules, disable public interfaces)</div></label></li>
+                <li><label class="checkbox-label"><input type="checkbox" data-index="53"><div class="checkbox"></div><div class="item-text">Keep SQL Server patched and disable unnecessary features (xp_cmdshell, OLE Automation)</div></label></li>
+            </ul>
+        </div>
+    </section>
+
+    <section class="checklist-section">
+        <div class="section-header">Web Application Servers (IIS/.NET/etc.)<span class="section-progress">0/0</span></div>
+        <div class="section-content">
+            <ul class="checklist">
+                <li><label class="checkbox-label"><input type="checkbox" data-index="54"><div class="checkbox"></div><div class="item-text">Harden IIS (remove default content, disable directory browsing, enforce TLS 1.2+)</div></label></li>
+                <li><label class="checkbox-label"><input type="checkbox" data-index="55"><div class="checkbox"></div><div class="item-text">Use dedicated service accounts with least privilege and managed service identities</div></label></li>
+                <li><label class="checkbox-label"><input type="checkbox" data-index="56"><div class="checkbox"></div><div class="item-text">Implement WAF (Web Application Firewall) and regular vulnerability scanning</div></label></li>
+                <li><label class="checkbox-label"><input type="checkbox" data-index="57"><div class="checkbox"></div><div class="item-text">Enforce secure headers (HSTS, CSP, X-Frame-Options) and secure cookie settings</div></label></li>
+                <li><label class="checkbox-label"><input type="checkbox" data-index="58"><div class="checkbox"></div><div class="item-text">Separate web, application, and database tiers with network segmentation</div></label></li>
+            </ul>
+        </div>
+    </section>
+
+    <section class="checklist-section">
+        <div class="section-header">Backup and Recovery Security<span class="section-progress">0/0</span></div>
+        <div class="section-content">
+            <ul class="checklist">
+                <li><label class="checkbox-label"><input type="checkbox" data-index="59"><div class="checkbox"></div><div class="item-text">Follow 3-2-1 backup rule (3 copies, 2 media types, 1 offsite/air-gapped)</div></label></li>
+                <li><label class="checkbox-label"><input type="checkbox" data-index="60"><div class="checkbox"></div><div class="item-text">Enable immutable backups (e.g., Azure Backup immutability, Veeam hardened repo)</div></label></li>
+                <li><label class="checkbox-label"><input type="checkbox" data-index="61"><div class="checkbox"></div><div class="item-text">Use dedicated least-privilege backup service accounts with MFA where supported</div></label></li>
+                <li><label class="checkbox-label"><input type="checkbox" data-index="62"><div class="checkbox"></div><div class="item-text">Regularly test backup restores in isolated environment</div></label></li>
+                <li><label class="checkbox-label"><input type="checkbox" data-index="63"><div class="checkbox"></div><div class="item-text">Encrypt backups in transit and at rest; protect backup metadata</div></label></li>
+                <li><label class="checkbox-label"><input type="checkbox" data-index="64"><div class="checkbox"></div><div class="item-text">Monitor backup jobs and alert on failures or unauthorized access</div></label></li>
+            </ul>
+        </div>
+    </section>
+
+    <section class="checklist-section">
+        <div class="section-header">Virtualization Security (vCenter & ESXi)<span class="section-progress">0/0</span></div>
+        <div class="section-content">
+            <ul class="checklist">
+                <li><label class="checkbox-label"><input type="checkbox" data-index="65"><div class="checkbox"></div><div class="item-text">Harden ESXi hosts using VMware security hardening guides (disable unnecessary services, lock down shell)</div></label></li>
+                <li><label class="checkbox-label"><input type="checkbox" data-index="66"><div class="checkbox"></div><div class="item-text">Use separate management network with VLAN isolation and restricted access</div></label></li>
+                <li><label class="checkbox-label"><input type="checkbox" data-index="67"><div class="checkbox"></div><div class="item-text">Apply least-privilege RBAC in vCenter and regularly audit permissions</div></label></li>
+                <li><label class="checkbox-label"><input type="checkbox" data-index="68"><div class="checkbox"></div><div class="item-text">Enable Secure Boot, TPM 2.0, and vSphere Trust Authority where possible</div></label></li>
+                <li><label class="checkbox-label"><input type="checkbox" data-index="69"><div class="checkbox"></div><div class="item-text">Keep vCenter and ESXi patched with latest security updates (use Update Manager)</div></label></li>
+                <li><label class="checkbox-label"><input type="checkbox" data-index="70"><div class="checkbox"></div><div class="item-text">Enable centralized logging (vCenter → SIEM) and monitor for anomalies</div></label></li>
+                <li><label class="checkbox-label"><input type="checkbox" data-index="71"><div class="checkbox"></div><div class="item-text">Implement VM encryption and restrict VM motion/creation for sensitive workloads</div></label></li>
+            </ul>
+        </div>
+    </section>
+
+    <section class="checklist-section">
+        <div class="section-header">Network Security (LAN/WAN)<span class="section-progress">0/0</span></div>
+        <div class="section-content">
+            <ul class="checklist">
+                <li><label class="checkbox-label"><input type="checkbox" data-index="72"><div class="checkbox"></div><div class="item-text">Implement network segmentation (VLANs/micro-segmentation) and Zero Trust principles</div></label></li>
+                <li><label class="checkbox-label"><input type="checkbox" data-index="73"><div class="checkbox"></div><div class="item-text">Deploy next-generation firewalls with IPS/IDS and regular rule reviews</div></label></li>
+                <li><label class="checkbox-label"><input type="checkbox" data-index="74"><div class="checkbox"></div><div class="item-text">Use encrypted site-to-site connections (IPsec VPN or SD-WAN with encryption)</div></label></li>
+                <li><label class="checkbox-label"><input type="checkbox" data-index="75"><div class="checkbox"></div><div class="item-text">Enforce remote access via VPN or ZTNA with MFA and device compliance checks</div></label></li>
+                <li><label class="checkbox-label"><input type="checkbox" data-index="76"><div class="checkbox"></div><div class="item-text">Perform regular vulnerability scanning and penetration testing of network infrastructure</div></label></li>
+                <li><label class="checkbox-label"><input type="checkbox" data-index="77"><div class="checkbox"></div><div class="item-text">Monitor traffic with centralized logging and threat detection (e.g., Defender for Cloud, SIEM)</div></label></li>
+            </ul>
+        </div>
+    </section>
+
+    <section class="checklist-section">
+        <div class="section-header">Global Multi-Site Considerations<span class="section-progress">0/0</span></div>
+        <div class="section-content">
+            <ul class="checklist">
+                <li><label class="checkbox-label"><input type="checkbox" data-index="78"><div class="checkbox"></div><div class="item-text">Centralize identity, logging, and monitoring while respecting regional data residency requirements</div></label></li>
+                <li><label class="checkbox-label"><input type="checkbox" data-index="79"><div class="checkbox"></div><div class="item-text">Implement geo-redundant disaster recovery and backup strategies</div></label></li>
+                <li><label class="checkbox-label"><input type="checkbox" data-index="80"><div class="checkbox"></div><div class="item-text">Ensure compliance with local regulations (GDPR, CCPA, etc.) for data handling and storage</div></label></li>
+                <li><label class="checkbox-label"><input type="checkbox" data-index="81"><div class="checkbox"></div><div class="item-text">Use Content Delivery Networks (CDN) and traffic management for secure global access</div></label></li>
+                <li><label class="checkbox-label"><input type="checkbox" data-index="82"><div class="checkbox"></div><div class="item-text">Test incident response plans across regions with tabletop exercises</div></label></li>
+                <li><label class="checkbox-label"><input type="checkbox" data-index="83"><div class="checkbox"></div><div class="item-text">Conduct regular security awareness training tailored to regional threats</div></label></li>
+            </ul>
+        </div>
+    </section>
+
+    <section class="checklist-section">
+        <div class="section-header">General Enterprise Best Practices<span class="section-progress">0/0</span></div>
+        <div class="section-content">
+            <ul class="checklist">
+                <li><label class="checkbox-label"><input type="checkbox" data-index="84"><div class="checkbox"></div><div class="item-text">Maintain an up-to-date asset inventory and configuration management database</div></label></li>
+                <li><label class="checkbox-label"><input type="checkbox" data-index="85"><div class="checkbox"></div><div class="item-text">Deploy a Security Information and Event Management (SIEM) solution with alerting</div></label></li>
+                <li><label class="checkbox-label"><input type="checkbox" data-index="86"><div class="checkbox"></div><div class="item-text">Conduct regular third-party risk assessments and vendor security reviews</div></label></li>
+                <li><label class="checkbox-label"><input type="checkbox" data-index="87"><div class="checkbox"></div><div class="item-text">Establish and test an Incident Response Plan with clear roles and communication channels</div></label></li>
+            </ul>
+        </div>
+    </section>
 </main>
 
 <footer>
@@ -256,17 +441,11 @@
 </footer>
 
 <script>
-// === Full script with import/export functionality ===
-
 document.addEventListener('DOMContentLoaded', () => {
     const checkboxes = document.querySelectorAll('input[type="checkbox"][data-index]');
     const fields = ['customer-name', 'assessor', 'assessment-status', 'context', 'assessment-date'];
 
-    // ────────────────────────────────
-    // Restore from localStorage
-    // ────────────────────────────────
     function loadState() {
-        // Header fields
         fields.forEach(id => {
             const el = document.getElementById(id);
             if (!el) return;
@@ -274,7 +453,6 @@ document.addEventListener('DOMContentLoaded', () => {
             if (saved !== null) el.value = saved;
         });
 
-        // Checkboxes
         checkboxes.forEach(cb => {
             const index = cb.getAttribute('data-index');
             const key = `cb-${index}`;
@@ -293,9 +471,6 @@ document.addEventListener('DOMContentLoaded', () => {
         updateAllProgress();
     }
 
-    // ────────────────────────────────
-    // Save functions
-    // ────────────────────────────────
     function saveField(id) {
         const el = document.getElementById(id);
         if (el) localStorage.setItem(id, el.value);
@@ -307,27 +482,15 @@ document.addEventListener('DOMContentLoaded', () => {
         localStorage.setItem(key, cb.checked);
     }
 
-    // ────────────────────────────────
-    // Event listeners - fields
-    // ────────────────────────────────
     fields.forEach(id => {
         const el = document.getElementById(id);
         if (!el) return;
-
         const eventType = (id === 'context') ? 'input' : 'change';
         el.addEventListener(eventType, () => saveField(id));
     });
 
-    // Date special handling
-    const dateEl = document.getElementById('assessment-date');
-    dateEl.addEventListener('change', () => saveField('assessment-date'));
-
-    // ────────────────────────────────
-    // Event listeners - checkboxes
-    // ────────────────────────────────
     checkboxes.forEach(cb => {
         const customBox = cb.nextElementSibling;
-
         cb.addEventListener('change', () => {
             customBox.classList.toggle('checked', cb.checked);
             saveCheckbox(cb);
@@ -335,17 +498,12 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-    // ────────────────────────────────
-    // Progress calculation
-    // ────────────────────────────────
     function updateAllProgress() {
-        // Overall
         const total = checkboxes.length;
         const checked = Array.from(checkboxes).filter(cb => cb.checked).length;
         const percent = total > 0 ? Math.round((checked / total) * 100) : 0;
         document.getElementById('overall-progress').textContent = `${checked}/${total} (${percent}%)`;
 
-        // Per section text
         document.querySelectorAll('.checklist-section').forEach(sec => {
             const cbInSec = sec.querySelectorAll('input[type="checkbox"]');
             const secTotal = cbInSec.length;
@@ -354,7 +512,6 @@ document.addEventListener('DOMContentLoaded', () => {
             if (progEl) progEl.textContent = `${secChecked}/${secTotal}`;
         });
 
-        // Progress bars
         const container = document.getElementById('progress-bars-container');
         container.innerHTML = '';
 
@@ -389,9 +546,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // ────────────────────────────────
-    // Export to JSON
-    // ────────────────────────────────
+    // Export
     document.getElementById('export-json').addEventListener('click', () => {
         const data = {
             timestamp: new Date().toISOString(),
@@ -417,13 +572,9 @@ document.addEventListener('DOMContentLoaded', () => {
         URL.revokeObjectURL(url);
     });
 
-    // ────────────────────────────────
-    // Import from JSON
-    // ────────────────────────────────
+    // Import
     const importInput = document.getElementById('import-file-input');
-    document.getElementById('import-json').addEventListener('click', () => {
-        importInput.click();
-    });
+    document.getElementById('import-json').addEventListener('click', () => importInput.click());
 
     importInput.addEventListener('change', (e) => {
         const file = e.target.files[0];
@@ -434,14 +585,12 @@ document.addEventListener('DOMContentLoaded', () => {
             try {
                 const data = JSON.parse(event.target.result);
 
-                // Restore fields
                 if (data.customerName) document.getElementById('customer-name').value = data.customerName;
                 if (data.assessor) document.getElementById('assessor').value = data.assessor;
                 if (data.assessmentDate) document.getElementById('assessment-date').value = data.assessmentDate;
                 if (data.assessmentStatus) document.getElementById('assessment-status').value = data.assessmentStatus;
                 if (data.context) document.getElementById('context').value = data.context;
 
-                // Restore checkboxes
                 Object.entries(data.checkboxes || {}).forEach(([index, checked]) => {
                     const cb = document.querySelector(`input[type="checkbox"][data-index="${index}"]`);
                     if (cb) {
@@ -450,26 +599,23 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
                 });
 
-                // Save to localStorage for persistence
                 fields.forEach(id => saveField(id));
                 checkboxes.forEach(cb => saveCheckbox(cb));
 
                 updateAllProgress();
                 alert('Import successful!');
             } catch (err) {
-                alert('Error importing file: Invalid JSON format\n\n' + err.message);
+                alert('Invalid JSON file: ' + err.message);
             }
         };
         reader.readAsText(file);
-        e.target.value = ''; // reset input
+        e.target.value = '';
     });
 
-    // Initial load
     loadState();
 
-    // Reset
     document.getElementById('reset-storage').addEventListener('click', () => {
-        if (confirm('Clear ALL saved data (fields, notes, checkboxes)? This cannot be undone.')) {
+        if (confirm('Clear ALL saved data?')) {
             localStorage.clear();
             location.reload();
         }
